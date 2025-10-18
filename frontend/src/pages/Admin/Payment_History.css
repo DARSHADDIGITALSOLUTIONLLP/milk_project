@@ -1,0 +1,10 @@
+.responsive-gap {
+    gap: 0px; /* Default (no gap on large screens) */
+  }
+  
+  @media (max-width: 760px) { /* Apply gap only on small screens */
+    .responsive-gap {
+      gap: 4px; /* Adjust gap size as needed */
+    }
+  }
+  

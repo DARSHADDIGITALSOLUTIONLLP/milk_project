@@ -1,0 +1,27 @@
+
+.heading{
+
+    margin-top: 3rem !important;
+}
+
+.heading {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .heading::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 4px; /* Adjust the height as needed */
+    background-color: orange;
+    margin-top: 4px; /* Adjust the margin as needed */
+  }
+
+Form.Label{
+  color: black !important;
+}
+
+.form-control{
+  border: 1.3px solid black !important;
+}

@@ -1,0 +1,143 @@
+.login-container {
+    height: 100vh;
+  }
+  
+  .login-row {
+    height: 100vh;
+  }
+  
+  .image-col,
+  .form-col {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .image-col {
+    background-color: black;
+    height: 165vh;
+  }
+  
+  .image-wrapper img {
+    max-height: 80%;
+    max-width: 80%;
+    margin-top: -439px;
+    position: relative;
+    left: 15%;
+  }
+  
+  .form-col {
+    background-color: white;
+  }
+  
+  .rl-btn {
+    width: 100%;
+  }
+  
+  .line {
+    height: 2px;
+    background-color: rgb(46, 45, 45);
+    width: 45%;
+  }
+  
+  .m-line-div {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .or {
+    position: relative;
+    margin-top: -6px;
+  
+  }
+  
+  .forgot-password a {
+    color: #EF6E0B;
+    text-decoration: none;
+  }
+  
+  .margin-top-button{
+    margin-top: 27rem;
+  }
+
+  @media (max-width: 768px) {
+    .login-row {
+      flex-direction: column;
+    }
+  
+    .form-col {
+      position: relative;
+      margin-top: 20%;
+    }
+  
+    .form-col {
+      position: relative;
+      top: 10%;
+    }
+  
+    .image-col,
+    .form-col {
+      height: 30%;  
+    }
+  
+    .image-wrapper img {
+      margin-top: 0px;
+      height: 167px;
+    }
+    .shift-checkboxes {
+      justify-content: space-between;
+    }
+  
+  }
+  
+  /* .toggle_btn {
+    margin-top: 27rem;
+    color: black !important;
+  }
+   */
+  .password-input {
+    position: relative;
+  }
+  
+  .password-toggle {
+    position: absolute;
+    top: 7px;
+    right: 20px;
+    cursor: pointer;
+  }
+  
+  .card_title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .price {
+    color: rgb(165, 165, 165);
+  }
+  
+  .pay_btn:hover {
+    border: 1px solid orange !important;
+  }
+  
+  .subscription_card:hover {
+    transition: 0.5s;
+    transform: scale(1.1);
+  
+  }
+  
+  .modal-content {
+    margin-left: 0px !important;
+  }
+  
+  
+  .toggle-btn:hover {
+    transition: 0.5s;
+    border: 1px solid #EF6E0B !important;
+  }
+
+  /* @media screen and (max-width: 400px) {
+    .toggle-btn {
+      width: 100% !important;
+    }
+  } */
+  

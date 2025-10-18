@@ -1,0 +1,22 @@
+.hover-container {
+  position: relative;
+  /* display: inline-block; */
+}
+
+.address-popup {
+  display: none;
+  position: absolute;
+  top: 5px; /* Adjust based on row height */
+  left: 0;
+  background-color: #fff;
+  padding: 3px;
+  border: 1px solid #ccc;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+.hover-container:hover .address-popup {
+  display: block;
+}
