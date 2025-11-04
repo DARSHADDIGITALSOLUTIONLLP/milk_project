@@ -1,6 +1,6 @@
 const express = require("express");
 const User = require("../models/User");
-const DeliveryStatus = require("../models/deliveryStatus");
+const DeliveryStatus = require("../models/DeliveryStatus");
 const moment = require("moment-timezone");
 const { Op } = require("sequelize");
 const AdditionalOrder = require("../models/additinalOrder");
