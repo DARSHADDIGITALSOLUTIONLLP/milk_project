@@ -25,7 +25,7 @@ async function syncModels() {
   }
 }
 
-syncModels();
+// syncModels();
 
 module.exports = { 
   sequelize, 
