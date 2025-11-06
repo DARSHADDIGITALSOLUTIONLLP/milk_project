@@ -13,10 +13,10 @@ const Farmer = require("./Farmer.js");
 const DailyFarmerOrder = require("./DailyFarmerOrder.js");
 const FarmerPayment = require("./FarmerPayment.js");
 
-// // Sync all models (create tables if not exist)
-async function init() {
+// Sync all models (create tables if not exist)
+async function syncModels() {
   try {
-    await sequelize.sync(); 
+    await sequelize.sync();
     console.log("All models synced successfully");
     process.exit();
   } catch (error) {
@@ -25,7 +25,20 @@ async function init() {
   }
 }
 
-init();
+syncModels();
 
-module.exports = { sequelize, SuperAdmin, Admin,vactionDate,deliveryStatus,deliveryBoy,user,PaymentDetails,additinalOrder,Farmer,DailyFarmerOrder,FarmerPayment, syncModels };
-// module.exports = { sequelize, Admin, syncModels };
+module.exports = { 
+  sequelize, 
+  SuperAdmin, 
+  Admin,
+  vactionDate,
+  deliveryStatus,
+  deliveryBoy,
+  user,
+  PaymentDetails,
+  additinalOrder,
+  Farmer,
+  DailyFarmerOrder,
+  FarmerPayment,
+  syncModels
+};
