@@ -88,7 +88,7 @@ module.exports.registeredUser = async (req, res) => {
         image: '/notification.png', // <-- Add your image URL here
       },
       data: {
-        redirect_url: "http://localhost:5173/user-request", 
+        redirect_url: "https://duddairy.spectrasynth.com/user-request", 
       },
       tokens: fcmTokens,
     };
@@ -887,7 +887,7 @@ module.exports.additinal_order = async (req, res) => {
         image: '/notification.png', // <-- Add your image URL here
       },
       data: {
-        redirect_url: "http://localhost:5173/additional-orders", // URL to redirect when the notification is clicked
+        redirect_url: "https://duddairy.spectrasynth.com/additional-orders", // URL to redirect when the notification is clicked
       },
       tokens: fcmTokens,
     };
