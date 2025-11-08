@@ -156,7 +156,7 @@ module.exports.paymentVerification = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("http://localhost:5173");
+    res.redirect("https://duddairy.spectrasynth.com/");
   } catch (err) {
     console.error("Error in payment verification:", err);
     res
@@ -272,7 +272,7 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("http://localhost:5173/admin-dashboard");
+    res.redirect("https://duddairy.spectrasynth.com/admin-dashboard");
   } catch (err) {
     console.error("Error in payment verification:", err);
     res
