@@ -1,0 +1,349 @@
+DELIMITER //
+
+CREATE EVENT activate_vacation_mode_event
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_TIMESTAMP + INTERVAL 1 DAY
+DO
+BEGIN
+    UPDATE users 
+    INNER JOIN vacations ON users.id = vacations.user_id
+    SET 
+        users.vacation_mode_morning = CASE 
+            WHEN vacations.shift IN ('morning', 'both') THEN TRUE 
+            ELSE users.vacation_mode_morning 
+        END,
+        users.vacation_mode_evening = CASE 
+            WHEN vacations.shift IN ('evening', 'both') THEN TRUE 
+            ELSE users.vacation_mode_evening 
+        END
+    WHERE vacations.vacation_start = CURDATE();
+END;
+//
+
+DELIMITER ;
+
+
+DELIMITER //
+
+CREATE EVENT reset_vacation_mode_event
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_TIMESTAMP + INTERVAL 1 DAY
+DO
+BEGIN
+    UPDATE users 
+    INNER JOIN vacations ON users.id = vacations.user_id
+    SET 
+        users.vacation_mode_morning = CASE 
+            WHEN vacations.shift IN ('morning', 'both') THEN FALSE 
+            ELSE users.vacation_mode_morning 
+        END,
+        users.vacation_mode_evening = CASE 
+            WHEN vacations.shift IN ('evening', 'both') THEN FALSE 
+            ELSE users.vacation_mode_evening 
+        END
+    WHERE vacations.vacation_end = CURDATE() - INTERVAL 1 DAY;
+END;
+//
+
+DELIMITER ;
+
+
+SHOW EVENTS;
+
+SET GLOBAL event_scheduler = ON;
+
+
+use mauli_dairy;
+DELIMITER $$
+
+CREATE EVENT reset_delivery_status
+ON SCHEDULE EVERY 1 DAY
+STARTS TIMESTAMP(CURRENT_DATE, '00:10:00') -- Runs at 12:10 AM
+DO
+BEGIN
+    
+    UPDATE users
+    SET delivered_morning = FALSE, delivered_evening = FALSE;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE EVENT reset_admin_status
+ON SCHEDULE EVERY 1 DAY
+STARTS TIMESTAMP(CURDATE() + INTERVAL 1 DAY, '00:05:00')
+DO
+BEGIN
+    UPDATE admin_registration 
+    SET request = FALSE
+    WHERE end_date = CURDATE();
+END $$
+
+DELIMITER ;
+
+
+--Event for the update the payment details automatically
+
+-- ALTER EVENT update_payment_details
+-- ON SCHEDULE EVERY 1 MONTH
+-- STARTS TIMESTAMP(CURRENT_TIMESTAMP);
+
+
+-- USE mauli_dairy;
+-- DELIMITER $$
+
+-- CREATE EVENT update_payment_details
+-- ON SCHEDULE EVERY 1 MONTH
+-- STARTS TIMESTAMP(CURRENT_DATE + INTERVAL 1 DAY)
+-- DO
+-- BEGIN
+--     -- Declare variables
+--     DECLARE done INT DEFAULT 0;
+--     DECLARE user_id INT;
+--     DECLARE user_advance FLOAT;
+--     DECLARE user_dairy_name VARCHAR(100);
+--     DECLARE user_start_date DATE;
+--     DECLARE user_rate FLOAT;
+--     DECLARE delivery_charges FLOAT;
+--     DECLARE total_quantity FLOAT DEFAULT 0;
+--     DECLARE total_payment FLOAT DEFAULT 0;
+--     DECLARE balance_amount FLOAT DEFAULT 0;
+--     DECLARE updated_advance_payment FLOAT DEFAULT 0;
+--     DECLARE start_date DATE;
+--     DECLARE end_date DATE;
+--     DECLARE next_start_date DATE;
+--     DECLARE next_end_date DATE;
+
+--     -- Cursor to get all users and their data
+--     DECLARE cur CURSOR FOR SELECT id, advance_payment, dairy_name, start_date FROM users;
+--     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+--     -- Open the cursor
+--     OPEN cur;
+
+--     read_loop: LOOP
+--         FETCH cur INTO user_id, user_advance, user_dairy_name, user_start_date;
+--         IF done THEN
+--             LEAVE read_loop;
+--         END IF;
+
+--         -- Get rate and delivery charges from admin_registration based on dairy_name
+--         SELECT rate, delivery_charges
+--         INTO user_rate, delivery_charges
+--         FROM admin_registration
+--         WHERE dairy_name = user_dairy_name
+--         LIMIT 1;
+
+--         -- Set start_date and end_date for the current cycle
+--         SET start_date = user_start_date;
+--         SET end_date = LAST_DAY(user_start_date);
+
+--         -- Calculate total quantity delivered in the previous month
+--         SELECT IFNULL(SUM(quantity), 0)
+--         INTO total_quantity
+--         FROM DeliveryStatus
+--         WHERE userid = user_id
+--           AND status = 1
+--           AND date BETWEEN start_date AND end_date;
+
+--         -- Calculate total payment using the admin rate
+--         SET total_payment = total_quantity * IFNULL(user_rate, 0);
+
+--         -- Calculate balance amount including delivery charges
+--         SET balance_amount = total_payment + IFNULL(delivery_charges, 0);
+
+--         -- Apply Advance Payment Deduction
+--         SET updated_advance_payment = user_advance;
+
+--         IF updated_advance_payment >= 100 THEN
+--             IF balance_amount <= 100 THEN
+--                 SET updated_advance_payment = updated_advance_payment - balance_amount;
+--                 SET balance_amount = 0; -- All balance covered by advance payment
+--             ELSE
+--                 SET balance_amount = balance_amount - 100;
+--                 SET updated_advance_payment = updated_advance_payment - 100;
+--             END IF;
+--         END IF;
+
+--         -- Ensure balance and advance payment don't go below 0
+--         IF updated_advance_payment < 0 THEN
+--             SET updated_advance_payment = 0;
+--         END IF;
+
+--         IF balance_amount < 0 THEN
+--             SET balance_amount = 0;
+--         END IF;
+
+--         -- Insert new payment record for the billing cycle
+--         INSERT INTO PaymentDetails (
+--             userid, advance_payment, start_date, end_date, status,
+--             totalquantity, payment, received_payment, balance_payment
+--         )
+--         VALUES (
+--             user_id,
+--             updated_advance_payment,
+--             start_date,
+--             end_date,
+--             0,
+--             total_quantity,
+--             total_payment,
+--             0,
+--             balance_amount
+--         );
+
+--         -- Set Next Billing Start Date to 1st of Next Month
+--         SET next_start_date = DATE_ADD(end_date, INTERVAL 1 DAY); -- 1st of next month
+--         SET next_end_date = LAST_DAY(next_start_date); -- End date of next month
+
+--         -- ✅ Update start_date and advance_payment in the user table
+--         UPDATE users
+--         SET start_date = next_start_date,
+--             advance_payment = updated_advance_payment
+--         WHERE id = user_id;
+
+--     END LOOP;
+
+--     -- Close the cursor
+--     CLOSE cur;
+-- END $$
+
+-- DELIMITER ;
+
+USE mauli_dairy;
+DELIMITER $$
+
+CREATE EVENT update_payment_details
+ON SCHEDULE EVERY 1 MONTH
+STARTS TIMESTAMP(CURRENT_DATE + INTERVAL 1 DAY)
+DO
+BEGIN
+    -- Declare variables
+    DECLARE done INT DEFAULT 0;
+    DECLARE user_id INT;
+    DECLARE user_advance FLOAT;
+    DECLARE user_dairy_name VARCHAR(100);
+    DECLARE user_start_date DATE;
+    DECLARE user_milktype VARCHAR(20);
+    DECLARE cow_rate FLOAT;
+    DECLARE buffalo_rate FLOAT;
+    DECLARE pure_rate FLOAT;
+    DECLARE user_rate FLOAT;
+    DECLARE delivery_charges FLOAT;
+    DECLARE total_quantity FLOAT DEFAULT 0;
+    DECLARE total_payment FLOAT DEFAULT 0;
+    DECLARE balance_amount FLOAT DEFAULT 0;
+    DECLARE updated_advance_payment FLOAT DEFAULT 0;
+    DECLARE start_date DATE;
+    DECLARE end_date DATE;
+    DECLARE next_start_date DATE;
+    DECLARE next_end_date DATE;
+
+    -- Cursor to get all users and their data
+    DECLARE cur CURSOR FOR 
+    SELECT id, advance_payment, dairy_name, start_date, milk_type
+    FROM users;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    -- Open the cursor
+    OPEN cur;
+
+    read_loop: LOOP
+        FETCH cur INTO user_id, user_advance, user_dairy_name, user_start_date, user_milktype;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Get rates and delivery charges from admin_registration based on dairy_name
+        SELECT cow_rate, buffalo_rate, pure_rate, delivery_charges
+        INTO cow_rate, buffalo_rate, pure_rate, delivery_charges
+        FROM admin_registration
+        WHERE dairy_name = user_dairy_name
+        LIMIT 1;
+
+        -- Determine the rate based on the user's milktype
+        IF user_milktype = 'cow' THEN
+            SET user_rate = IFNULL(cow_rate, 0);
+        ELSEIF user_milktype = 'buffalo' THEN
+            SET user_rate = IFNULL(buffalo_rate, 0);
+        ELSEIF user_milktype = 'pure' THEN
+            SET user_rate = IFNULL(pure_rate, 0);
+        ELSE
+            SET user_rate = 0;
+        END IF;
+
+        -- Set start_date and end_date for the current cycle
+        SET start_date = user_start_date;
+        SET end_date = LAST_DAY(user_start_date);
+
+        -- Calculate total quantity delivered in the previous month
+        SELECT IFNULL(SUM(quantity), 0)
+        INTO total_quantity
+        FROM DeliveryStatus
+        WHERE userid = user_id
+          AND status = 1
+          AND date BETWEEN start_date AND end_date;
+
+        -- Calculate total payment using the selected rate
+        SET total_payment = total_quantity * user_rate;
+
+        -- Calculate balance amount including delivery charges
+        SET balance_amount = total_payment + IFNULL(delivery_charges, 0);
+
+        -- Apply Advance Payment Deduction
+        SET updated_advance_payment = user_advance;
+
+        IF updated_advance_payment >= 100 THEN
+            IF balance_amount <= 100 THEN
+                SET updated_advance_payment = updated_advance_payment - balance_amount;
+                SET balance_amount = 0; -- All balance covered by advance payment
+            ELSE
+                SET balance_amount = balance_amount - 100;
+                SET updated_advance_payment = updated_advance_payment - 100;
+            END IF;
+        END IF;
+
+        -- Ensure balance and advance payment don't go below 0
+        IF updated_advance_payment < 0 THEN
+            SET updated_advance_payment = 0;
+        END IF;
+
+        IF balance_amount < 0 THEN
+            SET balance_amount = 0;
+        END IF;
+
+        -- Insert new payment record for the billing cycle
+        INSERT INTO PaymentDetails (
+            userid, advance_payment, start_date, end_date, status,
+            totalquantity, payment, received_payment, balance_payment
+        )
+        VALUES (
+            user_id,
+            updated_advance_payment,
+            start_date,
+            end_date,
+            0,
+            total_quantity,
+            total_payment,
+            0,
+            balance_amount
+        );
+
+        -- Set Next Billing Start Date to 1st of Next Month
+        SET next_start_date = DATE_ADD(end_date, INTERVAL 1 DAY); -- 1st of next month
+        SET next_end_date = LAST_DAY(next_start_date); -- End date of next month
+
+        -- ✅ Update start_date and advance_payment in the user table
+        UPDATE users
+        SET start_date = next_start_date,
+            advance_payment = updated_advance_payment
+        WHERE id = user_id;
+
+    END LOOP;
+
+    -- Close the cursor
+    CLOSE cur;
+END $$
+
+DELIMITER ;

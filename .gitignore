@@ -34,6 +34,15 @@ desktop.ini
 # Documentation files (session-specific)
 FILES_CHANGED_IN_SESSION.md
 GIT_SETUP_GUIDE.md
+GIT_BASH_COMMANDS.md
+GIT_SSH_VS_HTTPS.md
+QUICK_UNINITIALIZE_GUIDE.md
+SAFE_PULL_GUIDE.md
+UNINITIALIZE_AND_CONNECT.md
+YOUR_SAFE_PULL_STEPS.md
+EXACT_STEPS_FOR_YOU.md
+NEXT_STEPS_AFTER_ADD.md
+FINAL_STEPS.md
 
 # Test files
 test-*.js
@@ -61,4 +70,9 @@ coverage/
 # Misc
 .cache/
 .temp/
+
+# Zip files
+*.zip
+backend.zip
+frontend.zip
 

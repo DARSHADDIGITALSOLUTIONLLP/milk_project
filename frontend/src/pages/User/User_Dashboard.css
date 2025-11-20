@@ -1,0 +1,245 @@
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .col-container { 
+     border: 1px solid #CDCDCD;
+    padding: 15px; 
+  }
+  .r{
+    display: flex;
+    justify-content: space-between;
+  }
+  .btn:hover {
+    color: #EF6E0B !important;
+    background-color: transparent !important;
+    border-color: #EF6E0B !important;
+  }
+  @media (max-width: 768px) {
+    .milk-section {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;        
+    }
+    .milk-section > div {
+      margin-bottom: 10px; /* Add margin between the divs */
+    }
+    .r{
+      flex-direction: column;
+    }
+  }
+  
+  .table-container {
+    font-size: 10px;
+  }
+  
+  .table-container .headings {
+    font-size: 10px;
+  }
+  
+  .table-container td, 
+  .table-container th {
+    font-size: 10px;
+  }
+  
+  .table-container .text-right a {
+    font-size: 10px;
+  }
+  
+  
+  .table{
+   border: 1px solid black !important;
+  }
+  
+  .quantity {
+    background-color: rgba(0, 123, 255, 0.1);
+    padding: 5px;
+    font-size: 12px;
+    color: #007bff;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .no-quantity {
+    display: block; 
+    background-color: rgba(255, 0, 0, 0.1);
+    padding: 15px;
+    font-size: 12px;
+    color: red;
+    text-align: left; 
+    margin-top: 5px;
+}
+  .vacation {
+    background-color: #ffcccc;
+    border-radius: 50%;
+    padding: 5px;
+    color: red;
+    font-weight: bold;
+  }
+  
+
+  .react-calendar {
+    width: 100% !important;
+  }
+
+  .react-calendar__tile--active {
+    background-color: #ffeeba !important;
+    color: inherit !important;
+    outline: none;
+    cursor: auto;
+  }
+
+  .calendar-container {
+    position: relative;
+  }
+
+  .calendar-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 20px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #007bff;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(14px);
+  }
+
+  .slider.round {
+    border-radius: 34px;
+  }
+
+  .slider.round:before {
+    border-radius: 50%;
+  }
+
+   .vacant-morning {
+    background-color:rgb(251, 184, 132);
+    /* padding: 2px; */
+    height:72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .vacant-evening {
+    background-color: rgb(243, 190, 149);
+    height:72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* padding: 2px; */
+    /* margin-top: 4px; */
+  }
+
+
+.modal-content {
+  width: 90%;
+  margin: auto;
+}
+
+.shift{
+    padding: 5px;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .shift-quantity {
+    padding: 5px;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .shift-no-quantity {
+    display: block; 
+    padding: 15px;
+    font-size: 12px;
+    text-align: left; 
+    margin-top: 5px;
+}
+
+@media screen and (max-width: 600px) {
+  .no-quantity {
+    font-size: 8px;
+    text-align: left;
+    margin-top: 2px;
+    display: block;
+  }
+  .shift{
+    font-size: 8px;
+  }
+
+  .shift-quantity {
+    font-size: 8px;
+  }
+
+  .shift-no-quantity {
+    font-size: 8px;
+   }
+   .vacant-morning {
+    height:52px;
+  }
+  
+  .vacant-evening {
+    height:52px;
+  }
+
+}
+
+/* In your CSS file or inside a <style> tag */
+.flex-quantity {
+  /* display: flex; */
+  /* flex-wrap: wrap; */
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+@media screen and (max-width: 600px) {
+  .flex-quantity {
+    font-size: 7px;
+  }
+}
