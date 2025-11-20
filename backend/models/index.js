@@ -7,38 +7,21 @@ const PaymentDetails = require("./payment_details.js");
 const user = require("./User.js");
 const vactionDate = require("./vacations.js");
 const deliveryBoy = require("./DeliveryBoy.js");
-const deliveryStatus = require("./DeliveryStatus.js");
+const deliveryStatus = require("./deliveryStatus.js");
 const additinalOrder = require("./additinalOrder.js");
 const Farmer = require("./Farmer.js");
 const DailyFarmerOrder = require("./DailyFarmerOrder.js");
 const FarmerPayment = require("./FarmerPayment.js");
 
-// Sync all models (create tables if not exist)
-async function syncModels() {
-  try {
-    await sequelize.sync();
-    console.log("All models synced successfully");
-    process.exit();
-  } catch (error) {
-    console.error("Error syncing models:", error);
-    process.exit(1);
-  }
-}
-
-// syncModels();
-
-module.exports = { 
-  sequelize, 
-  SuperAdmin, 
-  Admin,
-  vactionDate,
-  deliveryStatus,
-  deliveryBoy,
-  user,
-  PaymentDetails,
-  additinalOrder,
-  Farmer,
-  DailyFarmerOrder,
-  FarmerPayment,
-  syncModels
+// // Sync all models (create tables if not exist)
+const syncModels = async () => {
+    try {
+        await sequelize.sync({ alter: true }); // `alter: true` updates schema without deleting data
+        console.log("All tables created (if not exist)");
+    } catch (error) {
+        console.error("Error creating tables:", error);
+    }
 };
+
+// module.exports = { sequelize, SuperAdmin, Admin,vactionDate,deliveryStatus,deliveryBoy,user,PaymentDetails, syncModels };
+module.exports = { sequelize, Admin, syncModels };

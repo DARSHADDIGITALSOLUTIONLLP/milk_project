@@ -228,6 +228,7 @@ function Todays_Order() {
             pagination
             highlightOnHover
             progressPending={loading}
+            responsive
           />
         </Container>
       </div>

@@ -136,6 +136,18 @@ const User = sequelize.define(
             type: DataTypes.STRING, // Supports "morning", "evening", "both"
             allowNull: false,
         },
+        delivery_sequence_morning: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Custom delivery sequence for morning shift (lower number = earlier delivery)",
+        },
+        delivery_sequence_evening: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Custom delivery sequence for evening shift (lower number = earlier delivery)",
+        },
         created_at: {
             type: DataTypes.DATE,
             allowNull: false,

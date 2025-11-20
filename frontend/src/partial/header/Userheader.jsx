@@ -11,7 +11,7 @@ import {
   Col,
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser } from "@fortawesome/free-solid-svg-icons";
+import { faUser, faBars, faTimes } from "@fortawesome/free-solid-svg-icons";
 import logo from "/mauli_logo.png";
 import "./Userheader.css";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -27,6 +27,7 @@ const Userheader = forwardRef((prop, ref) => {
   const [showAdvancePaymentPopup, setShowAdvancePaymentPopup] = useState(false);
   const [showPaymentHistoryPopup, setShowPaymentHistoryPopup] = useState(false);
   const [qr_image, setQr_Image] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [total_pending, setTotalPending] = useState({
     total_pending_payment: 0,
@@ -84,6 +85,23 @@ const Userheader = forwardRef((prop, ref) => {
   useEffect(() => {
     fetchPaymentProof();
   }, []);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileMenuOpen && !event.target.closest('.mobile-menu-container') && !event.target.closest('.hamburger-icon')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
 
   const fetchPendingPayment = async () => {
     try {
@@ -201,7 +219,7 @@ const Userheader = forwardRef((prop, ref) => {
     <>
       <Navbar
         className="fixed top-0 right-0 d-flex bg-dark w-100"
-        style={{ color: "white", height: "73px" }}
+        style={{ color: "white", height: "73px", zIndex: 1050 }}
       >
         {" "}
         <Container fluid>
@@ -243,9 +261,48 @@ const Userheader = forwardRef((prop, ref) => {
                 </p>
               </div>
             </div>
-            <div>
+            <div className="d-flex align-items-center">
+              {/* Hamburger Menu for Mobile - Right Side */}
+              <div 
+                className="d-lg-none ms-3 hamburger-icon"
+                tabIndex={-1}
+                style={{
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  MozUserSelect: "none",
+                  msUserSelect: "none",
+                  outline: "none",
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onFocus={(e) => e.target.blur()}
+              >
+                <FontAwesomeIcon
+                  icon={mobileMenuOpen ? faTimes : faBars}
+                  style={{
+                    fontSize: "24px",
+                    cursor: "pointer",
+                    color: "white",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                    pointerEvents: "auto",
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setMobileMenuOpen(!mobileMenuOpen);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                />
+              </div>
+
               <Nav
-                className="ml-auto nav-dropdown"
+                className="ml-auto nav-dropdown d-none d-lg-block"
                 style={{
                   position: "relative",
                   align: "end",
@@ -319,6 +376,145 @@ const Userheader = forwardRef((prop, ref) => {
           </div>
         </Container>
       </Navbar>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div
+          className="mobile-menu-container"
+          style={{
+            position: "fixed",
+            top: "73px",
+            left: 0,
+            right: 0,
+            backgroundColor: "#ffffff",
+            zIndex: 1060,
+            padding: "20px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            maxHeight: "calc(100vh - 73px)",
+            overflowY: "auto",
+            borderTop: "2px solid #007bff",
+          }}
+        >
+          <div style={{ color: "#333" }}>
+            {/* Contact Info */}
+            <div style={{ marginBottom: "20px", borderBottom: "1px solid #e0e0e0", paddingBottom: "15px" }}>
+              <p className="mb-2" style={{ fontSize: "14px", fontWeight: "600", color: "#333" }}>
+                Contact Us:{" "}
+                <a
+                  href="tel:9822888290"
+                  style={{ textDecoration: "none", color: "#007bff", fontWeight: "normal" }}
+                >
+                  9822888290
+                </a>
+              </p>
+              <p className="mb-0" style={{ fontSize: "14px", fontWeight: "600", color: "#333" }}>
+                Email-ID:{" "}
+                <a
+                  href="mailto:mulidairy123@gmail.com"
+                  style={{ textDecoration: "none", color: "#007bff", fontWeight: "normal" }}
+                >
+                  mulidairy123@gmail.com
+                </a>
+              </p>
+            </div>
+
+            {/* User Menu */}
+            <div>
+              <p style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "15px", color: "#333" }}>
+                <FontAwesomeIcon
+                  icon={faUser}
+                  style={{ marginRight: "8px", color: "#007bff" }}
+                />
+                {username}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <button
+                  onClick={() => {
+                    handleShowProfilePopup();
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    backgroundColor: "#f8f9fa",
+                    border: "1px solid #dee2e6",
+                    color: "#333",
+                    padding: "12px 15px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = "#e9ecef";
+                    e.target.style.borderColor = "#007bff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = "#f8f9fa";
+                    e.target.style.borderColor = "#dee2e6";
+                  }}
+                >
+                  Profile
+                </button>
+                <button
+                  onClick={() => {
+                    handleShowPaymentHistoryPopup();
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    backgroundColor: "#f8f9fa",
+                    border: "1px solid #dee2e6",
+                    color: "#333",
+                    padding: "12px 15px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = "#e9ecef";
+                    e.target.style.borderColor = "#007bff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = "#f8f9fa";
+                    e.target.style.borderColor = "#dee2e6";
+                  }}
+                >
+                  Payment History
+                </button>
+                <button
+                  onClick={() => {
+                    handleLogout({ preventDefault: () => {} });
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    backgroundColor: "#dc3545",
+                    border: "none",
+                    color: "white",
+                    padding: "12px 15px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: "14px",
+                    fontWeight: "bold",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = "#c82333";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = "#dc3545";
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Modal
         show={showProfilePopup}

@@ -633,6 +633,7 @@ function Farmer_List() {
             pagination
             highlightOnHover
             progressPending={loading}
+            responsive
           />
         </Container>
 

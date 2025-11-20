@@ -5,13 +5,13 @@ import {
   Container,
   Button,
   Modal,
-  ToastContainer,
   Form,
 } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import { encode } from "base64-arraybuffer";
-import { toast } from "react-toastify";
+import { toast, ToastContainer, Bounce } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../SuperAdmin/Dairy_List.css";
 
 function Farmer_Order_History() {
@@ -68,7 +68,7 @@ function Farmer_Order_History() {
       console.error("Error fetching farmers:", error);
     }
   };
-  useState(() => {
+  useEffect(() => {
     getOrderHistory();
   }, []);
 
@@ -189,7 +189,7 @@ function Farmer_Order_History() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">
@@ -216,6 +216,7 @@ function Farmer_Order_History() {
             pagination
             highlightOnHover
             progressPending={loading}
+            responsive
           />
         </Container>
       </div>

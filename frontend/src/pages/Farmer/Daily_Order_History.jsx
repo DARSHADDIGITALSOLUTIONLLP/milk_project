@@ -209,6 +209,7 @@ function Daily_Order_History() {
             pagination
             highlightOnHover
             progressPending={loading}
+            responsive
           />
         </Container>
       </div>

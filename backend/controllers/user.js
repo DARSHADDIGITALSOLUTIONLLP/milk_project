@@ -5,7 +5,7 @@ const User = require("../models/User");
 const Admin = require("../models/Admin");
 const SuperAdmin = require("../models/SuperAdmin");
 const DeliveryBoy = require("../models/DeliveryBoy");
-const DeliveryStatus = require("../models/DeliveryStatus");
+const DeliveryStatus = require("../models/deliveryStatus");
 const Vacation = require("../models/vacations");
 const AdditionalOrder = require("../models/additinalOrder");
 const { Op } = require("sequelize");
@@ -88,7 +88,7 @@ module.exports.registeredUser = async (req, res) => {
         image: '/notification.png', // <-- Add your image URL here
       },
       data: {
-        redirect_url: "https://duddairy.spectrasynth.com/user-request", 
+        redirect_url: "http://localhost:5173/user-request", 
       },
       tokens: fcmTokens,
     };
@@ -887,7 +887,7 @@ module.exports.additinal_order = async (req, res) => {
         image: '/notification.png', // <-- Add your image URL here
       },
       data: {
-        redirect_url: "https://duddairy.spectrasynth.com/additional-orders", // URL to redirect when the notification is clicked
+        redirect_url: "http://localhost:5173/additional-orders", // URL to redirect when the notification is clicked
       },
       tokens: fcmTokens,
     };

@@ -616,6 +616,7 @@ function Admin_Customer_List() {
             selectableRows
             fixedHeader
             pagination
+            responsive
           />
         </Container>
         

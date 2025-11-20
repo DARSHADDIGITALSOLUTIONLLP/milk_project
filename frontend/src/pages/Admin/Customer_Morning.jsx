@@ -264,7 +264,83 @@ function Customer_Morning() {
     },
   };
 
+  const handleMoveUp = async (index) => {
+    if (index === 0) return; // Can't move first item up
+    const newRecords = [...filteredRecords];
+    [newRecords[index - 1], newRecords[index]] = [newRecords[index], newRecords[index - 1]];
+    setFilteredRecords(newRecords);
+    setRecords(newRecords);
+    await saveSequence(newRecords);
+  };
+
+  const handleMoveDown = async (index) => {
+    if (index === filteredRecords.length - 1) return; // Can't move last item down
+    const newRecords = [...filteredRecords];
+    [newRecords[index], newRecords[index + 1]] = [newRecords[index + 1], newRecords[index]];
+    setFilteredRecords(newRecords);
+    setRecords(newRecords);
+    await saveSequence(newRecords);
+  };
+
+  const saveSequence = async (orderedRecords) => {
+    const token = localStorage.getItem("token");
+    try {
+      const customerIds = orderedRecords.map((record) => record.id);
+      await axios.put(
+        "/api/admin/users/update-delivery-sequence",
+        {
+          customerIds: customerIds,
+          shift: "morning",
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      toast.success("Delivery sequence updated successfully");
+    } catch (error) {
+      console.error("Error updating sequence:", error);
+      toast.error("Failed to update sequence");
+      // Revert on error
+      fetchData();
+    }
+  };
+
   const columns = [
+    {
+      name: "Sequence",
+      cell: (row) => {
+        const index = filteredRecords.findIndex((r) => r.id === row.id);
+        const sequenceValue = row.delivery_sequence_morning !== null && row.delivery_sequence_morning !== undefined 
+          ? row.delivery_sequence_morning 
+          : index + 1;
+        return (
+          <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => handleMoveUp(index)}
+              disabled={index === 0}
+              style={{ padding: "2px 8px" }}
+            >
+              ↑
+            </Button>
+            <span style={{ minWidth: "30px", textAlign: "center" }}>
+              {sequenceValue}
+            </span>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => handleMoveDown(index)}
+              disabled={index === filteredRecords.length - 1}
+              style={{ padding: "2px 8px" }}
+            >
+              ↓
+            </Button>
+          </div>
+        );
+      },
+      width: "120px",
+    },
     {
       name: "Sr No.",
       selector: (row, index) => index + 1,
@@ -403,6 +479,7 @@ function Customer_Morning() {
             customStyles={customStyles}
             pagination
             highlightOnHover
+            responsive
           />
         </Container>
 

@@ -170,7 +170,7 @@ function WindowHeader({ dashboardText }) {
             </div>
             <Nav
               className="ml-auto"
-              style={{ position: "relative", left: "-15px" }}
+              style={{ position: "relative", left: "5px" }}
             >
               <NavDropdown
                 title={

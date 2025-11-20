@@ -7,7 +7,7 @@ const Admin = require("../models/Admin");
 const User = require("../models/User");
 const SuperAdmin = require("../models/SuperAdmin");
 const DeliveryBoy = require("../models/DeliveryBoy");
-const DeliveryStatus = require("../models/DeliveryStatus");
+const DeliveryStatus = require("../models/deliveryStatus");
 const AdditionalOrder = require("../models/additinalOrder");
 const Farmer = require("../models/Farmer");
 const DailyFarmerOrder = require("../models/DailyFarmerOrder");
@@ -73,17 +73,48 @@ module.exports.checkAdmin = async (req, res) => {
 };
 
 module.exports.userDashPay = async (req, res) => {
-  const instance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-  const order = await instance.orders.create({
-    amount: Number(req.body.amount * 100),
-    currency: "INR",
-    receipt: "receipt#1",
-  });
+  try {
+    if (!req.body.amount) {
+      return res.status(400).json({ message: "Amount is required" });
+    }
 
-  res.status(200).json({ success: true, order: order });
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("Razorpay credentials not configured");
+      return res.status(500).json({ message: "Payment gateway not configured" });
+    }
+
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+    
+    const order = await instance.orders.create({
+      amount: Number(req.body.amount * 100),
+      currency: "INR",
+      receipt: "receipt#1",
+    });
+
+    res.status(200).json({ success: true, order: order });
+  } catch (error) {
+    console.error("Error creating Razorpay order:", error);
+    
+    // Handle specific Razorpay authentication errors
+    if (error.statusCode === 401 || error.error?.code === "BAD_REQUEST_ERROR") {
+      console.error("⚠️  Razorpay authentication failed!");
+      console.error("   Please verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env file");
+      console.error("   Get new credentials from: https://dashboard.razorpay.com/app/keys");
+      
+      return res.status(500).json({ 
+        message: "Razorpay authentication failed. Please check your API credentials.",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "Error creating payment order", 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
+  }
 };
 
 module.exports.paymentVerification = async (req, res) => {
@@ -156,7 +187,7 @@ module.exports.paymentVerification = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("https://duddairy.spectrasynth.com/");
+    res.redirect("http://localhost:5173");
   } catch (err) {
     console.error("Error in payment verification:", err);
     res
@@ -166,17 +197,35 @@ module.exports.paymentVerification = async (req, res) => {
 };
 
 module.exports.userDashSubscriptionPay = async (req, res) => {
-  const instance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-  const order = await instance.orders.create({
-    amount: Number(req.body.amount * 100),
-    currency: "INR",
-    receipt: "receipt#1",
-  });
+  try {
+    if (!req.body.amount) {
+      return res.status(400).json({ message: "Amount is required" });
+    }
 
-  res.status(200).json({ success: true, order: order });
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("Razorpay credentials not configured");
+      return res.status(500).json({ message: "Payment gateway not configured" });
+    }
+
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+    
+    const order = await instance.orders.create({
+      amount: Number(req.body.amount * 100),
+      currency: "INR",
+      receipt: "receipt#1",
+    });
+
+    res.status(200).json({ success: true, order: order });
+  } catch (error) {
+    console.error("Error creating Razorpay order:", error);
+    res.status(500).json({ 
+      message: "Error creating payment order", 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
+  }
 };
 
 module.exports.paymentVerificationSubscription = async (req, res) => {
@@ -219,30 +268,38 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
 
     Userdata.dairy_name = capitalizeEachWord(Userdata.dairy_name);
     Userdata.payment_amount = Userdata.amount;
-    Userdata.res_date = new Date().toISOString().split("T")[0];
+    
+    // Set res_date to today (start of subscription)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day to avoid timezone issues
+    Userdata.res_date = today.toISOString().split("T")[0];
 
-    let end_date;
+    // Calculate end_date based on res_date and period
+    let end_date = new Date(today); // Start from today
     switch (Userdata.periods) {
       case "monthly":
-        end_date = new Date(Userdata.res_date);
         end_date.setMonth(end_date.getMonth() + 1);
         break;
       case "quarterly":
-        end_date = new Date(Userdata.res_date);
         end_date.setMonth(end_date.getMonth() + 3);
         break;
       case "half-yearly":
-        end_date = new Date(Userdata.res_date);
         end_date.setMonth(end_date.getMonth() + 6);
         break;
       case "yearly":
-        end_date = new Date(Userdata.res_date);
         end_date.setFullYear(end_date.getFullYear() + 1);
         break;
       default:
         return res.status(400).json({ message: "Invalid period selected." });
     }
+    end_date.setHours(0, 0, 0, 0); // Set to start of day
     Userdata.end_date = end_date.toISOString().split("T")[0];
+    
+    console.log("📅 Calculating subscription dates:", {
+      res_date: Userdata.res_date,
+      end_date: Userdata.end_date,
+      period: Userdata.periods
+    });
 
     // 🔹 Check if admin already exists (based on email)
     const existingAdmin = await Admin.findOne({
@@ -251,7 +308,7 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
 
     if (existingAdmin) {
       // 🔹 If admin exists, update their subscription details
-      await Admin.update(
+      const updateResult = await Admin.update(
         {
           payment_amount: Userdata.payment_amount,
           res_date: Userdata.res_date,
@@ -260,11 +317,53 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
         },
         { where: { email: Userdata.email } }
       );
+      
+      // Verify the update was successful
+      const updatedAdmin = await Admin.findOne({
+        where: { email: Userdata.email },
+        attributes: ["res_date", "end_date", "periods"],
+        raw: true,
+      });
+      
+      console.log("✅ Subscription updated successfully for:", Userdata.email);
+      console.log("   New res_date:", updatedAdmin?.res_date);
+      console.log("   New end_date:", updatedAdmin?.end_date);
+      console.log("   Period:", updatedAdmin?.periods);
+      console.log("   Update result:", updateResult[0] > 0 ? "Success" : "Failed");
+      
+      // Verify end_date was updated correctly (compare date strings, not full datetime)
+      const expectedEndDate = Userdata.end_date.split("T")[0];
+      const actualEndDate = updatedAdmin?.end_date ? 
+        (updatedAdmin.end_date.split ? updatedAdmin.end_date.split("T")[0] : new Date(updatedAdmin.end_date).toISOString().split("T")[0]) : 
+        null;
+      
+      if (!updatedAdmin || actualEndDate !== expectedEndDate) {
+        console.error("⚠️ WARNING: Database update may not have been applied correctly!");
+        console.error("   Expected end_date:", expectedEndDate);
+        console.error("   Actual end_date:", actualEndDate);
+        
+        // Try to fix it by updating again
+        console.log("🔄 Attempting to fix end_date...");
+        try {
+          await Admin.update(
+            { end_date: Userdata.end_date },
+            { where: { email: Userdata.email } }
+          );
+          console.log("✅ End_date fixed!");
+        } catch (fixError) {
+          console.error("❌ Failed to fix end_date:", fixError.message);
+        }
+      } else {
+        console.log("✅ End_date verified correctly!");
+      }
+    } else {
+      console.error("❌ Admin not found with email:", Userdata.email);
+      return res.status(404).json({ message: "Admin not found" });
     }
 
     const token = jwt.sign(
       {
-        id: existingAdmin?.id,
+        id: existingAdmin.id,
         email: Userdata.email,
         dairy_name: Userdata.dairy_name,
       },
@@ -272,7 +371,7 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("https://duddairy.spectrasynth.com/admin-dashboard");
+    res.redirect("http://localhost:5173/admin-dashboard?payment=success");
   } catch (err) {
     console.error("Error in payment verification:", err);
     res
@@ -778,19 +877,85 @@ module.exports.resDate = async (req, res) => {
       return res.status(400).json({ message: "Dairy name is required." });
     }
 
-    const admin = await Admin.findOne({
-      where: { dairy_name },
-      attributes: ["res_date", "periods"],
-    });
+    // Use raw SQL query to safely check if end_date column exists
+    const sequelize = Admin.sequelize;
+    let admin;
+    
+    try {
+      // First, try to get all columns (Sequelize will handle missing columns)
+      admin = await Admin.findOne({
+        where: { dairy_name },
+        raw: true,
+      });
 
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found." });
+      if (!admin) {
+        return res.status(404).json({ message: "Admin not found." });
+      }
+
+      // Extract only the fields we need
+      const res_date = admin.res_date;
+      const periods = admin.periods;
+      let end_date = admin.end_date || null;
+
+      // If end_date is null or missing, calculate it from res_date and periods
+      if (!end_date && res_date && periods) {
+        const resDate = new Date(res_date);
+        const calculatedEndDate = new Date(resDate);
+        
+        switch (periods) {
+          case "monthly":
+            calculatedEndDate.setMonth(calculatedEndDate.getMonth() + 1);
+            break;
+          case "quarterly":
+            calculatedEndDate.setMonth(calculatedEndDate.getMonth() + 3);
+            break;
+          case "half-yearly":
+            calculatedEndDate.setMonth(calculatedEndDate.getMonth() + 6);
+            break;
+          case "yearly":
+            calculatedEndDate.setFullYear(calculatedEndDate.getFullYear() + 1);
+            break;
+          default:
+            console.warn("⚠️ Unknown period type:", periods);
+        }
+        
+        end_date = calculatedEndDate.toISOString().split("T")[0];
+        
+        // Try to update the database with calculated end_date (only if column exists)
+        try {
+          // Check if end_date column exists by trying to update it
+          await sequelize.query(
+            `UPDATE admin_registration SET end_date = :endDate WHERE dairy_name = :dairyName`,
+            {
+              replacements: { endDate: calculatedEndDate, dairyName: dairy_name },
+              type: sequelize.QueryTypes.UPDATE
+            }
+          );
+          console.log("✅ Calculated and updated end_date for:", dairy_name);
+        } catch (updateError) {
+          // Column might not exist, that's okay - we'll use calculated value
+          console.warn("⚠️ Could not update end_date (column may not exist):", updateError.message);
+        }
+      }
+
+      // Return both res_date, end_date, and periods
+      res.json({ 
+        res_date: res_date, 
+        end_date: end_date,
+        periods: periods 
+      });
+    } catch (queryError) {
+      console.error("❌ Database query error:", queryError.message);
+      console.error("Error stack:", queryError.stack);
+      throw queryError;
     }
-
-    res.json({ res_date: admin.res_date, periods: admin.periods });
   } catch (error) {
-    console.error("Error fetching admin data:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error("❌ Error fetching admin data:", error.message);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      message: "Internal server error.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 module.exports.profile = async (req, res) => {
@@ -801,27 +966,35 @@ module.exports.profile = async (req, res) => {
       return res.status(400).json({ message: "Dairy name is required." });
     }
 
+    // Fetch all columns without specifying attributes to avoid column errors
     const admin = await Admin.findOne({
       where: { dairy_name },
-      attributes: [
-        "dairy_name",
-        "email",
-        "contact",
-        "address",
-        "res_date",
-        "end_date",
-        "payment_amount",
-      ],
+      raw: true, // Get plain object
     });
 
     if (!admin) {
       return res.status(404).json({ message: "Admin not found." });
     }
 
-    res.json(admin);
+    // Extract only the fields we need, handle missing end_date
+    const profileData = {
+      dairy_name: admin.dairy_name,
+      email: admin.email,
+      contact: admin.contact,
+      address: admin.address,
+      res_date: admin.res_date,
+      end_date: admin.end_date || null, // Handle missing end_date
+      payment_amount: admin.payment_amount,
+    };
+
+    res.json(profileData);
   } catch (error) {
     console.error("Error fetching admin profile:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      message: "Internal server error.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 module.exports.updateProfile = async (req, res) => {
@@ -1546,6 +1719,10 @@ module.exports.getAllMorningOrders = async (req, res) => {
         // start_date: { [Op.lte]: today },
       },
       attributes: { exclude: ["password_hash"] },
+      order: [
+        [sequelize.literal('CASE WHEN delivery_sequence_morning IS NULL THEN 999999 ELSE delivery_sequence_morning END'), 'ASC'],
+        ['id', 'ASC'] // Fallback to ID if sequence is null
+      ],
     });
 
     // If no orders found, return a message
@@ -1589,6 +1766,10 @@ module.exports.getAllEveningOrders = async (req, res) => {
         // start_date: { [Op.lte]: today },
       },
       attributes: { exclude: ["password_hash"] },
+      order: [
+        [sequelize.literal('CASE WHEN delivery_sequence_evening IS NULL THEN 999999 ELSE delivery_sequence_evening END'), 'ASC'],
+        ['id', 'ASC'] // Fallback to ID if sequence is null
+      ],
     });
 
     res.json({
@@ -1625,6 +1806,10 @@ module.exports.getTodaysMorningOrder = async (req, res) => {
         start_date: { [Op.lte]: today },
       },
       attributes: { exclude: ["password_hash"] },
+      order: [
+        [sequelize.literal('CASE WHEN delivery_sequence_morning IS NULL THEN 999999 ELSE delivery_sequence_morning END'), 'ASC'],
+        ['id', 'ASC'] // Fallback to ID if sequence is null
+      ],
     });
 
     // 2️⃣ Additional morning orders placed today
@@ -1686,6 +1871,10 @@ module.exports.getTodaysEveningOrder = async (req, res) => {
         start_date: { [Op.lte]: today },
       },
       attributes: { exclude: ["password_hash"] },
+      order: [
+        [sequelize.literal('CASE WHEN delivery_sequence_evening IS NULL THEN 999999 ELSE delivery_sequence_evening END'), 'ASC'],
+        ['id', 'ASC'] // Fallback to ID if sequence is null
+      ],
     });
 
     // 2️⃣ Additional evening orders for today
@@ -2292,18 +2481,25 @@ module.exports.getallDailyOrderHistory = async (req, res) => {
 
 module.exports.AdminName = async (req, res) => {
   try {
-    const { dairy_name } = req.user;
-    res
-      .status(200)
-      .json({
-        message: "Admin name successfully fetched",
-        dairy_name: dairy_name,
+    if (!req.user || !req.user.dairy_name) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated or dairy_name not found",
       });
+    }
+
+    const { dairy_name } = req.user;
+    res.status(200).json({
+      message: "Admin name successfully fetched",
+      dairy_name: dairy_name,
+    });
   } catch (error) {
     console.error("Error fetching Admin Name:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Failed to fetch Admin Name",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -2393,6 +2589,11 @@ module.exports.getDeliveredAdditionalOrder = async (req, res) => {
 module.exports.updateFCMToken = async (req, res) => {
   try {
     const { fcm_token } = req.body; // New FCM token from the client
+    
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+
     const userId = req.user.id; // Assuming the user is already authenticated and req.user.id holds the user's ID
 
     if (!fcm_token) {
@@ -2400,9 +2601,7 @@ module.exports.updateFCMToken = async (req, res) => {
     }
 
     // Find the user in the respective model based on their role
-
     const user = await Admin.findByPk(userId);
-
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -2414,7 +2613,11 @@ module.exports.updateFCMToken = async (req, res) => {
     return res.status(200).json({ message: "FCM token updated successfully." });
   } catch (error) {
     console.error("Error updating FCM token:", error.message);
-    return res.status(500).json({ message: "Server error" });
+    console.error("Error stack:", error.stack);
+    return res.status(500).json({ 
+      message: "Server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -2584,5 +2787,59 @@ module.exports.updateDeliveryStatus = async (req, res) => {
   } catch (error) {
     console.error("Error updating delivery status:", error);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update delivery sequence for customers
+module.exports.updateDeliverySequence = async (req, res) => {
+  try {
+    const { dairy_name } = req.user;
+    const { customerIds, shift } = req.body; // customerIds is an array of user IDs in the desired order
+
+    if (!dairy_name) {
+      return res.status(403).json({ message: "Unauthorized: No dairy association found" });
+    }
+
+    if (!customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
+      return res.status(400).json({ message: "customerIds must be a non-empty array" });
+    }
+
+    if (!shift || !["morning", "evening"].includes(shift)) {
+      return res.status(400).json({ message: "shift must be 'morning' or 'evening'" });
+    }
+
+    const sequenceField = shift === "morning" ? "delivery_sequence_morning" : "delivery_sequence_evening";
+
+    // Verify all customers belong to the admin's dairy
+    const customers = await User.findAll({
+      where: {
+        id: customerIds,
+        dairy_name: dairy_name,
+      },
+    });
+
+    if (customers.length !== customerIds.length) {
+      return res.status(403).json({ 
+        message: "Some customers do not belong to your dairy or do not exist" 
+      });
+    }
+
+    // Update sequence for each customer
+    const updatePromises = customerIds.map((customerId, index) => {
+      return User.update(
+        { [sequenceField]: index + 1 },
+        { where: { id: customerId } }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    res.status(200).json({
+      message: `Delivery sequence updated successfully for ${shift} shift`,
+      updatedCount: customerIds.length,
+    });
+  } catch (error) {
+    console.error("Error updating delivery sequence:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };

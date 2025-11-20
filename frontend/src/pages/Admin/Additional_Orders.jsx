@@ -300,6 +300,7 @@ function Additional_Orders() {
             pagination
             highlightOnHover
             progressPending={loading}
+            responsive
           />
         </Container>
       </div>

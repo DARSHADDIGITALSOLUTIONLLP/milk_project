@@ -12,12 +12,12 @@ import {
   Card,
 } from "react-bootstrap";
 import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
-import mauli_logo from "/mauli_logo.png";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import mauli_logo from "/mauli_logo.png";
 
 function Register() {
   const [activeForm, setActiveForm] = useState("customer");
@@ -34,6 +34,41 @@ function Register() {
 
   const VITE_ENCRYPTION_RAZORPAY_KEY = import.meta.env
     .VITE_ENCRYPTION_RAZORPAY_KEY;
+
+  // Helper function to calculate GST (18%)
+  const calculateGST = (amount) => {
+    return Math.round(amount * 0.18);
+  };
+
+  // Helper function to calculate total (subtotal + GST)
+  const calculateTotal = (subtotal) => {
+    return subtotal + calculateGST(subtotal);
+  };
+
+  // Helper function to format price breakdown (Subtotal + GST = Total)
+  const formatPriceBreakdown = (subtotal) => {
+    const gst = calculateGST(subtotal);
+    const total = calculateTotal(subtotal);
+    return {
+      subtotal,
+      gst,
+      total,
+      display: (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "14px", color: "#666" }}>
+            Subtotal: ₹{subtotal}
+          </div>
+          <div style={{ fontSize: "14px", color: "#666" }}>
+            GST (18%): ₹{gst}
+          </div>
+          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#000", marginTop: "5px" }}>
+            Total: ₹{total}
+          </div>
+        </div>
+      )
+    };
+  };
+
   useEffect(() => {
     const handleResize = () => {
       const screenWidth = window.innerWidth;
@@ -755,12 +790,26 @@ function Register() {
     </Form>
   );
 
-  async function checkout(amount, periods) {
+  async function checkout(totalAmount, periods) {
     try {
+      // Calculate subtotal from total (reverse calculation)
+      // total = subtotal + (subtotal * 0.18)
+      // total = subtotal * 1.18
+      // subtotal = total / 1.18
+      const subtotal = Math.round(totalAmount / 1.18);
+      const gst = totalAmount - subtotal;
+
+      console.log("💰 Payment breakdown:", {
+        subtotal: subtotal,
+        gst: gst,
+        total: totalAmount,
+        period: periods
+      });
+
       const {
         data: { order },
       } = await axios.post("api/admin/usermakepayment", {
-        amount,
+        amount: totalAmount, // Send total amount (subtotal + GST) to backend
       });
       const name = DairyValues.dairyName;
       const address = DairyValues.address;
@@ -773,7 +822,7 @@ function Register() {
         amount: order.amount,
         currency: "INR",
         name: "Mauli Dairy",
-        description: "Test Transaction",
+        description: "Subscription Payment",
         image: "/mauli_logo.png",
         order_id: order.id,
         callback_url: "/api/admin/paymentVerification",
@@ -789,7 +838,9 @@ function Register() {
           address: address,
           password_hash: hash,
           periods: periods,
-          amount: amount,
+          amount: totalAmount, // Total amount (subtotal + GST)
+          subtotal: subtotal, // Subtotal for reference
+          gst: gst, // GST amount for reference
         },
         theme: {
           color: "#000000",
@@ -820,12 +871,23 @@ function Register() {
       />
       <Container fluid>
         <Row className="login-row">
-          <Col md="4" className="image-col">
-            <div className="image-wrapper">
-              <img src={mauli_logo} className="img-fluid" alt="mauli_logo" />
+          <Col md="6" className="image-col" tabIndex={-1}>
+            <div 
+              className="image-wrapper"
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onFocus={(e) => e.target.blur()}
+            >
+              <img 
+                src={mauli_logo} 
+                className="img-fluid" 
+                alt="mauli_logo"
+                tabIndex={-1}
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onFocus={(e) => e.target.blur()}
+              />
             </div>
           </Col>
-          <Col md="8" className="form-col">
+          <Col md="6" className="form-col">
             <Container>
               <Row>
                 <Col md="12">
@@ -916,7 +978,7 @@ function Register() {
                       <Card.Title className="card_title">Basic</Card.Title>
                     </center>
                     <center>
-                      <h5 className="price mb-4">&#x20B9;299+GST </h5>
+                      <h5 className="price mb-2">{formatPriceBreakdown(299).display}</h5>
                     </center>
                     <Card.Text>
                       <div style={{ textAlign: "center" }}>
@@ -934,7 +996,7 @@ function Register() {
                           color: "white",
                           border: "none",
                         }}
-                        onClick={() => checkout(299, "monthly")}
+                        onClick={() => checkout(calculateTotal(299), "monthly")}
                       >
                         Pay Now
                       </Button>
@@ -952,7 +1014,7 @@ function Register() {
                       <Card.Title className="card_title">Plus</Card.Title>
                     </center>
                     <center>
-                      <h5 className="price mb-4">&#x20B9;499+GST</h5>
+                      <h5 className="price mb-2">{formatPriceBreakdown(499).display}</h5>
                     </center>
                     <Card.Text>
                       <div style={{ textAlign: "center" }}>
@@ -970,7 +1032,7 @@ function Register() {
                           color: "white",
                           border: "none",
                         }}
-                        onClick={() => checkout(499, "quarterly")}
+                        onClick={() => checkout(calculateTotal(499), "quarterly")}
                       >
                         Pay Now
                       </Button>
@@ -988,7 +1050,7 @@ function Register() {
                       <Card.Title className="card_title">Gold</Card.Title>
                     </center>
                     <center>
-                      <h5 className="price mb-4">&#x20B9;799+GST</h5>
+                      <h5 className="price mb-2">{formatPriceBreakdown(799).display}</h5>
                     </center>
                     <Card.Text>
                       <div style={{ textAlign: "center" }}>
@@ -1006,7 +1068,7 @@ function Register() {
                           color: "white",
                           border: "none",
                         }}
-                        onClick={() => checkout(799, "half-yearly")}
+                        onClick={() => checkout(calculateTotal(799), "half-yearly")}
                       >
                         Pay Now
                       </Button>
@@ -1024,7 +1086,7 @@ function Register() {
                       <Card.Title className="card_title">Platinum</Card.Title>
                     </center>
                     <center>
-                      <h5 className="price mb-4">&#x20B9;1499+GST</h5>
+                      <h5 className="price mb-2">{formatPriceBreakdown(1499).display}</h5>
                     </center>
                     <Card.Text>
                       <div style={{ textAlign: "center" }}>
@@ -1042,7 +1104,7 @@ function Register() {
                           color: "white",
                           border: "none",
                         }}
-                        onClick={() => checkout(1499, "yearly")}
+                        onClick={() => checkout(calculateTotal(1499), "yearly")}
                       >
                         Pay Now
                       </Button>

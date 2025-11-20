@@ -243,6 +243,14 @@ router.get(
   adminController.getAllEveningOrders
 );
 
+//api for updating delivery sequence
+router.put(
+  "/users/update-delivery-sequence",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.updateDeliverySequence
+);
+
 //get Admin name
 router.get(
   "/admin-name",

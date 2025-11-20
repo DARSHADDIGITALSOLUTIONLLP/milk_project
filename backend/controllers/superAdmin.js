@@ -177,10 +177,22 @@ module.exports.login = async (req, res) => {
       expiresIn: "7d",
     });
 
-    res.json({ message: "Login successful", token, role, user });
+    // Convert Sequelize model to plain object to avoid serialization issues
+    const userData = user.toJSON ? user.toJSON() : user;
+    
+    // Remove sensitive data
+    delete userData.password_hash;
+    if (userData.createdAt) delete userData.createdAt;
+    if (userData.updatedAt) delete userData.updatedAt;
+
+    res.json({ message: "Login successful", token, role, user: userData });
   } catch (error) {
     console.error("Error during login:", error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      message: "Server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

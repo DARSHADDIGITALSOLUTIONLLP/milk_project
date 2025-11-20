@@ -314,14 +314,27 @@ function Dairy_List() {
     {
       name: "Start Date",
       selector: (row) => {
+        if (!row.res_date) return "N/A";
         const date = new Date(row.res_date);
-        return isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString();
+        if (isNaN(date.getTime())) return "N/A";
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
       },
       sortable: true,
     },
     {
       name: "End Date",
-      selector: (row) => row.expire_date,
+      selector: (row) => {
+        if (!row.expire_date) return "N/A";
+        const date = new Date(row.expire_date);
+        if (isNaN(date.getTime())) return "N/A";
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      },
       sortable: true,
     },
     {
@@ -340,7 +353,16 @@ function Dairy_List() {
     },
     {
       name: "Payment",
-      selector: (row) => `${row.payment_amount}+GST`,
+      cell: (row) => {
+        const subtotal = parseFloat(row.payment_amount) || 0;
+        const gst = subtotal * 0.18;
+        const total = subtotal + gst;
+        return (
+          <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+            ₹{total.toFixed(2)}
+          </div>
+        );
+      },
       sortable: true,
     },
   ];
@@ -538,6 +560,7 @@ function Dairy_List() {
           selectableRows
           fixedHeader
           pagination
+          responsive
         />
       </Container>
 
@@ -611,7 +634,16 @@ function Dairy_List() {
                     type="text"
                     placeholder="Enter payment amount"
                     name="payment_amount"
-                    value={formData.payment_amount}
+                    value={
+                      formData.payment_amount
+                        ? (() => {
+                            const subtotal = parseFloat(formData.payment_amount) || 0;
+                            const gst = subtotal * 0.18;
+                            const total = subtotal + gst;
+                            return `₹${total.toFixed(2)}`;
+                          })()
+                        : ""
+                    }
                     onChange={handleChange}
                     readOnly
                   />

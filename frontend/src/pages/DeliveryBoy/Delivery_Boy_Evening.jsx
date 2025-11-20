@@ -842,7 +842,8 @@ function Delivery_Boy_Evening() {
                   to="https://www.dddigitalsolution.com/"
                   className="text-decoration-none text-dark"
                 >
-                  Powered by DD DIGITAL SOLUTIONS
+                  <span className="d-block d-md-inline">Powered By</span>
+                  <span className="d-block d-md-inline"> DARSHAND DIGITAL SOLUTION LLP</span>
                 </Link>
               </p>
             </div>

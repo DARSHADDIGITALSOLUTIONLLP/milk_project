@@ -23,11 +23,30 @@ const user = require("./routes/userRoutes.js");
 const deliveryBoy = require("./routes/delivery_boy.js");
 const farmer = require("./routes/farmerRoute.js");
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Server is running' });
+});
+
 app.use("/api", superadmin);
 app.use("/api/admin", admin);
 app.use("/api/user", user);
 app.use("/api/deliveryBoy", deliveryBoy);
 app.use("/api/farmer", farmer);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({ 
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ message: 'Route not found' });
+});
 
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -36,4 +55,5 @@ app.use((req, res, next) => {
 
 app.listen(8080, () => {
     console.log('Server is running on port 8080');
+    console.log('Health check: http://localhost:8080/api/health');
 });

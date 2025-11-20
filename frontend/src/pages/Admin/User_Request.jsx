@@ -269,6 +269,7 @@ const [filteredRecords, setFilteredRecords] = useState([]);
             selectableRows
             fixedHeader
             pagination
+            responsive
           />
         </Container>
 

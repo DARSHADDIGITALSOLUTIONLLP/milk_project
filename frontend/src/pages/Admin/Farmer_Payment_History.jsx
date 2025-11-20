@@ -234,6 +234,7 @@ function Farmer_Payment_History() {
             pagination
             highlightOnHover
             progressPending={loading}
+            responsive
           />
         </Container>
 

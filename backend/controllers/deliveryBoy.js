@@ -1,8 +1,9 @@
 const express = require("express");
 const User = require("../models/User");
-const DeliveryStatus = require("../models/DeliveryStatus");
+const DeliveryStatus = require("../models/deliveryStatus");
 const moment = require("moment-timezone");
 const { Op } = require("sequelize");
+const { sequelize } = require("../models");
 const AdditionalOrder = require("../models/additinalOrder");
 
 
@@ -136,6 +137,10 @@ module.exports.morningPendingOrders = async (req, res) => {
                 start_date: { [Op.lte]: today }, // Extract only the date for comparison
             },
             attributes: { exclude: ["password_hash"] },
+            order: [
+                [sequelize.literal('CASE WHEN delivery_sequence_morning IS NULL THEN 999999 ELSE delivery_sequence_morning END'), 'ASC'],
+                ['id', 'ASC'] // Fallback to ID if sequence is null
+            ],
         });
 
         // 2️⃣ Additional morning orders placed today
@@ -201,6 +206,10 @@ module.exports.eveningPendingOrders = async (req, res) => {
                 start_date: { [Op.lte]: today }, // Compare only date
             },
             attributes: { exclude: ["password_hash"] },
+            order: [
+                [sequelize.literal('CASE WHEN delivery_sequence_evening IS NULL THEN 999999 ELSE delivery_sequence_evening END'), 'ASC'],
+                ['id', 'ASC'] // Fallback to ID if sequence is null
+            ],
         });
 
         // 2️⃣ Additional evening orders for today

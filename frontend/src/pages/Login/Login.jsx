@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Form, Modal } from "react-bootstrap";
 import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
-import mauli_logo from "/mauli_logo.png";
 import "./Login.css";
 import Swal from "sweetalert2";
 import { Link, useNavigate, Navigate } from "react-router-dom";
@@ -10,6 +9,7 @@ import Cookies from "js-cookie";
 import CryptoJS from "crypto-js";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import mauli_logo from "/mauli_logo.png";
 
 const VITE_ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY;
 
@@ -253,12 +253,23 @@ function Login() {
       />
       <Container fluid>
         <Row className="login-row">
-          <Col md="4" className="image-col">
-            <div className="image-wrapper">
-              <img src={mauli_logo} className="img-fluid" alt="mauli_logo" />
+          <Col md="6" className="image-col" tabIndex={-1}>
+            <div 
+              className="image-wrapper"
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onFocus={(e) => e.target.blur()}
+            >
+              <img 
+                src={mauli_logo} 
+                className="img-fluid" 
+                alt="mauli_logo"
+                tabIndex={-1}
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onFocus={(e) => e.target.blur()}
+              />
             </div>
           </Col>
-          <Col md="8" className="form-col">
+          <Col md="6" className="form-col">
             <Container>
               <Row>
                 <Col md="12">
@@ -335,23 +346,26 @@ function Login() {
               </Row>
 
               <div className="row mt-4 p-2">
-                <div className="col-3"></div>
+                <div className="col-md-2 d-none d-md-block"></div>
                 <div
-                  className="col-md-6 col-sm-12"
+                  className="col-md-8 col-sm-12 powered-by-container"
                   style={{ backgroundColor: "black", borderRadius: "40px" }}
                 >
                   <center>
-                    <h6 className="text-light pt-2">
+                    <h6 className="text-light pt-2 pb-2 powered-by-text">
                       <Link
                         to="https://www.dddigitalsolution.com/"
                         style={{ color: "white", textDecoration: "none" }}
+                        className="powered-by-link"
                       >
-                        Powered By DARSHAND DIGITAL SOLUTION LLP
+                        <span className="d-block d-md-inline">Powered By</span>
+                        <span className="d-block d-md-inline"> DARSHAND DIGITAL SOLUTION LLP</span>
                       </Link>
                     </h6>
                   </center>
                   
                 </div>
+                <div className="col-md-2 d-none d-md-block"></div>
                 {/* <center>
                     <p>
                       If account is not created then go to{" "}

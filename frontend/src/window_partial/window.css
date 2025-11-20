@@ -126,6 +126,12 @@ input[type=number] {
     padding-top: 0px !important;
   }
 
+  @media (max-width: 768px) {
+    .sidebar-bottom {
+      border-top: none !important;
+    }
+  }
+
   .sidebar-bottom a {
     display: block;
     padding: 10px;

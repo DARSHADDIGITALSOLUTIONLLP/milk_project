@@ -217,6 +217,7 @@ function Delivery_Boy_List() {
             selectableRows
             fixedHeader
             pagination
+            responsive
           />
         </Container>
 

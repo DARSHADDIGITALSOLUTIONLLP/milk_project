@@ -178,18 +178,32 @@ function WindowHeader({ dashboardText }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const fetchProfile = async () => {
-      const response = await axios.get("/api/admin/profile/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setProfile({
-        dairy_name: response.data.dairy_name,
-        email: response.data.email,
-        contact: response.data.contact,
-        address: response.data.address,
-        start_date: response.data.res_date,
-        end_date: response.data.end_date,
-        payment_amount: response.data.payment_amount,
-      });
+      try {
+        const response = await axios.get("/api/admin/profile/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProfile({
+          dairy_name: response.data.dairy_name || "",
+          email: response.data.email || "",
+          contact: response.data.contact || "",
+          address: response.data.address || "",
+          start_date: response.data.res_date || "",
+          end_date: response.data.end_date || "",
+          payment_amount: response.data.payment_amount || "",
+        });
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        // Set default values on error
+        setProfile({
+          dairy_name: "",
+          email: "",
+          contact: "",
+          address: "",
+          start_date: "",
+          end_date: "",
+          payment_amount: "",
+        });
+      }
     };
     fetchProfile();
   }, []);
@@ -491,13 +505,21 @@ function WindowHeader({ dashboardText }) {
           </li>
         </ul>
         <div className="sidebar-bottom">
-          <a href="" style={{ color: "white" }} onClick={handleLogout}>
+          <NavLink 
+            to="#" 
+            className="btnLogout" 
+            style={{ color: "white" }} 
+            onClick={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
+          >
             <FontAwesomeIcon
               icon={faSignOutAlt}
               style={{ marginRight: "8px", marginTop: "20px" }}
             />
-            <NavLink className="btnLogout">Logout</NavLink>
-          </a>
+            Logout
+          </NavLink>
         </div>
       </div>
       <Navbar className="bg-dark navbar-dark">
@@ -522,7 +544,7 @@ function WindowHeader({ dashboardText }) {
             </div>
             <Nav
               className="ml-auto"
-              style={{ position: "relative", left: "-15px" }}
+              style={{ position: "relative", left: "5px" }}
             >
               <NavDropdown
                 title={
@@ -536,7 +558,7 @@ function WindowHeader({ dashboardText }) {
                 }
                 id="user-dropdown"
                 style={{ marginRight: "1rem" }}
-                alignRight
+                align="end"
               >
                 <NavDropdown.Item>
                   {" "}
@@ -579,16 +601,11 @@ function WindowHeader({ dashboardText }) {
                   Farmer Rates
                 </NavDropdown.Item>
                 <NavDropdown.Divider />
-                <NavDropdown.Item>
-                  <a
-                    href=""
-                    onClick={handleLogout}
-                    style={{ textDecoration: "none", fontSize: "12px" }}
-                  >
-                    <NavLink style={{ color: "black", textDecoration: "none" }}>
-                      Logout
-                    </NavLink>
-                  </a>
+                <NavDropdown.Item
+                  onClick={handleLogout}
+                  style={{ fontSize: "12px", cursor: "pointer" }}
+                >
+                  Logout
                 </NavDropdown.Item>
               </NavDropdown>
             </Nav>
