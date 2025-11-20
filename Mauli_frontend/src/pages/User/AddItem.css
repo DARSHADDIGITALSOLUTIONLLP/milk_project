@@ -1,0 +1,260 @@
+  .back-link {
+    color: #FF6600;
+    text-decoration: none;
+    /* font-weight: bold; */
+  }
+  
+  .add-item-section {
+    flex: 3;
+    padding: 10px 15px;
+    border-radius: 3px;
+    /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.08); */
+    border:1px solid #ddd;
+    /* width: fit-content; */
+  }
+  
+  .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .title-row p{
+    font-weight: 550;
+    font-size: 20px;
+    margin: 0;
+    padding-top: 15px;
+  }
+  
+  .milk-category {
+    margin-top: 1rem;
+    display:flex;
+    flex-direction: column;
+  }
+  
+  .category-title {
+    /* font-weight: bold; */
+    color: rgb(168, 167, 167);
+    font-size: 18px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .item-card {
+    display: flex;
+    /* width: 200px; */
+    margin: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .item-card img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+  }
+  
+  .quantity-selector {
+    background: #fff;
+    border: 1px solid #FF6600;
+    color: #FF6600;
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    margin-top: 0.5rem;
+  }
+  
+  .summary-panel {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 1rem;
+    /* margin-left: 2rem; */
+    /* background: #f9f9f9; */
+  }
+  
+  .summary-panel h3 {
+    margin-top: 0;
+  }
+  
+  .note {
+    color: grey;
+    font-size: 0.85rem;
+  }
+  
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.5rem 0;
+    font-weight: 500;
+  }
+  
+  .summary-item small {
+    display: block;
+    font-size: 0.75rem;
+    color: #555;
+  }
+  
+  .total {
+    display: flex;
+    justify-content: space-between;
+    /* font-weight: bold; */
+    margin: 1rem 0;
+  }
+  
+  .order-info label {
+    display: block;
+    margin: 0.5rem 0;
+  }
+  
+  .shift-select label {
+    display: inline-block;
+    margin-right: 1rem;
+  }
+  
+  .order-btn {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 0.5rem;
+    background: #000;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .item-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: white;
+    padding: 10px 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+    width: 600px;
+  }
+  
+  .item-image img {
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+  
+  .item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
+    gap: 20px;
+  }
+  
+  .item-title {
+    font-weight: 600;
+    margin: 0;
+    font-size: 16px;
+  }
+  
+  .item-subtitle {
+    font-weight: 400;
+    font-size: 14px;
+    color: #444;
+    margin: 3px 0 0 0;
+  }
+  
+  .item-price {
+    font-weight: 600;
+    color: #000;
+  }
+  
+  .quantity-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ff6600;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  
+  .qty-btn {
+    /* background-color: #f2f2f2; */
+    border: none;
+    /* padding: 6px 12px;
+     */
+    font-size: 16px;
+    cursor: pointer;
+    color: #000;
+  }
+  
+  .qty-number {
+    padding: 0 10px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .item-card-container{
+    display: flex;
+    /* flex-wrap: wrap; */
+    /* gap: 10px; */
+    /* justify-content: center; */
+  }
+  
+  /* @media (max-width: 760px) {
+    .item-card-container {
+      flex-wrap: wrap;
+      justify-content: center; 
+      gap: 10px;
+    }
+  } */
+  
+  @media (max-width: 1200px) {
+    .add-item-section {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  
+    .add-item-section .milk-category {
+      flex: 1 1 100%; /* Ensures the milk category items wrap */
+      margin-bottom: 15px;
+    }
+  
+    .add-item-section .item-card-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+  
+    .add-item-section .item-card {
+      flex: 1 1 48%; /* Ensures the item cards take up 50% width on smaller screens */
+      margin-bottom: 10px;
+    }
+    .item-card{
+      width:300px
+    }
+    .title-row{
+      justify-content: space-between;
+      gap: 50px;
+    }
+    .summary-panel {
+      width: 100%; /* Full width for the summary panel */
+      padding-top: 0; /* Removes unnecessary padding */
+    }
+  
+    .quantity-selector {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+  
+  label input{
+    margin-left: 8px;
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+ 
+  
