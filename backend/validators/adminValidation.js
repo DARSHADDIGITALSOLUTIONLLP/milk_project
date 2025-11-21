@@ -45,4 +45,23 @@ const validateAllAdminRegistration = (req, res, next) => {
     next(); // ✅ Move to the next middleware
 };
 
-module.exports = { validateAdminRegistration, validateAllAdminRegistration };
+// Validation schema for checkUser endpoint (only validates dairy_name, email, contact)
+const checkUserSchema = Joi.object({
+    dairy_name: Joi.string().min(3).max(100).required(),
+    email: Joi.string().email().required(),
+    contact: Joi.string().pattern(/^[0-9]{10}$/).required().messages({
+        "string.pattern.base": "Contact must be exactly 10 digits."
+    }),
+});
+
+const validateCheckUser = (req, res, next) => {
+    const { error } = checkUserSchema.validate(req.body, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({ message: error.details[0].message });
+    }
+
+    next();
+};
+
+module.exports = { validateAdminRegistration, validateAllAdminRegistration, validateCheckUser };

@@ -27,12 +27,16 @@ import "react-toastify/dist/ReactToastify.css";
 import Header from "../../components/Header";
 import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
 
+const VITE_ENCRYPTION_RAZORPAY_KEY = import.meta.env.VITE_ENCRYPTION_RAZORPAY_KEY;
+
 function Dairy_Register() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState("edit");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUserValidated, setIsUserValidated] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
@@ -74,60 +78,214 @@ function Dairy_Register() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  // Step 1: Check User (Validate dairy name, email, contact)
+  const handleCheckUser = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
+    
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.contact || !formData.address) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setFormErrors({
         confirmPasswordError: "Passwords do not match",
       });
-    } else if (!Number(formData.contact)) {
-      setFormErrors({
-        confirmPasswordError: "Contact number should be a number",
-      });
-    } else {
-      setFormErrors({
-        confirmPasswordError: "",
-      });
-      axios
-        .post(
-          "/api/register-admin",
-          {
-            dairy_name: formData.name,
-            email: formData.email,
-            password_hash: formData.password,
-            contact: formData.contact,
-            address: formData.address,
-            payment_amount: formData.payment_amount,
-            periods: formData.subscription_valid,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-        .then((res) => {
-          toast.success("Dairy Registered Successfully!");
-          setFormData({
-            name: "",
-            address: "",
-            email: "",
-            contact: "",
-            password: "",
-            confirmPassword: "",
-            subscription_valid: "",
-            payment_amount: "",
-          });
-        })
-        .catch((err) => {
-          if (err.response.data.message) {
-            toast.error(err.response.data.message);
-          } else {
-            toast.error("Failed to register dairy.");
-          }
-        });
+      return;
     }
+
+    if (!Number(formData.contact) || formData.contact.length !== 10) {
+      setFormErrors({
+        confirmPasswordError: "Contact number should be a 10-digit number",
+      });
+      return;
+    }
+
+    if (!formData.subscription_valid) {
+      toast.error("Please select subscription validity period");
+      return;
+    }
+
+    try {
+      const response = await axios.post("/api/admin/checkUser", {
+        dairy_name: formData.name,
+        email: formData.email,
+        contact: formData.contact,
+      });
+
+      if (response.status === 200) {
+        setIsUserValidated(true);
+        toast.success("Validation successful! Proceed to payment.");
+      }
+    } catch (err) {
+      if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Validation failed. Please check your details.");
+      }
+    }
+  };
+
+  // Step 2: Proceed to Payment
+  const handleProceedToPayment = async () => {
+    if (!VITE_ENCRYPTION_RAZORPAY_KEY) {
+      toast.error("Razorpay key not configured. Please check your .env file.");
+      console.error("VITE_ENCRYPTION_RAZORPAY_KEY is not set in frontend .env file");
+      return;
+    }
+
+    // Validate password before proceeding
+    if (!formData.password || formData.password.trim() === "") {
+      toast.error("Password is required");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      // Calculate total with GST (18% GST)
+      const subtotal = parseFloat(formData.payment_amount);
+      const gst = subtotal * 0.18;
+      const totalAmount = subtotal + gst;
+
+      // Create Razorpay order
+      const {
+        data: { order },
+      } = await axios.post("/api/admin/usermakepayment", {
+        amount: totalAmount,
+      });
+
+      // Prepare notes - ensure all values are strings (Razorpay requirement)
+      const paymentNotes = {
+        dairy_name: String(formData.name || ""),
+        contact: String(formData.contact || ""),
+        email: String(formData.email || ""),
+        address: String(formData.address || ""),
+        password_hash: String(formData.password || ""), // Ensure password is sent as string
+        periods: String(formData.subscription_valid || ""),
+        amount: String(totalAmount),
+        subtotal: String(subtotal),
+        gst: String(gst),
+      };
+
+      // Debug: Log notes to verify password_hash is included
+      console.log("Sending payment notes:", { ...paymentNotes, password_hash: "***HIDDEN***" });
+
+      const options = {
+        key: VITE_ENCRYPTION_RAZORPAY_KEY,
+        amount: order.amount,
+        currency: "INR",
+        name: "Mauli Dairy",
+        description: "Dairy Subscription Payment",
+        image: "/mauli_logo.png",
+        order_id: order.id,
+        // Remove callback_url since we're using handler function
+        // callback_url: `${window.location.origin}/api/admin/paymentVerification`,
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.contact,
+        },
+        notes: paymentNotes,
+        theme: {
+          color: "#000000",
+        },
+        handler: function (response) {
+          // Payment successful - verify payment via API
+          handlePaymentVerification(response);
+        },
+      };
+
+      const rzp1 = new window.Razorpay(options);
+      
+      rzp1.on("payment.failed", function (response) {
+        toast.error(`Payment failed: ${response.error.description || "Please try again"}`);
+        setIsProcessingPayment(false);
+      });
+
+      rzp1.open();
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error(error.response?.data?.message || "Failed to initiate payment");
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Step 3: Payment Verification
+  const handlePaymentVerification = async (paymentResponse) => {
+    try {
+      setIsProcessingPayment(true);
+      
+      // Send form data along with payment verification to avoid relying on Razorpay notes
+      const response = await axios.post("/api/admin/paymentVerification", {
+        razorpay_order_id: paymentResponse.razorpay_order_id,
+        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+        razorpay_signature: paymentResponse.razorpay_signature,
+        // Include form data directly
+        dairy_name: formData.name,
+        email: formData.email,
+        contact: formData.contact,
+        address: formData.address,
+        password_hash: formData.password,
+        periods: formData.subscription_valid,
+        payment_amount: formData.payment_amount,
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Payment verification successful
+      if (response.data.success) {
+        toast.success("Payment successful! Dairy registered successfully.");
+        
+        // Reset form
+        setFormData({
+          name: "",
+          address: "",
+          email: "",
+          contact: "",
+          password: "",
+          confirmPassword: "",
+          subscription_valid: "",
+          payment_amount: "",
+        });
+        setIsUserValidated(false);
+        setIsProcessingPayment(false);
+        
+        // Redirect to dairy list page after a short delay
+        setTimeout(() => {
+          window.location.href = "/dairy-list";
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      const errorMessage = error.response?.data?.message || "Payment verification failed. Please contact support.";
+      toast.error(errorMessage);
+      setIsProcessingPayment(false);
+      
+      // If it's a redirect response (status 302/301), handle it
+      if (error.response?.status === 302 || error.response?.status === 301) {
+        // Backend redirected, follow the redirect
+        const redirectUrl = error.response.headers?.location || "/dairy-list";
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 1000);
+      }
+    }
+  };
+
+  // Old handleSubmit - kept for backward compatibility but not used
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // This function is now replaced by handleCheckUser
+    handleCheckUser(e);
   };
 
   useEffect(() => {
@@ -494,14 +652,38 @@ function Dairy_Register() {
           <div className="row mt-4">
             <div className="col-12">
               <center>
-                <Button
-                  variant="dark"
-                  type="submit"
-                  className="mt-2 mb-4"
-                  style={{ width: "70%", backgroundColor: "black !important" }}
-                >
-                  Register
-                </Button>
+                {!isUserValidated ? (
+                  <Button
+                    variant="dark"
+                    type="submit"
+                    className="mt-2 mb-4"
+                    style={{ width: "70%", backgroundColor: "black !important" }}
+                    onClick={handleCheckUser}
+                  >
+                    Check & Validate
+                  </Button>
+                ) : (
+                  <div>
+                    <Button
+                      variant="success"
+                      className="mt-2 mb-2"
+                      style={{ width: "70%", backgroundColor: "#28a745 !important" }}
+                      onClick={handleProceedToPayment}
+                      disabled={isProcessingPayment}
+                    >
+                      {isProcessingPayment ? "Processing..." : "Proceed to Payment"}
+                    </Button>
+                    <br />
+                    <Button
+                      variant="secondary"
+                      className="mt-2 mb-4"
+                      style={{ width: "70%" }}
+                      onClick={() => setIsUserValidated(false)}
+                    >
+                      Go Back
+                    </Button>
+                  </div>
+                )}
               </center>
             </div>
           </div>

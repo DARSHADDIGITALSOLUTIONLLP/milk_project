@@ -119,8 +119,20 @@ module.exports.userDashPay = async (req, res) => {
 
 module.exports.paymentVerification = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
+    const { 
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature,
+      // Form data sent directly from frontend
+      dairy_name,
+      email,
+      contact,
+      address,
+      password_hash,
+      periods,
+      payment_amount
+    } = req.body;
+
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res
         .status(400)
@@ -138,24 +150,98 @@ module.exports.paymentVerification = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid signature" });
     }
+
+    // Verify payment exists
     const instance = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
     const payment = await instance.payments.fetch(razorpay_payment_id);
-    if (!payment || !payment.notes) {
+    if (!payment) {
       return res.status(400).json({ message: "Invalid payment details" });
     }
 
-    const Userdata = payment.notes;
+    // Use form data from request body first, fallback to payment notes if available
+    let Userdata = {};
+    
+    // Priority 1: Use data sent directly from frontend (more reliable)
+    if (dairy_name && email && contact && address && password_hash) {
+      // Parse payment_amount - it comes as string from frontend, convert to number
+      let finalPaymentAmount = 0;
+      if (payment_amount) {
+        finalPaymentAmount = parseFloat(payment_amount) || 0;
+      } else if (payment.notes && payment.notes.amount) {
+        finalPaymentAmount = parseFloat(payment.notes.amount) || 0;
+      } else if (payment.amount) {
+        // Razorpay amount is in paise, convert to rupees
+        finalPaymentAmount = payment.amount / 100;
+      }
+      
+      Userdata = {
+        dairy_name,
+        email,
+        contact,
+        address,
+        password_hash,
+        periods: periods || (payment.notes && payment.notes.periods) || "monthly",
+        payment_amount: finalPaymentAmount,
+      };
+      console.log("Using form data from request body. Payment amount:", finalPaymentAmount);
+    } 
+    // Priority 2: Fallback to payment notes (if form data not available)
+    else if (payment.notes) {
+      Userdata = payment.notes;
+      console.log("Using payment notes from Razorpay");
+    } else {
+      return res.status(400).json({ 
+        message: "Missing required fields. Please ensure all form data is sent." 
+      });
+    }
+
+    // Debug: Log the data we're using
+    console.log("User data for admin creation:", { 
+      ...Userdata, 
+      password_hash: Userdata.password_hash ? "***PRESENT***" : "***MISSING***" 
+    });
+
+    // Validate required fields
+    if (!Userdata.password_hash || Userdata.password_hash.trim() === "") {
+      console.error("Missing password_hash. Available data:", Object.keys(Userdata));
+      return res.status(400).json({ 
+        message: "Password hash is required",
+        received_fields: Object.keys(Userdata)
+      });
+    }
+
+    if (!Userdata.dairy_name || !Userdata.email || !Userdata.contact || !Userdata.address) {
+      return res.status(400).json({ 
+        message: "Missing required fields in payment details",
+        missing_fields: {
+          dairy_name: !Userdata.dairy_name,
+          email: !Userdata.email,
+          contact: !Userdata.contact,
+          address: !Userdata.address
+        }
+      });
+    }
 
     function capitalizeEachWord(text) {
+      if (!text) return "";
       return text.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
     }
 
     Userdata.dairy_name = capitalizeEachWord(Userdata.dairy_name);
-    Userdata.payment_amount = Userdata.amount;
+    // Ensure payment_amount is a number (already handled above, but double-check)
+    if (!Userdata.payment_amount || Userdata.payment_amount === 0 || Userdata.payment_amount === "0") {
+      // Final fallback: use payment amount from Razorpay (in paise, convert to rupees)
+      Userdata.payment_amount = payment.amount ? payment.amount / 100 : 0;
+      console.log("Using Razorpay payment amount as fallback:", Userdata.payment_amount);
+    } else {
+      // Ensure it's a number
+      Userdata.payment_amount = parseFloat(Userdata.payment_amount) || 0;
+    }
+    console.log("Final payment_amount before saving:", Userdata.payment_amount);
     Userdata.res_date = new Date().toISOString().split("T")[0];
     let end_date;
     switch (Userdata.periods) {
@@ -187,7 +273,24 @@ module.exports.paymentVerification = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("http://localhost:5173");
+    // Check if request is from API (has Content-Type: application/json) or browser redirect
+    const isApiRequest = req.headers['content-type']?.includes('application/json');
+    
+    if (isApiRequest) {
+      // Return JSON response for API calls (from frontend handler)
+      return res.status(200).json({ 
+        success: true,
+        message: "Dairy registered successfully",
+        admin: {
+          id: admin.id,
+          dairy_name: admin.dairy_name,
+          email: admin.email
+        }
+      });
+    } else {
+      // Redirect for direct browser requests (callback_url)
+      res.redirect("http://localhost:5173/dairy-list");
+    }
   } catch (err) {
     console.error("Error in payment verification:", err);
     res

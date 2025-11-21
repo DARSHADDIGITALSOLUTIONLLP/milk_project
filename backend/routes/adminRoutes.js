@@ -7,7 +7,7 @@ const {
   authorizeRole,
 } = require("../middlewares/authontication");
 const { isAdminLoggedIn } = require("../middlewares/adminAuthontication");
-const { validateAdminRegistration } = require("../validators/adminValidation");
+const { validateAdminRegistration, validateCheckUser } = require("../validators/adminValidation");
 const { validateUserRegistration } = require("../validators/uservalidation");
 const {
   validateFarmerRegistration,
@@ -19,7 +19,7 @@ const router = express.Router();
 
 router.post(
   "/checkUser",
-  validateAdminRegistration,
+  validateCheckUser,
   adminController.checkAdmin
 );
 
