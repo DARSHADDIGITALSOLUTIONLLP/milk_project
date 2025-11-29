@@ -119,20 +119,8 @@ module.exports.userDashPay = async (req, res) => {
 
 module.exports.paymentVerification = async (req, res) => {
   try {
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
-      razorpay_signature,
-      // Form data sent directly from frontend
-      dairy_name,
-      email,
-      contact,
-      address,
-      password_hash,
-      periods,
-      payment_amount
-    } = req.body;
-
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res
         .status(400)
@@ -150,98 +138,24 @@ module.exports.paymentVerification = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid signature" });
     }
-
-    // Verify payment exists
     const instance = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
     const payment = await instance.payments.fetch(razorpay_payment_id);
-    if (!payment) {
+    if (!payment || !payment.notes) {
       return res.status(400).json({ message: "Invalid payment details" });
     }
 
-    // Use form data from request body first, fallback to payment notes if available
-    let Userdata = {};
-    
-    // Priority 1: Use data sent directly from frontend (more reliable)
-    if (dairy_name && email && contact && address && password_hash) {
-      // Parse payment_amount - it comes as string from frontend, convert to number
-      let finalPaymentAmount = 0;
-      if (payment_amount) {
-        finalPaymentAmount = parseFloat(payment_amount) || 0;
-      } else if (payment.notes && payment.notes.amount) {
-        finalPaymentAmount = parseFloat(payment.notes.amount) || 0;
-      } else if (payment.amount) {
-        // Razorpay amount is in paise, convert to rupees
-        finalPaymentAmount = payment.amount / 100;
-      }
-      
-      Userdata = {
-        dairy_name,
-        email,
-        contact,
-        address,
-        password_hash,
-        periods: periods || (payment.notes && payment.notes.periods) || "monthly",
-        payment_amount: finalPaymentAmount,
-      };
-      console.log("Using form data from request body. Payment amount:", finalPaymentAmount);
-    } 
-    // Priority 2: Fallback to payment notes (if form data not available)
-    else if (payment.notes) {
-      Userdata = payment.notes;
-      console.log("Using payment notes from Razorpay");
-    } else {
-      return res.status(400).json({ 
-        message: "Missing required fields. Please ensure all form data is sent." 
-      });
-    }
-
-    // Debug: Log the data we're using
-    console.log("User data for admin creation:", { 
-      ...Userdata, 
-      password_hash: Userdata.password_hash ? "***PRESENT***" : "***MISSING***" 
-    });
-
-    // Validate required fields
-    if (!Userdata.password_hash || Userdata.password_hash.trim() === "") {
-      console.error("Missing password_hash. Available data:", Object.keys(Userdata));
-      return res.status(400).json({ 
-        message: "Password hash is required",
-        received_fields: Object.keys(Userdata)
-      });
-    }
-
-    if (!Userdata.dairy_name || !Userdata.email || !Userdata.contact || !Userdata.address) {
-      return res.status(400).json({ 
-        message: "Missing required fields in payment details",
-        missing_fields: {
-          dairy_name: !Userdata.dairy_name,
-          email: !Userdata.email,
-          contact: !Userdata.contact,
-          address: !Userdata.address
-        }
-      });
-    }
+    const Userdata = payment.notes;
 
     function capitalizeEachWord(text) {
-      if (!text) return "";
       return text.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
     }
 
     Userdata.dairy_name = capitalizeEachWord(Userdata.dairy_name);
-    // Ensure payment_amount is a number (already handled above, but double-check)
-    if (!Userdata.payment_amount || Userdata.payment_amount === 0 || Userdata.payment_amount === "0") {
-      // Final fallback: use payment amount from Razorpay (in paise, convert to rupees)
-      Userdata.payment_amount = payment.amount ? payment.amount / 100 : 0;
-      console.log("Using Razorpay payment amount as fallback:", Userdata.payment_amount);
-    } else {
-      // Ensure it's a number
-      Userdata.payment_amount = parseFloat(Userdata.payment_amount) || 0;
-    }
-    console.log("Final payment_amount before saving:", Userdata.payment_amount);
+    Userdata.payment_amount = Userdata.amount;
     Userdata.res_date = new Date().toISOString().split("T")[0];
     let end_date;
     switch (Userdata.periods) {
@@ -273,24 +187,7 @@ module.exports.paymentVerification = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Check if request is from API (has Content-Type: application/json) or browser redirect
-    const isApiRequest = req.headers['content-type']?.includes('application/json');
-    
-    if (isApiRequest) {
-      // Return JSON response for API calls (from frontend handler)
-      return res.status(200).json({ 
-        success: true,
-        message: "Dairy registered successfully",
-        admin: {
-          id: admin.id,
-          dairy_name: admin.dairy_name,
-          email: admin.email
-        }
-      });
-    } else {
-      // Redirect for direct browser requests (callback_url)
-      res.redirect("http://localhost:5173/dairy-list");
-    }
+    res.redirect("http://localhost:5173");
   } catch (err) {
     console.error("Error in payment verification:", err);
     res
@@ -1088,6 +985,11 @@ module.exports.profile = async (req, res) => {
       res_date: admin.res_date,
       end_date: admin.end_date || null, // Handle missing end_date
       payment_amount: admin.payment_amount,
+      // Include customer milk rates
+      cow_rate: admin.cow_rate || 0,
+      buffalo_rate: admin.buffalo_rate || 0,
+      pure_rate: admin.pure_rate || 0,
+      delivery_charges: admin.delivery_charges || 0,
     };
 
     res.json(profileData);
@@ -2034,6 +1936,7 @@ module.exports.getTodaysAdditional = async (req, res) => {
       include: {
         model: User,
         as: "user",
+        required: true, // INNER JOIN - only get orders with valid users
         attributes: [
           "id",
           "name",
@@ -2054,24 +1957,28 @@ module.exports.getTodaysAdditional = async (req, res) => {
       ],
     });
 
-    const filteredOrders = additionalOrders.map(order => {
-      const relevantDelivery =
-        order.shift === "morning"
-          ? order.user.delivered_morning
-          : order.shift === "evening"
-            ? order.user.delivered_evening
-            : null;
-
-
-      const quantities = Array.isArray(order.quantity_array)
-        ? order.quantity_array
-        : JSON.parse(order.quantity_array);
+    const filteredOrders = additionalOrders
+      .filter(order => order.user !== null) // Filter out orders with null users
+      .map(order => {
+        try {
+          // Safely parse quantity_array
+          let quantities = [0, 0, 0];
+          try {
+            if (Array.isArray(order.quantity_array)) {
+              quantities = order.quantity_array;
+            } else if (typeof order.quantity_array === 'string') {
+              const parsed = JSON.parse(order.quantity_array);
+              quantities = Array.isArray(parsed) ? parsed : [0, 0, 0];
+            }
+          } catch (parseError) {
+            console.error("Error parsing quantity_array for order", order.additinalOrder_id, parseError);
+            quantities = [0, 0, 0];
+          }
 
       const [cowQuantity, buffaloQuantity, pureQuantity] = quantities.map(
         (q) => Number(q) || 0
       );
 
-      // console.log(order.status);
       return {
         id: order.additinalOrder_id,
         date: order.date,
@@ -2079,27 +1986,35 @@ module.exports.getTodaysAdditional = async (req, res) => {
         cowQuantity,
         buffaloQuantity,
         pureQuantity,
-        delivered: order.status,
+            delivered: order.status || false,
         user: {
-          id: order.user.id,
-          name: order.user.name,
-          dairy_name: order.user.dairy_name
+              id: order.user?.id || null,
+              name: order.user?.name || "Unknown",
+              dairy_name: order.user?.dairy_name || null
         }
       };
-    });
+        } catch (mapError) {
+          console.error("Error processing order", order.additinalOrder_id, mapError);
+          return null; // Return null for problematic orders
+        }
+      })
+      .filter(order => order !== null); // Remove null entries
 
-    if (filteredOrders.length === 0) {
-      return res.status(404).json({ message: "No additional orders found for today" });
-    }
-
+    // Return empty array instead of 404 - this is more appropriate for list endpoints
     res.json({
-      message: "Today's additional orders fetched successfully",
+      message: filteredOrders.length > 0 
+        ? "Today's additional orders fetched successfully" 
+        : "No additional orders found",
       additional_orders: filteredOrders,
     });
 
   } catch (error) {
     console.error("Error fetching additional orders:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      message: "Server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -2626,6 +2541,7 @@ module.exports.getDeliveredAdditionalOrder = async (req, res) => {
     const userIds = users.map((user) => user.id);
 
     // 🔹 Join AdditinalOrder with DeliveryStatus
+    // Use LEFT JOIN (required: false) to get all orders, even without delivery status
     const orders = await AdditionalOrder.findAll({
       where: {
         userid: { [Op.in]: userIds },
@@ -2634,58 +2550,55 @@ module.exports.getDeliveredAdditionalOrder = async (req, res) => {
         {
           model: DeliveryStatus,
           as: "DeliveryStatus", // ✅ MUST match alias in model association
-          required: true,
-          on: {
-            userid: Sequelize.where(
-              Sequelize.col("additinalOrder.userid"),
-              "=",
-              Sequelize.col("DeliveryStatus.userid")
-            ),
-            date: Sequelize.where(
-              Sequelize.col("additinalOrder.date"),
-              "=",
-              Sequelize.col("DeliveryStatus.date")
-            ),
-            shift: Sequelize.where(
-              Sequelize.col("additinalOrder.shift"),
-              "=",
-              Sequelize.col("DeliveryStatus.shift")
-            ),
-          },
+          required: false, // LEFT JOIN - include orders even without delivery status
           attributes: ["status", "date", "shift"],
         },
       ],
       attributes: ["additinalOrder_id", "userid", "date", "shift"],
     });
 
-    // console.log(orders);
-    if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "No delivered additional orders found." });
-    }
+    // Format orders - handle cases where DeliveryStatus might be null or empty
+    const formatted = orders.map((order) => {
+      let deliveryStatusArray = [];
+      
+      // Handle DeliveryStatus - it could be an array or null
+      if (order.DeliveryStatus) {
+        if (Array.isArray(order.DeliveryStatus)) {
+          deliveryStatusArray = order.DeliveryStatus.map((ds) => ({
+            status: ds.status,
+            date: ds.date,
+            shift: ds.shift,
+          }));
+        } else {
+          // Single object
+          deliveryStatusArray = [{
+            status: order.DeliveryStatus.status,
+            date: order.DeliveryStatus.date,
+            shift: order.DeliveryStatus.shift,
+          }];
+        }
+      }
 
-    const formatted = orders.map((order) => ({
+      return {
       additinalOrder_id: order.additinalOrder_id,
       userid: order.userid,
       date: order.date,
       shift: order.shift,
-      deliveryStatus: order.DeliveryStatus
-        .map((ds) => ({
-          status: ds.status,
-          date: ds.date,
-          shift: ds.shift,
-
-        })),
-
-    }));
-
+        deliveryStatus: deliveryStatusArray,
+      };
+    });
 
     return res.status(200).json({
       message: "Delivered additional orders fetched successfully.",
       orders: formatted,
     });
   } catch (error) {
-    console.error("Error fetching delivered additional orders:", error.message);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    console.error("Error fetching delivered additional orders:", error);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

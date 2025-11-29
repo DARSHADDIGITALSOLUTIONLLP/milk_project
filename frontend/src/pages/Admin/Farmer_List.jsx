@@ -5,14 +5,16 @@ import {
   Container,
   Button,
   Modal,
-  ToastContainer,
   Form,
 } from "react-bootstrap";
+import { ToastContainer } from "react-toastify";
+import { Bounce } from "react-toastify";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import { encode } from "base64-arraybuffer";
 import { toast } from "react-toastify";
 import "../SuperAdmin/Dairy_List.css";
+import "react-toastify/dist/ReactToastify.css";
 
 function Farmer_List() {
   const [records, setRecords] = useState([]);
@@ -464,8 +466,26 @@ function Farmer_List() {
 
   const handleOrderNow = (row) => {
     setSelectedRecord(row);
-    setSelectedMilkTypes(row.milk_types || []);
+    // Ensure milk_types is always an array and parse if it's a string
+    let milkTypes = [];
+    if (row.milk_types) {
+      if (Array.isArray(row.milk_types)) {
+        milkTypes = row.milk_types;
+      } else if (typeof row.milk_types === 'string') {
+        try {
+          milkTypes = JSON.parse(row.milk_types);
+        } catch (e) {
+          console.error("Error parsing milk_types:", e);
+          milkTypes = [];
+        }
+      }
+    }
+    setSelectedMilkTypes(milkTypes);
     setCheckedMilkTypes([]);
+    // Reset milk form states
+    setCowMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+    setBuffaloMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+    setPureMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
     setShowOrderModel(true);
   };
 
@@ -606,7 +626,7 @@ function Farmer_List() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">
@@ -642,58 +662,74 @@ function Farmer_List() {
             <Modal.Title className="text-white">Order Now</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div className="d-flex flex-wrap">
-              <Form.Label>First Select the type of milk</Form.Label>
-              <div>
-                {selectedMilkTypes.map((milkType) => (
-                  <Form.Check
-                    inline
-                    key={milkType}
-                    label={milkType.charAt(0).toUpperCase() + milkType.slice(1)}
-                    type="checkbox"
-                    value={milkType}
-                    checked={checkedMilkTypes.includes(milkType)}
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      if (isChecked) {
-                        setCheckedMilkTypes((prev) => [...prev, milkType]);
+            {selectedMilkTypes && selectedMilkTypes.length > 0 ? (
+              <>
+                <div className="d-flex flex-wrap mb-3">
+                  <Form.Label className="w-100 mb-2">First Select the type of milk</Form.Label>
+                  <div className="d-flex flex-wrap gap-3">
+                    {selectedMilkTypes.map((milkType) => (
+                      <Form.Check
+                        inline
+                        key={milkType}
+                        label={milkType.charAt(0).toUpperCase() + milkType.slice(1)}
+                        type="checkbox"
+                        value={milkType}
+                        checked={checkedMilkTypes.includes(milkType)}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          if (isChecked) {
+                            setCheckedMilkTypes((prev) => [...prev, milkType]);
 
-                        // Set milk_type when selected
-                        if (milkType === "cow")
-                          setCowMilk((prev) => ({ ...prev, milk_type: "cow" }));
-                        if (milkType === "buffalo")
-                          setBuffaloMilk((prev) => ({
-                            ...prev,
-                            milk_type: "buffalo",
-                          }));
-                        if (milkType === "pure")
-                          setPureMilk((prev) => ({
-                            ...prev,
-                            milk_type: "pure",
-                          }));
-                      } else {
-                        setCheckedMilkTypes((prev) =>
-                          prev.filter((type) => type !== milkType)
-                        );
+                            // Set milk_type when selected
+                            if (milkType === "cow")
+                              setCowMilk((prev) => ({ ...prev, milk_type: "cow" }));
+                            if (milkType === "buffalo")
+                              setBuffaloMilk((prev) => ({
+                                ...prev,
+                                milk_type: "buffalo",
+                              }));
+                            if (milkType === "pure")
+                              setPureMilk((prev) => ({
+                                ...prev,
+                                milk_type: "pure",
+                              }));
+                          } else {
+                            setCheckedMilkTypes((prev) =>
+                              prev.filter((type) => type !== milkType)
+                            );
 
-                        // Clear milk_type when deselected
-                        if (milkType === "cow")
-                          setCowMilk((prev) => ({ ...prev, milk_type: "" }));
-                        if (milkType === "buffalo")
-                          setBuffaloMilk((prev) => ({
-                            ...prev,
-                            milk_type: "",
-                          }));
-                        if (milkType === "pure")
-                          setPureMilk((prev) => ({ ...prev, milk_type: "" }));
-                      }
-                    }}
-                  />
-                ))}
+                            // Clear milk_type when deselected
+                            if (milkType === "cow")
+                              setCowMilk((prev) => ({ ...prev, milk_type: "" }));
+                            if (milkType === "buffalo")
+                              setBuffaloMilk((prev) => ({
+                                ...prev,
+                                milk_type: "",
+                              }));
+                            if (milkType === "pure")
+                              setPureMilk((prev) => ({ ...prev, milk_type: "" }));
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {checkedMilkTypes.length > 0 ? (
+                  checkedMilkTypes.map((type) => renderMilkSection(type))
+                ) : (
+                  <div className="alert alert-info mt-3">
+                    Please select at least one milk type to proceed.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="alert alert-warning">
+                <strong>No milk types available for this farmer.</strong>
+                <br />
+                Please update the farmer's milk types before placing an order.
               </div>
-            </div>
-
-            {checkedMilkTypes.map((type) => renderMilkSection(type))}
+            )}
           </Modal.Body>
 
           <Modal.Footer>

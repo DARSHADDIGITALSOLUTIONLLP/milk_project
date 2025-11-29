@@ -183,7 +183,7 @@ function WindowHeader({ dashboardText }) {
                   </span>
                 }
                 id="user-dropdown"
-                alignRight
+                align="end"
               >
                 <NavDropdown.Item>
                   <a

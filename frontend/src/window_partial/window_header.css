@@ -92,7 +92,7 @@
     bottom: 20px;
     left: 0;
     width: 100%;
-    border-top: 1px solid white;
+    border-top: none;
     padding-top: 10px;
   }
   .sidebar-bottom a {

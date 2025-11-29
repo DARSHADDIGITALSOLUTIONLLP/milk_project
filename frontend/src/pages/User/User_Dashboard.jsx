@@ -4,7 +4,7 @@ import { Container, Row, Col, Button, Modal, Form } from "react-bootstrap";
 import "./User_Dashboard.css";
 import "./PaymentModal.css";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
+import { toast, ToastContainer, Bounce } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -110,7 +110,12 @@ function User_Dashboard() {
           setVacationDays(formattedVacations);
         }
       } catch (error) {
+        // Handle 404 gracefully - no vacations found is not an error
+        if (error.response && error.response.status === 404) {
+          setVacationDays([]); // Set empty array if no vacations found
+        } else {
         console.error("Error fetching vacation data:", error);
+        }
       }
     };
 
@@ -139,7 +144,12 @@ function User_Dashboard() {
           setQuantity1(fetchedOrders);
         }
       } catch (error) {
+        // Handle 404 gracefully - no delivered orders found is not an error
+        if (error.response && error.response.status === 404) {
+          setQuantity1([]); // Set empty array if no orders found
+        } else {
         console.error("Error fetching delivered orders:", error);
+        }
       }
     };
 
@@ -194,6 +204,11 @@ function User_Dashboard() {
           color: value > 0 ? "blue" : "inherit",
         });
 
+        // Filter based on user's selected milk type - show only selected type
+        const selectedMilkType = milkType?.toLowerCase();
+        
+        // If no milk type is selected, show all types (fallback)
+        if (!selectedMilkType) {
         return (
           <div className="flex-quantity">
             <div style={getColorStyle(cow)}>
@@ -208,6 +223,31 @@ function User_Dashboard() {
               <span>p:</span>
               {pure || 0}
             </div>
+            </div>
+          );
+        }
+        
+        // Show only the selected milk type
+        return (
+          <div className="flex-quantity">
+            {selectedMilkType === "cow" && (
+              <div style={getColorStyle(cow)}>
+                <span>c:</span>
+                {cow || 0}
+              </div>
+            )}
+            {selectedMilkType === "buffalo" && (
+              <div style={getColorStyle(buffalo)}>
+                <span>b:</span>
+                {buffalo || 0}
+              </div>
+            )}
+            {selectedMilkType === "pure" && (
+              <div style={getColorStyle(pure)}>
+                <span>p:</span>
+                {pure || 0}
+              </div>
+            )}
           </div>
         );
       };
@@ -500,7 +540,7 @@ function User_Dashboard() {
         draggable
         pauseOnHover
         theme="light"
-        transition:Bounce
+        transition={Bounce}
       />
       <Container fluid>
         <Container>
@@ -666,16 +706,15 @@ function User_Dashboard() {
             </Col>
 
             <Col lg={6} md={12} className="mt-2" style={{ paddingTop: "35px" }}>
+              {/* Additional Order Section - Commented Out */}
+              {/* 
               <div
                 style={{
-                  // backgroundColor: "#F9F9F9",
                   padding: "15px",
                   borderRadius: "3px",
-                  // border:"2px solid #888",
                   fontFamily: "poppins",
                   marginBottom: "5px",
                   border: "1px solid #ddd",
-                  // boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
                 }}
               >
                 <div
@@ -686,16 +725,13 @@ function User_Dashboard() {
                     marginBottom: "8px",
                   }}
                 >
-                  <p style={{ margin: 0 }}>
-                    {/* 04 Feb <span style={{}}>| Tomorrow</span> */}
-                  </p>
+                  <p style={{ margin: 0 }}></p>
                   <button
                     style={{
                       background: "none",
                       border: "none",
                       color: "orange",
                       cursor: "pointer",
-                      // fontSize: "14px",
                     }}
                   >
                     <Link
@@ -711,6 +747,7 @@ function User_Dashboard() {
                   'Add Item' option.
                 </p>
               </div>
+              */}
 
               {error ? (
                 <div

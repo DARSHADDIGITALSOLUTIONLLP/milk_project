@@ -225,7 +225,7 @@ function Header({ dashboardText }) {
                   </span>
                 }
                 id="user-dropdown"
-                alignRight
+                align="end"
               >
                 <NavDropdown.Item>
                   {" "}

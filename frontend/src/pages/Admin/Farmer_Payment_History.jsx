@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import WindowHeader from "../../window_partial/window_header";
 import {
@@ -11,7 +11,7 @@ import {
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import { encode } from "base64-arraybuffer";
-import { toast } from "react-toastify";
+import { toast, Bounce } from "react-toastify";
 import "../SuperAdmin/Dairy_List.css";
 
 function Farmer_Payment_History() {
@@ -55,7 +55,7 @@ function Farmer_Payment_History() {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     Farmer_List();
   }, []);
 
@@ -207,7 +207,7 @@ function Farmer_Payment_History() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">

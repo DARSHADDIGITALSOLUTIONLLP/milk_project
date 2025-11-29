@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import WindowHeader from "../../window_partial/window_header";
-import { Container, ToastContainer } from "react-bootstrap";
+import { Container } from "react-bootstrap";
+import { ToastContainer } from "react-toastify";
+import { Bounce } from "react-toastify";
 import "./Payment_History.css";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import "../SuperAdmin/Dairy_List.css";
+import "react-toastify/dist/ReactToastify.css";
 
 function Additional_Orders() {
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [isAfter2PM, setIsAfter2PM] = useState(new Date().getHours() >= 14);
-  const statusMap = new Map();
   const [deliveryStatusChangeTrigger, setDeliveryStatusChangeTrigger] =
     useState(0);
 
@@ -26,11 +28,23 @@ function Additional_Orders() {
 
   const Additional_Orders = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
 
+      console.log("Fetching additional orders...");
       const response = await axios.get("/api/admin/users/additional-orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log("API Response:", response.data);
+
+      // Handle empty array response
+      if (!response.data.additional_orders || response.data.additional_orders.length === 0) {
+        console.log("No additional orders found");
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
 
       const initialRecords = response.data.additional_orders.map((record) => ({
         id: record.id,
@@ -45,46 +59,62 @@ function Additional_Orders() {
         status: "Pending",
       }));
 
+      console.log("Initial records:", initialRecords);
       setRecords(initialRecords);
 
-      const statusResponse = await axios.get(
-        "/api/admin/additional_deliveryStatus",
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      // Only fetch delivery status if we have orders
+      if (initialRecords.length > 0) {
+        try {
+          const statusResponse = await axios.get(
+            "/api/admin/additional_deliveryStatus",
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          const statusMap = new Map();
+          statusResponse?.data?.orders?.forEach((order) => {
+            const orderId = order.additinalOrder_id;
+            const deliveryEntry = order.deliveryStatus?.[0];
+            if (deliveryEntry) {
+              statusMap.set(orderId, deliveryEntry.status);
+            }
+          });
+
+          const updatedRecords = initialRecords.map((record) => {
+            const status = statusMap.get(record.id);
+            return {
+              ...record,
+              delivery_status:
+                status === true
+                  ? "Delivered"
+                  : status === false
+                  ? "Not Delivered"
+                  : "Pending",
+            };
+          });
+
+          console.log("Updated records with delivery status:", updatedRecords);
+          setRecords(updatedRecords);
+        } catch (statusError) {
+          // If status fetch fails, just use the initial records
+          console.error("Error fetching delivery status:", statusError);
+          setRecords(initialRecords);
         }
-      );
-
-      statusResponse?.data?.orders?.forEach((order) => {
-        const orderId = order.additinalOrder_id;
-        const deliveryEntry = order.deliveryStatus?.[0];
-        if (deliveryEntry) {
-          statusMap.set(orderId, deliveryEntry.status);
-        }
-      });
-
-      const updatedRecords = initialRecords.map((record) => {
-        const status = statusMap.get(record.id);
-        return {
-          ...record,
-          delivery_status:
-            status === true
-              ? "Delivered"
-              : status === false
-              ? "Not Delivered"
-              : "Pending",
-        };
-      });
-
-      setRecords(updatedRecords);
-      setDeliveryStatusChangeTrigger(updatedRecords.delivery_status);
+      }
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching additional orders:", error);
+      console.error("Error response:", error.response?.data);
+      setRecords([]);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     Additional_Orders();
-  }, [deliveryStatusChangeTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [dateTime, setDateTime] = useState(new Date());
 
@@ -273,7 +303,7 @@ function Additional_Orders() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">

@@ -21,7 +21,8 @@ import "./window_header.css";
 import logo from "/mauli_logo.png";
 import "./window.css";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer, toast, Bounce } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
 
@@ -267,12 +268,70 @@ function WindowHeader({ dashboardText }) {
     setActiveSubMenu(menu);
   };
 
+  const fetchCurrentCustomerRates = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      // Fetch admin profile which now includes rates
+      const response = await axios.get("/api/admin/profile/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // If rates are in the response, use them
+      if (response.data) {
+        setCurrentCustomerRates({
+          cow_rate: response.data.cow_rate || 0,
+          buffalo_rate: response.data.buffalo_rate || 0,
+          pure_rate: response.data.pure_rate || 0,
+          delivery_charges: response.data.delivery_charges || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching customer rates:", error);
+      // Set defaults on error
+      setCurrentCustomerRates({
+        cow_rate: 0,
+        buffalo_rate: 0,
+        pure_rate: 0,
+        delivery_charges: 0,
+      });
+    }
+  };
+
   const openModal = () => {
     setShowModal(true);
+    fetchCurrentCustomerRates(); // Fetch current rates when modal opens
+  };
+
+  const fetchCurrentFarmerRates = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/admin/get_farmer_Milkrate", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data) {
+        setCurrentFarmerRates({
+          farmer_cow_rate: response.data.farmer_cow_rate || 0,
+          farmer_buffalo_rate: response.data.farmer_buffalo_rate || 0,
+          farmer_pure_rate: response.data.farmer_pure_rate || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching farmer rates:", error);
+      // Set defaults if error occurs
+      setCurrentFarmerRates({
+        farmer_cow_rate: 0,
+        farmer_buffalo_rate: 0,
+        farmer_pure_rate: 0,
+      });
+    }
   };
 
   const openFarmerModal = () => {
     setShowFarmerModal(true);
+    fetchCurrentFarmerRates(); // Fetch current rates when modal opens
   };
 
   const handleClose = () => {
@@ -290,10 +349,25 @@ function WindowHeader({ dashboardText }) {
   const [cowMilkRate, setCowMilkRate] = useState("");
   const [buffaloMilkRate, setBuffaloMilkRate] = useState("");
   const [delivery_charges, setDeliveryCharges] = useState("");
+  
+  // State to store current customer milk rates
+  const [currentCustomerRates, setCurrentCustomerRates] = useState({
+    cow_rate: 0,
+    buffalo_rate: 0,
+    pure_rate: 0,
+    delivery_charges: 0,
+  });
 
   const [farmerpureMilkRate, setFarmerPureMilkRate] = useState("");
   const [farmercowMilkRate, setFarmerCowMilkRate] = useState("");
   const [farmerbuffaloMilkRate, setFarmerBuffaloMilkRate] = useState("");
+  
+  // State to store current farmer milk rates
+  const [currentFarmerRates, setCurrentFarmerRates] = useState({
+    farmer_cow_rate: 0,
+    farmer_buffalo_rate: 0,
+    farmer_pure_rate: 0,
+  });
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
@@ -395,7 +469,7 @@ function WindowHeader({ dashboardText }) {
         draggable
         pauseOnHover
         theme="light"
-        transition:Bounce
+        transition={Bounce}
       />
       <div className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
         <div className="logo">
@@ -479,14 +553,15 @@ function WindowHeader({ dashboardText }) {
               </ul>
             )}
           </li>
-          <li>
+          {/* Additional Orders Section - Commented Out */}
+          {/* <li>
             <NavLink
               to="/additional-orders"
               className={({ isActive }) => (isActive ? "active-link" : "")}
             >
               Additional Orders
             </NavLink>
-          </li>
+          </li> */}
           <li>
             <NavLink
               to="/payment-history"
@@ -618,6 +693,35 @@ function WindowHeader({ dashboardText }) {
           <Modal.Title>Add Customer Milk Rates</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* Display Current Rates */}
+          <div style={{ 
+            backgroundColor: "#f8f9fa", 
+            padding: "15px", 
+            borderRadius: "5px", 
+            marginBottom: "20px",
+            border: "1px solid #dee2e6"
+          }}>
+            <h6 style={{ marginBottom: "10px", fontWeight: "bold", color: "#333" }}>
+              Current Customer Milk Rates:
+            </h6>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Pure Milk:</strong> ₹{currentCustomerRates.pure_rate || 0} / 1 LTR
+              </p>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Cow Milk:</strong> ₹{currentCustomerRates.cow_rate || 0} / 1 LTR
+              </p>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Buffalo Milk:</strong> ₹{currentCustomerRates.buffalo_rate || 0} / 1 LTR
+              </p>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Delivery Charges:</strong> ₹{currentCustomerRates.delivery_charges || 0}
+              </p>
+            </div>
+          </div>
+
+          <hr style={{ marginBottom: "20px" }} />
+
           <p>
             Pure Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
             <input
@@ -626,11 +730,7 @@ function WindowHeader({ dashboardText }) {
               value={pureMilkRate}
               onChange={(e) => setPureMilkRate(e.target.value)}
               required
-              placeholder={
-                pureMilkRate
-                  ? `Pure Milk Rate: ${pureMilkRate}`
-                  : "Enter Pure Milk Rate"
-              }
+              placeholder={`Current: ₹${currentCustomerRates.pure_rate || 0} - Enter New Rate`}
             />
             <span style={{ paddingLeft: "4px" }}>/ 1 LTR</span>
           </p>
@@ -642,7 +742,7 @@ function WindowHeader({ dashboardText }) {
               value={cowMilkRate}
               onChange={(e) => setCowMilkRate(e.target.value)}
               required
-              placeholder={`${cowMilkRate} Enter Cow Milk Rate`}
+              placeholder={`Current: ₹${currentCustomerRates.cow_rate || 0} - Enter New Rate`}
             />
             <span style={{ paddingLeft: "4px" }}>/ 1 LTR</span>
           </p>
@@ -655,7 +755,7 @@ function WindowHeader({ dashboardText }) {
               value={buffaloMilkRate}
               onChange={(e) => setBuffaloMilkRate(e.target.value)}
               required
-              placeholder={`${buffaloMilkRate} Enter Buffalo Milk Rate`}
+              placeholder={`Current: ₹${currentCustomerRates.buffalo_rate || 0} - Enter New Rate`}
             />
             <span style={{ paddingLeft: "4px" }}>/ 1 LTR</span>
           </p>
@@ -667,7 +767,7 @@ function WindowHeader({ dashboardText }) {
               style={{ marginLeft: "4px" }}
               value={delivery_charges}
               onChange={(e) => setDeliveryCharges(e.target.value)}
-              placeholder={`${delivery_charges} Enter Delivery Charges`}
+              placeholder={`Current: ₹${currentCustomerRates.delivery_charges || 0} - Enter New Charges`}
             />
           </p>
         </Modal.Body>
@@ -681,6 +781,32 @@ function WindowHeader({ dashboardText }) {
           <Modal.Title>Add Farmer Milk Rates</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* Display Current Rates */}
+          <div style={{ 
+            backgroundColor: "#f8f9fa", 
+            padding: "15px", 
+            borderRadius: "5px", 
+            marginBottom: "20px",
+            border: "1px solid #dee2e6"
+          }}>
+            <h6 style={{ marginBottom: "10px", fontWeight: "bold", color: "#333" }}>
+              Current Farmer Milk Rates:
+            </h6>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Pure Milk:</strong> ₹{currentFarmerRates.farmer_pure_rate || 0} / 1 LTR
+              </p>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Cow Milk:</strong> ₹{currentFarmerRates.farmer_cow_rate || 0} / 1 LTR
+              </p>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                <strong>Buffalo Milk:</strong> ₹{currentFarmerRates.farmer_buffalo_rate || 0} / 1 LTR
+              </p>
+            </div>
+          </div>
+
+          <hr style={{ marginBottom: "20px" }} />
+
           <p>
             Pure Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
             <input
@@ -688,7 +814,7 @@ function WindowHeader({ dashboardText }) {
               className="rate_input"
               value={farmerpureMilkRate}
               onChange={(e) => setFarmerPureMilkRate(e.target.value)}
-              placeholder="Enter Pure Milk Rate"
+              placeholder={`Current: ₹${currentFarmerRates.farmer_pure_rate || 0} - Enter New Rate`}
               required
             />
             <span style={{ paddingLeft: "4px" }}>/ 1 LTR</span>
@@ -701,7 +827,7 @@ function WindowHeader({ dashboardText }) {
               value={farmercowMilkRate}
               onChange={(e) => setFarmerCowMilkRate(e.target.value)}
               required
-              placeholder="Enter Cow Milk Rate"
+              placeholder={`Current: ₹${currentFarmerRates.farmer_cow_rate || 0} - Enter New Rate`}
             />
             <span style={{ paddingLeft: "4px" }}>/ 1 LTR</span>
           </p>
@@ -714,7 +840,7 @@ function WindowHeader({ dashboardText }) {
               value={farmerbuffaloMilkRate}
               onChange={(e) => setFarmerBuffaloMilkRate(e.target.value)}
               required
-              placeholder="Enter Buffalo Milk Rate"
+              placeholder={`Current: ₹${currentFarmerRates.farmer_buffalo_rate || 0} - Enter New Rate`}
             />
             <span style={{ paddingLeft: "4px" }}>/ 1 LTR</span>
           </p>

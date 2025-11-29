@@ -348,13 +348,10 @@ module.exports.getVacationDate = async (req, res) => {
       where: { user_id: id },
     });
 
-    if (!vacations.length) {
-      return res.status(404).json({ message: "No vacation records found." });
-    }
-
+    // Return 200 with empty array if no vacations found (standard for list endpoints)
     return res.status(200).json({
       message: "Vacation records fetched successfully.",
-      vacations,
+      vacations: vacations || [],
     });
   } catch (error) {
     console.error("Error fetching vacation records:", error);
@@ -403,9 +400,12 @@ module.exports.getDeliveredOrder = async (req, res) => {
       attributes: ["delivery_id", "shift", "quantity_array", "date", "status"],
     });
 
-    // 🔹 Check if orders exist
+    // 🔹 Return 200 with empty array if no orders found (standard for list endpoints)
     if (deliveredOrders.length === 0) {
-      return res.status(404).json({ message: "No delivered orders found." });
+      return res.status(200).json({ 
+        message: "Delivered orders fetched successfully.",
+        orders: []
+      });
     }
 
     // 🔹 Transform quantity_array into separate fields

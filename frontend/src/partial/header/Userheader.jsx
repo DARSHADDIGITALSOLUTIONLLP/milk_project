@@ -325,7 +325,7 @@ const Userheader = forwardRef((prop, ref) => {
                     </span>
                   }
                   id="user-dropdown"
-                  alignRight
+                  align="end"
                 >
                   <NavDropdown.Item>
                     {" "}

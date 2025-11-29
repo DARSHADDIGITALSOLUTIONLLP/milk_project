@@ -7,6 +7,7 @@ import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import { encode } from "base64-arraybuffer";
 import { toast } from "react-toastify";
+import { Bounce } from "react-toastify";
 import "../SuperAdmin/Dairy_List.css";
 
 function Payment_History() {
@@ -331,7 +332,7 @@ function Payment_History() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">

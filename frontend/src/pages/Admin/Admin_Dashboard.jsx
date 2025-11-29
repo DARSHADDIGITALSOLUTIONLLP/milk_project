@@ -1211,6 +1211,7 @@ function Admin_Dashboard() {
                     >
                       <Form.Check
                         type="checkbox"
+                        id="formShiftMorning"
                         label="Morning"
                         value="morning"
                         checked={
@@ -1239,6 +1240,7 @@ function Admin_Dashboard() {
                       />
                       <Form.Check
                         type="checkbox"
+                        id="formShiftEvening"
                         label="Evening"
                         value="evening"
                         checked={
