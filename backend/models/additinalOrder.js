@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db.js"); // Import your Sequelize instance
 const User = require("./User.js"); // Import User model
-const DeliveryStatus = require("./deliveryStatus.js");
+const DeliveryStatus = require("./DeliveryStatus.js");
 // const DeliveryStatus = require("./DeliveryStatus.js");
 
 const additinalOrder = sequelize.define(

@@ -33,6 +33,8 @@ const Userheader = forwardRef((prop, ref) => {
     total_pending_payment: 0,
     previous_month_payment: 0,
   });
+  const [dairyContact, setDairyContact] = useState("9822888290");
+  const [dairyEmail, setDairyEmail] = useState("mulidairy123@gmail.com");
 
   const handleShowProfilePopup = () => setShowProfilePopup(true);
   const handleShowAdvancePaymentPopup = () => setShowAdvancePaymentPopup(true);
@@ -90,7 +92,30 @@ const Userheader = forwardRef((prop, ref) => {
 
   useEffect(() => {
     fetchPaymentProof();
+    fetchDairyContactInfo();
   }, []);
+
+  const fetchDairyContactInfo = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.get("/api/user/get-dairy-info", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data) {
+        if (response.data.contact) {
+          setDairyContact(response.data.contact);
+        }
+        if (response.data.email) {
+          setDairyEmail(response.data.email);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching dairy contact info:", error);
+      // Keep default values if fetch fails
+    }
+  };
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -250,19 +275,19 @@ const Userheader = forwardRef((prop, ref) => {
                 <p className="mb-0 me-lg-3">
                   Contact Us:{" "}
                   <a
-                    href="tel:9822888290"
+                    href={`tel:${dairyContact}`}
                     style={{ textDecoration: "none", color: "white" }}
                   >
-                    9822888290
+                    {dairyContact}
                   </a>
                 </p>
                 <p className="mb-0">
                   Email-ID:{" "}
                   <a
-                    href="mailto:mulidairy123@gmail.com"
+                    href={`mailto:${dairyEmail}`}
                     style={{ textDecoration: "none", color: "white" }}
                   >
-                    mulidairy123@gmail.com
+                    {dairyEmail}
                   </a>
                 </p>
               </div>
@@ -407,19 +432,19 @@ const Userheader = forwardRef((prop, ref) => {
               <p className="mb-2" style={{ fontSize: "14px", fontWeight: "600", color: "#333" }}>
                 Contact Us:{" "}
                 <a
-                  href="tel:9822888290"
+                  href={`tel:${dairyContact}`}
                   style={{ textDecoration: "none", color: "#007bff", fontWeight: "normal" }}
                 >
-                  9822888290
+                  {dairyContact}
                 </a>
               </p>
               <p className="mb-0" style={{ fontSize: "14px", fontWeight: "600", color: "#333" }}>
                 Email-ID:{" "}
                 <a
-                  href="mailto:mulidairy123@gmail.com"
+                  href={`mailto:${dairyEmail}`}
                   style={{ textDecoration: "none", color: "#007bff", fontWeight: "normal" }}
                 >
-                  mulidairy123@gmail.com
+                  {dairyEmail}
                 </a>
               </p>
             </div>

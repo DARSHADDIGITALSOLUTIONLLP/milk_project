@@ -975,15 +975,8 @@ function User_Dashboard() {
               */}
 
               {error ? (
-                <div
-                  style={{
-                    paddingLeft: "15px",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <p style={{ margin: "0", color: "rgb(239, 110, 11)" }}>
+                <div className="pending-payment-warning">
+                  <p>
                     {error}
                   </p>
                 </div>

@@ -982,6 +982,8 @@ module.exports.getDairyInfo = async (req, res) => {
       dairy_name: admin.dairy_name,
       admin_name: user.name,
       dairy_logo: dairy_logo,
+      contact: admin.contact || null,
+      email: admin.email || null,
     });
   } catch (error) {
     console.error("Error fetching dairy info:", error);
