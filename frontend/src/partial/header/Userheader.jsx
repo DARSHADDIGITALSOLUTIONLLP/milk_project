@@ -63,17 +63,23 @@ const Userheader = forwardRef((prop, ref) => {
         },
       });
 
-      const byteArray = response.data.qr_image.data;
-      const base64String = btoa(
-        new Uint8Array(byteArray).reduce(
-          (data, byte) => data + String.fromCharCode(byte),
-          ""
-        )
-      );
-
-      setQr_Image(base64String);
+      // Check if qr_image exists and has data
+      if (response.data && response.data.qr_image && response.data.qr_image.data) {
+        const byteArray = response.data.qr_image.data;
+        const base64String = btoa(
+          new Uint8Array(byteArray).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        );
+        setQr_Image(base64String);
+      } else {
+        // No QR image available
+        setQr_Image(null);
+      }
     } catch (error) {
       console.log("Error fetching payment proof:", error);
+      setQr_Image(null);
     }
   };
 

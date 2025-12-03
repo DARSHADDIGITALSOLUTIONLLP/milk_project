@@ -410,14 +410,18 @@ module.exports.getDeliveredOrder = async (req, res) => {
 
     // 🔹 Transform quantity_array into separate fields
     const transformedOrders = deliveredOrders.map((order) => {
-      const quantities = JSON.parse(order.quantity_array); // Convert string to array
+      // Parse quantity_array if it's a string, otherwise use as-is
+      const quantities = typeof order.quantity_array === 'string' 
+        ? JSON.parse(order.quantity_array) 
+        : order.quantity_array;
 
+      // quantity_array format: [pure, cow, buffalo]
       return {
         delivery_id: order.delivery_id,
         shift: order.shift,
-        cow_quantity: quantities[0] || 0, // Ensure default value if missing
-        buffalo_quantity: quantities[1] || 0,
-        pure_quantity: quantities[2] || 0,
+        pure_quantity: quantities[0] || 0,
+        cow_quantity: quantities[1] || 0,
+        buffalo_quantity: quantities[2] || 0,
         date: order.date,
         status: order.status,
       };
@@ -948,5 +952,39 @@ module.exports.getAllRate = async (req, res) => {
     res
       .status(500)
       .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// Get dairy info (name and logo) for user dashboard card
+module.exports.getDairyInfo = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user to find their dairy
+    const user = await User.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get admin (dairy) information
+    const admin = await Admin.findOne({ where: { dairy_name: user.dairy_name } });
+    if (!admin) {
+      return res.status(404).json({ message: "Dairy not found" });
+    }
+
+    // Convert logo buffer to base64 if exists
+    let dairy_logo = null;
+    if (admin.dairy_logo) {
+      dairy_logo = admin.dairy_logo.toString('base64');
+    }
+
+    res.status(200).json({
+      dairy_name: admin.dairy_name,
+      admin_name: user.name,
+      dairy_logo: dairy_logo,
+    });
+  } catch (error) {
+    console.error("Error fetching dairy info:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

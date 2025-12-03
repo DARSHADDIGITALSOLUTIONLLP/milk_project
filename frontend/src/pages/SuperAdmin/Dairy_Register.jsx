@@ -62,6 +62,9 @@ function Dairy_Register() {
     subscription_valid: "",
   });
 
+  const [dairyLogo, setDairyLogo] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+
   const [formErrors, setFormErrors] = useState({
     confirmPasswordError: "",
   });
@@ -74,7 +77,30 @@ function Dairy_Register() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleLogoChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file");
+        return;
+      }
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image size should be less than 2MB");
+        return;
+      }
+      setDairyLogo(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
     if (formData.password !== formData.confirmPassword) {
@@ -89,44 +115,50 @@ function Dairy_Register() {
       setFormErrors({
         confirmPasswordError: "",
       });
-      axios
-        .post(
-          "/api/register-admin",
-          {
-            dairy_name: formData.name,
-            email: formData.email,
-            password_hash: formData.password,
-            contact: formData.contact,
-            address: formData.address,
-            payment_amount: formData.payment_amount,
-            periods: formData.subscription_valid,
+
+      try {
+        // Create FormData to handle file upload
+        const submitData = new FormData();
+        submitData.append("dairy_name", formData.name);
+        submitData.append("email", formData.email);
+        submitData.append("password_hash", formData.password);
+        submitData.append("contact", formData.contact);
+        submitData.append("address", formData.address);
+        submitData.append("payment_amount", formData.payment_amount);
+        submitData.append("periods", formData.subscription_valid);
+        
+        // Add logo if selected
+        if (dairyLogo) {
+          submitData.append("dairy_logo", dairyLogo);
+        }
+
+        const res = await axios.post("/api/register-admin", submitData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-        .then((res) => {
-          toast.success("Dairy Registered Successfully!");
-          setFormData({
-            name: "",
-            address: "",
-            email: "",
-            contact: "",
-            password: "",
-            confirmPassword: "",
-            subscription_valid: "",
-            payment_amount: "",
-          });
-        })
-        .catch((err) => {
-          if (err.response.data.message) {
-            toast.error(err.response.data.message);
-          } else {
-            toast.error("Failed to register dairy.");
-          }
         });
+
+        toast.success("Dairy Registered Successfully!");
+        setFormData({
+          name: "",
+          address: "",
+          email: "",
+          contact: "",
+          password: "",
+          confirmPassword: "",
+          subscription_valid: "",
+          payment_amount: "",
+        });
+        setDairyLogo(null);
+        setLogoPreview(null);
+      } catch (err) {
+        if (err.response?.data?.message) {
+          toast.error(err.response.data.message);
+        } else {
+          toast.error("Failed to register dairy.");
+        }
+      }
     }
   };
 
@@ -357,6 +389,38 @@ function Dairy_Register() {
                   onChange={handleChange}
                   required
                 />
+              </Form.Group>
+            </div>
+          </div>
+
+          <div className="row mt-4">
+            <div className="col-12">
+              <Form.Group controlId="dairy_logo">
+                <Form.Label>Dairy Logo (Optional)</Form.Label>
+                <Form.Control
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                />
+                <Form.Text className="text-muted">
+                  Upload dairy logo (Max size: 2MB, Formats: JPG, PNG, GIF)
+                </Form.Text>
+                {logoPreview && (
+                  <div className="mt-3">
+                    <p style={{ fontWeight: "bold" }}>Logo Preview:</p>
+                    <Image
+                      src={logoPreview}
+                      alt="Dairy Logo Preview"
+                      style={{
+                        maxWidth: "200px",
+                        maxHeight: "200px",
+                        border: "1px solid #ddd",
+                        borderRadius: "5px",
+                        padding: "5px",
+                      }}
+                    />
+                  </div>
+                )}
               </Form.Group>
             </div>
           </div>

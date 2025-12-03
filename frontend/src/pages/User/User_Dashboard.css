@@ -243,3 +243,105 @@
     font-size: 7px;
   }
 }
+
+/* Milk Card Styles - Matching Physical Card */
+.milk-card-container {
+  border: 2px solid #000;
+  padding: 15px;
+  background-color: #fff;
+  font-family: 'Arial', sans-serif;
+}
+
+.card-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #000;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.card-title h5 {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.card-title p {
+  font-size: 14px;
+  color: #333;
+}
+
+.card-month-info {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.milk-card-grid {
+  overflow-x: auto;
+}
+
+.milk-card-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.milk-card-table th,
+.milk-card-table td {
+  border: 1px solid #000;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.milk-card-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.date-cell {
+  font-weight: bold;
+  background-color: #f9f9f9;
+  width: 40px;
+}
+
+.qty-cell {
+  min-width: 60px;
+  font-weight: 600;
+  color: #000;
+}
+
+.qty-cell:empty::after {
+  content: "";
+  display: inline-block;
+}
+
+.vacant-text {
+  color: #ff0000;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+@media screen and (max-width: 768px) {
+  .milk-card-table th,
+  .milk-card-table td {
+    padding: 6px;
+    font-size: 12px;
+  }
+  
+  .card-header-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .date-cell {
+    width: 30px;
+  }
+  
+  .qty-cell {
+    min-width: 45px;
+  }
+}

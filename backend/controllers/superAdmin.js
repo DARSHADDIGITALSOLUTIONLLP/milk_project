@@ -268,6 +268,12 @@ module.exports.RegisterAdmin = async (req, res) => {
         return res.status(400).json({ message: "Invalid period selected." });
     }
 
+    // Handle dairy logo if uploaded
+    let dairy_logo = null;
+    if (req.file) {
+      dairy_logo = req.file.buffer; // Store as binary data
+    }
+
     // Create New Admin
     const newAdmin = await Admin.create({
       dairy_name,
@@ -279,6 +285,7 @@ module.exports.RegisterAdmin = async (req, res) => {
       periods,
       res_date,
       end_date,
+      dairy_logo,
     });
 
     res

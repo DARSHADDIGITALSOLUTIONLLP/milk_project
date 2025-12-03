@@ -36,6 +36,14 @@ router.get(
   userController.getRate
 );
 
+//Api to fetch dairy info (name and logo)
+router.get(
+  "/get-dairy-info",
+  authenticateUser,
+  authorizeRole(["user"]),
+  userController.getDairyInfo
+);
+
 //Api for payment bill generation of the full month
 // router.post("/calculatePayment",authenticateUser,authorizeRole(["user"]),userController.calculateUserPaymentAfterMonth);
 

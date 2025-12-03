@@ -18,6 +18,8 @@ function User_Dashboard() {
   const [quantity, setQuantity] = useState("");
   const [milkType, setMilkType] = useState("");
   const [adminName, setAdminName] = useState("");
+  const [dairyName, setDairyName] = useState("");
+  const [dairyLogo, setDairyLogo] = useState(null);
   const [bank_name, setBankName] = useState("");
   const [branch_name, setBranchName] = useState("");
   const [account_number, setAccountNumber] = useState("");
@@ -322,8 +324,28 @@ function User_Dashboard() {
       setMilkType(response.data.milk_type);
     };
 
+    const fetchDairyInfo = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("/api/user/get-dairy-info", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setDairyName(response.data.dairy_name);
+        setAdminName(response.data.admin_name);
+        if (response.data.dairy_logo) {
+          setDairyLogo(`data:image/jpeg;base64,${response.data.dairy_logo}`);
+        }
+      } catch (error) {
+        console.error("Error fetching dairy info:", error);
+      }
+    };
+
     fetchRates();
-  });
+    fetchDairyInfo();
+  }, []); // Added dependency array to prevent infinite loop
   const userHeaderRef = useRef(); // ✅ Proper ref object
 
   const handleUpload = async (event) => {
@@ -546,26 +568,188 @@ function User_Dashboard() {
         <Container>
           <Row className="mt-3 mb-3">
             <Col lg={6} md={12} className="mt-2">
-              <div className="calendar-container">
-                <div className="calendar-header">
-                  <label
-                    style={{ color: "#EF6E0B" }}
-                    onClick={() => {
-                      setOpenModelWindow(true);
-                    }}
-                  >
-                    Manage Vacation
-                  </label>
+              <div className="milk-card-container">
+                <div className="card-header-section">
+                  <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                    {dairyLogo && (
+                      <img
+                        src={dairyLogo}
+                        alt="Dairy Logo"
+                        style={{
+                          width: "60px",
+                          height: "60px",
+                          objectFit: "contain",
+                          border: "1px solid #ddd",
+                          borderRadius: "5px",
+                          padding: "5px",
+                        }}
+                      />
+                    )}
+                    <div className="card-title">
+                      <h5 style={{ margin: 0, fontWeight: "bold" }}>
+                        {dairyName || "Mauli Dairy"}
+                      </h5>
+                      <p style={{ margin: 0, fontSize: "14px" }}>
+                        Customer Name: {adminName || "Customer"}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-end" }}>
+                    <div className="card-month-info" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => {
+                          const newMonth = new Date(activeMonth);
+                          newMonth.setMonth(newMonth.getMonth() - 1);
+                          setActiveMonth(newMonth);
+                        }}
+                        style={{ padding: "2px 8px", fontSize: "12px" }}
+                      >
+                        ← Prev
+                      </Button>
+                      <span style={{ fontWeight: "bold" }}>
+                        {activeMonth.toLocaleString('default', { month: 'long' })} {activeMonth.getFullYear()}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => {
+                          const newMonth = new Date(activeMonth);
+                          newMonth.setMonth(newMonth.getMonth() + 1);
+                          setActiveMonth(newMonth);
+                        }}
+                        style={{ padding: "2px 8px", fontSize: "12px" }}
+                      >
+                        Next →
+                      </Button>
+                    </div>
+                    <label
+                      style={{ color: "#EF6E0B", cursor: "pointer", fontSize: "14px" }}
+                      onClick={() => setOpenModelWindow(true)}
+                    >
+                      Manage Vacation
+                    </label>
+                  </div>
                 </div>
 
-                <Calendar
-                  onChange={(date) => setValue(date)}
-                  value={value}
-                  tileContent={tileContent}
-                  onActiveStartDateChange={({ activeStartDate }) => {
-                    setActiveMonth(activeStartDate);
-                  }}
-                />
+                <div className="milk-card-grid">
+                  <table className="milk-card-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Morning</th>
+                        <th>Evening</th>
+                        <th>Date</th>
+                        <th>Morning</th>
+                        <th>Evening</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: 16 }, (_, i) => {
+                        const date1 = i + 1;
+                        const date2 = i + 17;
+                        const daysInMonth = new Date(
+                          activeMonth.getFullYear(),
+                          activeMonth.getMonth() + 1,
+                          0
+                        ).getDate();
+
+                        const getDateData = (day) => {
+                          if (day > daysInMonth) return null;
+                          
+                          const dateStr = `${activeMonth.getFullYear()}-${String(
+                            activeMonth.getMonth() + 1
+                          ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                          
+                          const morningOrders = quantity1.filter(
+                            (q) => q.order_date === dateStr && q.shift === "morning"
+                          );
+                          const eveningOrders = quantity1.filter(
+                            (q) => q.order_date === dateStr && q.shift === "evening"
+                          );
+                          
+                          const getMilkQty = (orders) => {
+                            const total = orders.reduce(
+                              (acc, order) => {
+                                acc.cow += order.cow_quantity || 0;
+                                acc.buffalo += order.buffalo_quantity || 0;
+                                acc.pure += order.pure_quantity || 0;
+                                return acc;
+                              },
+                              { cow: 0, buffalo: 0, pure: 0 }
+                            );
+                            
+                            const selectedMilkType = milkType?.toLowerCase();
+                            if (selectedMilkType === "cow") return total.cow;
+                            if (selectedMilkType === "buffalo") return total.buffalo;
+                            if (selectedMilkType === "pure") return total.pure;
+                            return total.cow + total.buffalo + total.pure;
+                          };
+                          
+                          const isVacant = vacationDays.some(
+                            (vacation) =>
+                              dateStr >= vacation.vacation_start &&
+                              dateStr <= vacation.vacation_end
+                          );
+                          
+                          return {
+                            morning: getMilkQty(morningOrders),
+                            evening: getMilkQty(eveningOrders),
+                            isVacant
+                          };
+                        };
+
+                        const data1 = getDateData(date1);
+                        const data2 = date2 <= daysInMonth ? getDateData(date2) : null;
+
+                        return (
+                          <tr key={i}>
+                            <td className="date-cell">{date1}</td>
+                            <td className="qty-cell">
+                              {data1?.isVacant ? (
+                                <span className="vacant-text">V</span>
+                              ) : data1?.morning > 0 ? (
+                                data1.morning
+                              ) : (
+                                ""
+                              )}
+                            </td>
+                            <td className="qty-cell">
+                              {data1?.isVacant ? (
+                                <span className="vacant-text">V</span>
+                              ) : data1?.evening > 0 ? (
+                                data1.evening
+                              ) : (
+                                ""
+                              )}
+                            </td>
+                            <td className="date-cell">{date2 <= daysInMonth ? date2 : ""}</td>
+                            <td className="qty-cell">
+                              {data2?.isVacant ? (
+                                <span className="vacant-text">V</span>
+                              ) : data2?.morning > 0 ? (
+                                data2.morning
+                              ) : (
+                                ""
+                              )}
+                            </td>
+                            <td className="qty-cell">
+                              {data2?.isVacant ? (
+                                <span className="vacant-text">V</span>
+                              ) : data2?.evening > 0 ? (
+                                data2.evening
+                              ) : (
+                                ""
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
                 <Modal
                   show={openModelWindow}
                   onHide={() => setOpenModelWindow(false)}
@@ -702,7 +886,6 @@ function User_Dashboard() {
                     </Button>
                   </Modal.Footer>
                 </Modal>
-              </div>
             </Col>
 
             <Col lg={6} md={12} className="mt-2" style={{ paddingTop: "35px" }}>

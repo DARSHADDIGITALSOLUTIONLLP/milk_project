@@ -99,6 +99,12 @@ const Admin = sequelize.define("Admin", {
         defaultValue: null,
         comment: "Binary data for the QR code image",
     },
+    dairy_logo: {
+        type: DataTypes.BLOB("long"),  // Store dairy logo as binary data
+        allowNull: true,
+        defaultValue: null,
+        comment: "Binary data for the dairy logo image",
+    },
     upi_address: {
         type: DataTypes.STRING(255),
         allowNull: true,
