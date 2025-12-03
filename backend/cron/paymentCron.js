@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const { Op } = require("sequelize");
-const DeliveryStatus = require("../models/deliveryStatus");
+const DeliveryStatus = require("../models/DeliveryStatus");
 const User = require("../models/User");
 const Admin = require("../models/Admin");
 const moment = require("moment-timezone");

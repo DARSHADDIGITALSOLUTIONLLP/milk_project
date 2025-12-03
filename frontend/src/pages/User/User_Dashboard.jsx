@@ -103,10 +103,10 @@ function User_Dashboard() {
           },
         });
         if (response.status === 200) {
-          const fetchedVacations = response.data.vacations;
+          const fetchedVacations = response.data.vacations || [];
           const formattedVacations = fetchedVacations.map((vacation) => ({
-            start: new Date(vacation.vacation_start),
-            end: new Date(vacation.vacation_end),
+            start: vacation.vacation_start ? new Date(vacation.vacation_start) : null,
+            end: vacation.vacation_end ? new Date(vacation.vacation_end) : (vacation.vacation_start ? new Date(vacation.vacation_start) : null),
             shift: vacation.shift,
           }));
           setVacationDays(formattedVacations);
@@ -662,6 +662,13 @@ function User_Dashboard() {
                             activeMonth.getMonth() + 1
                           ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                           
+                          const currentDate = new Date(
+                            activeMonth.getFullYear(),
+                            activeMonth.getMonth(),
+                            day
+                          );
+                          currentDate.setHours(0, 0, 0, 0);
+                          
                           const morningOrders = quantity1.filter(
                             (q) => q.order_date === dateStr && q.shift === "morning"
                           );
@@ -687,16 +694,51 @@ function User_Dashboard() {
                             return total.cow + total.buffalo + total.pure;
                           };
                           
-                          const isVacant = vacationDays.some(
-                            (vacation) =>
-                              dateStr >= vacation.vacation_start &&
-                              dateStr <= vacation.vacation_end
-                          );
+                          // Check if date is vacant for morning shift
+                          const morningVacant = vacationDays.some((vacation) => {
+                            if (!vacation.start) return false;
+                            
+                            const startDate = new Date(vacation.start);
+                            startDate.setHours(0, 0, 0, 0);
+                            
+                            // Handle null end date (one-day vacation)
+                            const endDate = vacation.end 
+                              ? new Date(vacation.end)
+                              : new Date(vacation.start);
+                            endDate.setHours(23, 59, 59, 999);
+                            
+                            return (
+                              currentDate >= startDate &&
+                              currentDate <= endDate &&
+                              (vacation.shift === "morning" || vacation.shift === "both")
+                            );
+                          });
+                          
+                          // Check if date is vacant for evening shift
+                          const eveningVacant = vacationDays.some((vacation) => {
+                            if (!vacation.start) return false;
+                            
+                            const startDate = new Date(vacation.start);
+                            startDate.setHours(0, 0, 0, 0);
+                            
+                            // Handle null end date (one-day vacation)
+                            const endDate = vacation.end 
+                              ? new Date(vacation.end)
+                              : new Date(vacation.start);
+                            endDate.setHours(23, 59, 59, 999);
+                            
+                            return (
+                              currentDate >= startDate &&
+                              currentDate <= endDate &&
+                              (vacation.shift === "evening" || vacation.shift === "both")
+                            );
+                          });
                           
                           return {
                             morning: getMilkQty(morningOrders),
                             evening: getMilkQty(eveningOrders),
-                            isVacant
+                            morningVacant,
+                            eveningVacant
                           };
                         };
 
@@ -707,7 +749,7 @@ function User_Dashboard() {
                           <tr key={i}>
                             <td className="date-cell">{date1}</td>
                             <td className="qty-cell">
-                              {data1?.isVacant ? (
+                              {data1?.morningVacant ? (
                                 <span className="vacant-text">V</span>
                               ) : data1?.morning > 0 ? (
                                 data1.morning
@@ -716,7 +758,7 @@ function User_Dashboard() {
                               )}
                             </td>
                             <td className="qty-cell">
-                              {data1?.isVacant ? (
+                              {data1?.eveningVacant ? (
                                 <span className="vacant-text">V</span>
                               ) : data1?.evening > 0 ? (
                                 data1.evening
@@ -726,7 +768,7 @@ function User_Dashboard() {
                             </td>
                             <td className="date-cell">{date2 <= daysInMonth ? date2 : ""}</td>
                             <td className="qty-cell">
-                              {data2?.isVacant ? (
+                              {data2?.morningVacant ? (
                                 <span className="vacant-text">V</span>
                               ) : data2?.morning > 0 ? (
                                 data2.morning
@@ -735,7 +777,7 @@ function User_Dashboard() {
                               )}
                             </td>
                             <td className="qty-cell">
-                              {data2?.isVacant ? (
+                              {data2?.eveningVacant ? (
                                 <span className="vacant-text">V</span>
                               ) : data2?.evening > 0 ? (
                                 data2.evening
