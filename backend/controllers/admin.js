@@ -2247,10 +2247,12 @@ module.exports.getAllPendingFarmerPayments = async (req, res) => {
       ],
     });
 
+    // Return empty array if no farmers found (standard for list endpoints)
     if (!farmers.length) {
-      return res
-        .status(404)
-        .json({ message: "No farmers found under this admin." });
+      return res.status(200).json({
+        message: "No farmers found under this admin.",
+        farmers: [],
+      });
     }
 
     const farmerIds = farmers.map((f) => f.id);
@@ -2295,9 +2297,12 @@ module.exports.getAllPendingFarmerPayments = async (req, res) => {
       });
     }
 
+    // Return farmers array (empty if no pending payments)
+    const farmersArray = Object.values(groupedData);
+    
     return res.status(200).json({
       message: "Pending payments fetched successfully.",
-      farmers: Object.values(groupedData),
+      farmers: farmersArray.length > 0 ? farmersArray : [],
     });
   } catch (error) {
     console.error("Error fetching pending farmer payments:", error);

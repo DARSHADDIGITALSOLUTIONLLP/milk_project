@@ -29,6 +29,8 @@ function Farmer_Payment_History() {
 
   const Farmer_List = async () => {
     try {
+      setLoading(true);
+      setError("");
       const token = localStorage.getItem("token");
       const response = await axios.get("/api/admin/farmer/pending-payment", {
         headers: {
@@ -38,20 +40,37 @@ function Farmer_Payment_History() {
 
       const flatRecords = [];
 
-      response.data.farmers.forEach((farmer) => {
-        farmer.pending_payments.forEach((payment) => {
-          flatRecords.push({
-            ...farmer,
-            ...payment,
-            farmer_id: farmer.farmer_id,
-            status: payment.status ? "Paid" : "Pending",
-          });
+      // Check if response has farmers array
+      if (response.data && response.data.farmers && Array.isArray(response.data.farmers)) {
+        response.data.farmers.forEach((farmer) => {
+          // Check if farmer has pending_payments array
+          if (farmer.pending_payments && Array.isArray(farmer.pending_payments)) {
+            farmer.pending_payments.forEach((payment) => {
+              flatRecords.push({
+                ...farmer,
+                ...payment,
+                farmer_id: farmer.farmer_id,
+                status: payment.status ? "Paid" : "Pending",
+              });
+            });
+          }
         });
-      });
+      }
 
       setRecords(flatRecords);
+      
+      if (flatRecords.length === 0) {
+        setError("No pending payments found for any farmers.");
+      }
     } catch (error) {
       console.error("Error fetching farmers:", error);
+      setError(
+        error.response?.data?.message || 
+        "Failed to fetch farmer payment data. Please try again."
+      );
+      setRecords([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,7 +90,7 @@ function Farmer_Payment_History() {
           },
         }
       );
-      toast.success("User has been successfully marked as inactive.");
+      toast.success("Payment status has been updated successfully.");
       closeConfirmModal();
       Farmer_List();
       setSelectedRecord(null);
@@ -139,7 +158,7 @@ function Farmer_Payment_History() {
       name: "Status",
       selector: (row) => (
         <Button
-          variant={row.status === "Active" ? "success" : "danger"}
+          variant={row.status === "Paid" ? "success" : "danger"}
           onClick={() => handleStatusToggle(row)}
         >
           {row.status}
@@ -227,6 +246,18 @@ function Farmer_Payment_History() {
             </div>
           </div>
 
+          {error && (
+            <div className="alert alert-warning mt-3" role="alert">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && filteredRecords.length === 0 && (
+            <div className="alert alert-info mt-3" role="alert">
+              No farmer payment records found. There are no pending payments to display.
+            </div>
+          )}
+
           <DataTable
             columns={columns}
             data={filteredRecords}
@@ -235,6 +266,11 @@ function Farmer_Payment_History() {
             highlightOnHover
             progressPending={loading}
             responsive
+            noDataComponent={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                {loading ? "Loading..." : "No payment records found"}
+              </div>
+            }
           />
         </Container>
 
@@ -244,9 +280,16 @@ function Farmer_Payment_History() {
           </Modal.Header>
           <Modal.Body>
             <p>
-              Are you sure you want to change the status of{" "}
-              {selectedRecord && selectedRecord.name}?
+              Are you sure you want to change the payment status for{" "}
+              <strong>{selectedRecord && selectedRecord.full_name}</strong>?
             </p>
+            {selectedRecord && (
+              <p>
+                Week: {selectedRecord.week_start_date} to {selectedRecord.week_end_date}
+                <br />
+                Amount: Rs {selectedRecord.total_amount}
+              </p>
+            )}
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={closeConfirmModal}>
@@ -257,7 +300,6 @@ function Farmer_Payment_History() {
               onClick={() => {
                 const newStatus =
                   selectedRecord.status === "Paid" ? false : true;
-                confirmStatusChange(newStatus);
                 confirmStatusChange(newStatus);
               }}
             >
