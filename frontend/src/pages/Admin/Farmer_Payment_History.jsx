@@ -81,21 +81,32 @@ function Farmer_Payment_History() {
   const confirmStatusChange = async (status) => {
     const token = localStorage.getItem("token");
     try {
-      await axios.put(
-        `/api/admin/farmer/payment/${selectedRecord.id}`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // If payment has an ID, use it; otherwise use week dates
+      const payload = selectedRecord.id 
+        ? { status }
+        : {
+            status,
+            farmer_id: selectedRecord.farmer_id,
+            week_start_date: selectedRecord.week_start_date,
+            week_end_date: selectedRecord.week_end_date,
+          };
+      
+      const url = selectedRecord.id 
+        ? `/api/admin/farmer/payment/${selectedRecord.id}`
+        : `/api/admin/farmer/payment/null`; // Use null as placeholder when no ID
+
+      await axios.put(url, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       toast.success("Payment status has been updated successfully.");
       closeConfirmModal();
       Farmer_List();
       setSelectedRecord(null);
     } catch (error) {
       console.error("Error updating status:", error);
+      toast.error(error.response?.data?.message || "Failed to update payment status.");
     }
   };
 
@@ -145,8 +156,13 @@ function Farmer_Payment_History() {
       sortable: true,
     },
     {
-      name: "Bill Date",
-      selector: (row) => row.week_end_date,
+      name: "Start Date",
+      selector: (row) => row.week_start_date || "N/A",
+      sortable: true,
+    },
+    {
+      name: "End Date",
+      selector: (row) => row.week_end_date || "N/A",
       sortable: true,
     },
     {

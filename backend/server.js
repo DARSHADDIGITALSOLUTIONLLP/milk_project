@@ -53,7 +53,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.listen(5001, () => {
-    console.log('Server is running on port 5001');
-    console.log('Health check: http://localhost:5001/api/health');
+app.listen(8080, () => {
+    console.log('Server is running on port 8080');
+    console.log('Health check: http://localhost:8080/api/health');
 });

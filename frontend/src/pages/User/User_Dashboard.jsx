@@ -599,7 +599,7 @@ function User_Dashboard() {
                       <Button
                         size="sm"
                         variant="outline-secondary"
-                        onClick={() => {
+                    onClick={() => {
                           const newMonth = new Date(activeMonth);
                           newMonth.setMonth(newMonth.getMonth() - 1);
                           setActiveMonth(newMonth);
@@ -618,7 +618,7 @@ function User_Dashboard() {
                           const newMonth = new Date(activeMonth);
                           newMonth.setMonth(newMonth.getMonth() + 1);
                           setActiveMonth(newMonth);
-                        }}
+                    }}
                         style={{ padding: "2px 8px", fontSize: "12px" }}
                       >
                         Next →
@@ -627,9 +627,9 @@ function User_Dashboard() {
                     <label
                       style={{ color: "#EF6E0B", cursor: "pointer", fontSize: "14px" }}
                       onClick={() => setOpenModelWindow(true)}
-                    >
-                      Manage Vacation
-                    </label>
+                  >
+                    Manage Vacation
+                  </label>
                   </div>
                 </div>
 

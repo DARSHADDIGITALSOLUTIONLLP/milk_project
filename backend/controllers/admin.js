@@ -2229,6 +2229,7 @@ module.exports.updateFarmerStatus = async (req, res) => {
 module.exports.getAllPendingFarmerPayments = async (req, res) => {
   try {
     const dairy_name = req.user.dairy_name;
+    const moment = require("moment-timezone");
 
     if (!dairy_name) {
       return res.status(401).json({ message: "Unauthorized access." });
@@ -2257,23 +2258,99 @@ module.exports.getAllPendingFarmerPayments = async (req, res) => {
 
     const farmerIds = farmers.map((f) => f.id);
 
-    // Step 2: Fetch all pending payments for these farmers
-    const pendingPayments = await FarmerPayment.findAll({
+    // Step 2: Get date range (last 2 months)
+    const currentMonth = moment().tz("Asia/Kolkata");
+    const lastMonth = moment().tz("Asia/Kolkata").subtract(1, "month");
+    const startDate = lastMonth.clone().startOf("month").toDate();
+    const endDate = currentMonth.clone().endOf("month").toDate();
+
+    // Step 3: Fetch all daily orders for these farmers
+    const dailyOrders = await DailyFarmerOrder.findAll({
       where: {
         farmer_id: { [Op.in]: farmerIds },
-        status: false, // pending only
+        created_at: {
+          [Op.between]: [startDate, endDate],
+        },
       },
-      order: [["week_start_date", "DESC"]],
       raw: true,
     });
 
-    // Step 3: Group pending payments by farmer
+    // Step 4: Aggregate daily orders into weekly summaries by farmer
+    const farmerWeekMap = {};
+
+    for (const order of dailyOrders) {
+      const farmerId = order.farmer_id;
+      const orderDate = moment(order.created_at).tz("Asia/Kolkata");
+      const week = orderDate.isoWeek();
+      const year = orderDate.isoWeekYear();
+      const weekKey = `${farmerId}-${year}-W${week}`;
+
+      if (!farmerWeekMap[weekKey]) {
+        farmerWeekMap[weekKey] = {
+          farmer_id: farmerId,
+          week_number: week,
+          year: year,
+          week_start_date: orderDate.clone().startOf("isoWeek").format("YYYY-MM-DD"),
+          week_end_date: orderDate.clone().endOf("isoWeek").format("YYYY-MM-DD"),
+          total_cow_quantity: 0,
+          total_buffalo_quantity: 0,
+          total_pure_quantity: 0,
+          total_amount: 0,
+        };
+      }
+
+      const cowQty = Number(order.cow_quantity) || 0;
+      const cowRate = Number(order.cow_rate) || 0;
+      const buffaloQty = Number(order.buffalo_quantity) || 0;
+      const buffaloRate = Number(order.buffalo_rate) || 0;
+      const pureQty = Number(order.pure_quantity) || 0;
+      const pureRate = Number(order.pure_rate) || 0;
+
+      const weekData = farmerWeekMap[weekKey];
+      weekData.total_cow_quantity += cowQty;
+      weekData.total_buffalo_quantity += buffaloQty;
+      weekData.total_pure_quantity += pureQty;
+      
+      // Calculate amount: quantity * rate for each milk type
+      const cowAmount = cowQty * cowRate;
+      const buffaloAmount = buffaloQty * buffaloRate;
+      const pureAmount = pureQty * pureRate;
+      weekData.total_amount += cowAmount + buffaloAmount + pureAmount;
+    }
+
+    // Step 5: Get payment status from FarmerPayment table
+    const weeklySummaries = Object.values(farmerWeekMap);
+    
+    // Fetch existing payment records to get status
+    const existingPayments = await FarmerPayment.findAll({
+      where: {
+        farmer_id: { [Op.in]: farmerIds },
+      },
+      raw: true,
+    });
+
+    // Create a map of payment status and ID by week
+    const paymentStatusMap = {};
+    const paymentIdMap = {};
+    existingPayments.forEach(payment => {
+      const key = `${payment.farmer_id}-${payment.week_start_date}-${payment.week_end_date}`;
+      paymentStatusMap[key] = payment.status;
+      paymentIdMap[key] = payment.id;
+    });
+
+    // Step 6: Group weekly summaries by farmer and add payment status
     const groupedData = {};
 
-    for (const payment of pendingPayments) {
-      if (!groupedData[payment.farmer_id]) {
-        const farmerDetails = farmers.find((f) => f.id === payment.farmer_id);
-        groupedData[payment.farmer_id] = {
+    for (const week of weeklySummaries) {
+      const farmerId = week.farmer_id;
+      const statusKey = `${farmerId}-${week.week_start_date}-${week.week_end_date}`;
+      const paymentStatus = paymentStatusMap[statusKey] !== undefined 
+        ? paymentStatusMap[statusKey] 
+        : false; // Default to pending if no payment record exists
+
+      if (!groupedData[farmerId]) {
+        const farmerDetails = farmers.find((f) => f.id === farmerId);
+        groupedData[farmerId] = {
           farmer_id: farmerDetails.id,
           full_name: farmerDetails.full_name,
           contact: farmerDetails.contact,
@@ -2284,24 +2361,31 @@ module.exports.getAllPendingFarmerPayments = async (req, res) => {
         };
       }
 
-      groupedData[payment.farmer_id].pending_payments.push({
-        id: payment.id,
-        week_number: payment.week_number,
-        week_start_date: payment.week_start_date,
-        week_end_date: payment.week_end_date,
-        total_cow_quantity: payment.total_cow_quantity,
-        total_buffalo_quantity: payment.total_buffalo_quantity,
-        total_pure_quantity: payment.total_pure_quantity,
-        total_amount: payment.total_amount,
-        status: payment.status,
+      groupedData[farmerId].pending_payments.push({
+        id: paymentIdMap[statusKey] || null, // Payment ID if exists, otherwise null
+        week_number: week.week_number,
+        week_start_date: week.week_start_date,
+        week_end_date: week.week_end_date,
+        total_cow_quantity: parseFloat(week.total_cow_quantity.toFixed(2)),
+        total_buffalo_quantity: parseFloat(week.total_buffalo_quantity.toFixed(2)),
+        total_pure_quantity: parseFloat(week.total_pure_quantity.toFixed(2)),
+        total_amount: parseFloat(week.total_amount.toFixed(2)),
+        status: paymentStatus,
       });
     }
 
-    // Return farmers array (empty if no pending payments)
+    // Sort payments by date (newest first) for each farmer
+    Object.keys(groupedData).forEach(farmerId => {
+      groupedData[farmerId].pending_payments.sort((a, b) => {
+        return new Date(b.week_end_date) - new Date(a.week_end_date);
+      });
+    });
+
+    // Return farmers array (empty if no payments)
     const farmersArray = Object.values(groupedData);
     
     return res.status(200).json({
-      message: "Pending payments fetched successfully.",
+      message: "Farmer payment history fetched successfully.",
       farmers: farmersArray.length > 0 ? farmersArray : [],
     });
   } catch (error) {
@@ -2316,38 +2400,116 @@ module.exports.getAllPendingFarmerPayments = async (req, res) => {
 module.exports.updateFarmerPaymentStatusById = async (req, res) => {
   try {
     const paymentId = req.params.id;
+    const dairy_name = req.user.dairy_name;
+    const { status, farmer_id, week_start_date, week_end_date } = req.body;
 
-    const dairy_name = req.user.dairy_name; // Assuming this is set by authentication middleware
-    const { status } = req.body;
+    let payment;
 
-    // Step 1: Fetch the payment
-    const payment = await FarmerPayment.findByPk(paymentId);
+    // If paymentId is provided, use it (for backward compatibility)
+    if (paymentId && paymentId !== "null" && paymentId !== "undefined") {
+      payment = await FarmerPayment.findByPk(paymentId);
+    } 
+    // Otherwise, find or create payment based on week dates
+    else if (farmer_id && week_start_date && week_end_date) {
+      payment = await FarmerPayment.findOne({
+        where: {
+          farmer_id: farmer_id,
+          week_start_date: week_start_date,
+          week_end_date: week_end_date,
+        },
+      });
+
+      // If payment doesn't exist, create it (aggregate from daily orders)
+      if (!payment) {
+        // Get farmer details
+        const farmer = await Farmer.findByPk(farmer_id);
+        if (!farmer || farmer.dairy_name !== dairy_name) {
+          return res.status(403).json({ message: "Access denied. Not your farmer." });
+        }
+
+        // Aggregate daily orders for this week
+        const startDate = new Date(week_start_date);
+        const endDate = new Date(week_end_date);
+        endDate.setHours(23, 59, 59, 999);
+
+        const dailyOrders = await DailyFarmerOrder.findAll({
+          where: {
+            farmer_id: farmer_id,
+            created_at: {
+              [Op.between]: [startDate, endDate],
+            },
+          },
+          raw: true,
+        });
+
+        let total_cow_quantity = 0;
+        let total_buffalo_quantity = 0;
+        let total_pure_quantity = 0;
+        let total_amount = 0;
+
+        for (const order of dailyOrders) {
+          const cowQty = Number(order.cow_quantity) || 0;
+          const cowRate = Number(order.cow_rate) || 0;
+          const buffaloQty = Number(order.buffalo_quantity) || 0;
+          const buffaloRate = Number(order.buffalo_rate) || 0;
+          const pureQty = Number(order.pure_quantity) || 0;
+          const pureRate = Number(order.pure_rate) || 0;
+
+          total_cow_quantity += cowQty;
+          total_buffalo_quantity += buffaloQty;
+          total_pure_quantity += pureQty;
+          total_amount += (cowQty * cowRate) + (buffaloQty * buffaloRate) + (pureQty * pureRate);
+        }
+
+        // Calculate week number
+        const weekDate = moment(week_start_date).tz("Asia/Kolkata");
+        const week_number = weekDate.isoWeek();
+
+        // Create new payment record
+        payment = await FarmerPayment.create({
+          farmer_id: farmer_id,
+          week_number: week_number,
+          week_start_date: week_start_date,
+          week_end_date: week_end_date,
+          total_cow_quantity: parseFloat(total_cow_quantity.toFixed(2)),
+          total_buffalo_quantity: parseFloat(total_buffalo_quantity.toFixed(2)),
+          total_pure_quantity: parseFloat(total_pure_quantity.toFixed(2)),
+          total_amount: parseFloat(total_amount.toFixed(2)),
+          status: status || false,
+        });
+      }
+    } else {
+      return res.status(400).json({ 
+        message: "Either payment ID or (farmer_id, week_start_date, week_end_date) must be provided." 
+      });
+    }
 
     if (!payment) {
       return res.status(404).json({ message: "Farmer payment not found." });
     }
 
-    // Step 2: Fetch the related farmer
+    // Verify farmer belongs to this admin's dairy
     const farmer = await Farmer.findByPk(payment.farmer_id);
-
     if (!farmer || farmer.dairy_name !== dairy_name) {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Not your farmer." });
+      return res.status(403).json({ message: "Access denied. Not your farmer." });
     }
 
-    // Step 3: Update payment status to true (paid)
+    // Update payment status
     payment.status = status;
     await payment.save(); // Triggers `beforeUpdate` hook to set `payment_date`
 
-    // Step 4: Update status of all related DailyFarmerOrder entries
+    // Update status of all related DailyFarmerOrder entries
+    const startDate = new Date(payment.week_start_date);
+    const endDate = new Date(payment.week_end_date);
+    endDate.setHours(23, 59, 59, 999);
+
     const updatedOrders = await DailyFarmerOrder.update(
       { status: payment.status },
       {
         where: {
           farmer_id: payment.farmer_id,
           created_at: {
-            [Op.between]: [payment.week_start_date, payment.week_end_date],
+            [Op.between]: [startDate, endDate],
           },
         },
       }
