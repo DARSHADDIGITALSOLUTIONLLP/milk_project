@@ -713,11 +713,23 @@ module.exports.getUserPaymentSummary = async (req, res) => {
     let totalMilkPayment = 0;
 
     for (const delivery of currentMonthDeliveries) {
-      const quantities = Array.isArray(delivery.quantity_array)
-        ? delivery.quantity_array
-        : JSON.parse(delivery.quantity_array);
+      let quantities;
+      
+      // Parse quantity_array if it's a string, otherwise use as-is
+      if (typeof delivery.quantity_array === 'string') {
+        quantities = JSON.parse(delivery.quantity_array);
+      } else if (Array.isArray(delivery.quantity_array)) {
+        quantities = delivery.quantity_array;
+      } else {
+        console.error('Invalid quantity_array format:', delivery.quantity_array);
+        continue;
+      }
 
-      const [cow, buffalo, pure] = quantities.map((q) => Number(q) || 0);
+      // NOTE: quantity_array format is [pure, cow, buffalo]
+      const pure = Number(quantities[0]) || 0;
+      const cow = Number(quantities[1]) || 0;
+      const buffalo = Number(quantities[2]) || 0;
+      
       totalMilkPayment +=
         cow * cow_rate + buffalo * buffalo_rate + pure * pure_rate;
     }

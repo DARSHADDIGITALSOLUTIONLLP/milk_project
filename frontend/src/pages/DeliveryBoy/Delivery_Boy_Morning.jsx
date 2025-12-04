@@ -11,6 +11,7 @@ import { LiaBackwardSolid } from "react-icons/lia";
 import Swal from "sweetalert2";
 import { MdArrowDropDown, MdArrowDropUp } from "react-icons/md";
 import { IoMdArrowDropright } from "react-icons/io";
+import "../User/User_Dashboard.css";
 
 function Delivery_Boy_Morning() {
   const navigate = useNavigate();
@@ -19,6 +20,9 @@ function Delivery_Boy_Morning() {
   const [date, setDate] = useState(new Date());
   const [showDropdown, setShowDropdown] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [activeMonth, setActiveMonth] = useState(new Date());
+  const [deliveredOrders, setDeliveredOrders] = useState([]);
+  const [todayMilkQuantity, setTodayMilkQuantity] = useState(0); // Quantity to be delivered today
 
   const toggleDropdown = () => {
     setShowDropdown(!showDropdown);
@@ -158,6 +162,54 @@ function Delivery_Boy_Morning() {
 
   const currentCustomer = customers[currentCustomerIndex];
 
+  // Fetch delivered orders for the currently selected customer (for card view)
+  const fetchDeliveredOrdersForCustomer = async (customerId) => {
+    if (!customerId) return;
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.get(
+        `/api/deliveryBoy/users/${customerId}/delivered-orders`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        const fetchedOrders = (response.data.orders || []).map((order) => ({
+          cow_quantity: order.cow_quantity || 0,
+          buffalo_quantity: order.buffalo_quantity || 0,
+          pure_quantity: order.pure_quantity || 0,
+          shift: order.shift,
+          order_date: order.date,
+          status: order.status,
+        }));
+        setDeliveredOrders(fetchedOrders);
+      }
+    } catch (error) {
+      console.error("Error fetching delivered orders for customer:", error);
+      setDeliveredOrders([]);
+    }
+  };
+
+  // When the current customer changes, load their delivered orders
+  useEffect(() => {
+    if (currentCustomer && currentCustomer.id) {
+      fetchDeliveredOrdersForCustomer(currentCustomer.id);
+      // Initialize today's quantity based on customer type
+      if (currentCustomer.type === "regular") {
+        setTodayMilkQuantity(currentCustomer.quantity || 0);
+      } else {
+        setTodayMilkQuantity(0);
+      }
+    } else {
+      setDeliveredOrders([]);
+      setTodayMilkQuantity(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCustomer?.id]);
+
   const handleLogout = (e) => {
     e.preventDefault(); // Prevent the default form submission
     Swal.fire({
@@ -224,6 +276,10 @@ function Delivery_Boy_Morning() {
     let currentCustomer = customers[currentCustomerIndex];
     const id = currentCustomer.id;
     const token = localStorage.getItem("token");
+    
+    // Use todayMilkQuantity from card input
+    const deliveryQuantity = todayMilkQuantity;
+    
     if (currentCustomer.type == "additional") {
       try {
         const cowMilk = currentCustomer.cow_milk || 0;
@@ -251,6 +307,9 @@ function Delivery_Boy_Morning() {
           toast.success(`Delivery successful for ${currentCustomer.name}`, {
             autoClose: 2000,
           });
+
+          // Refresh delivered orders for card view
+          await fetchDeliveredOrdersForCustomer(id);
 
           setCustomers((prevCustomers) => {
             const newCustomers = prevCustomers.filter(
@@ -280,20 +339,22 @@ function Delivery_Boy_Morning() {
       }
     } else {
       try {
-        const { id, quantity } = currentCustomer;
+        const { id } = currentCustomer;
+        
+        // Use the quantity entered in the card
         const cowMilk =
           currentCustomer.milk_type === "cow"
-            ? quantity
+            ? deliveryQuantity
             : demoQuantities["cow"] || 0;
 
         const buffaloMilk =
           currentCustomer.milk_type === "buffalo"
-            ? quantity
+            ? deliveryQuantity
             : demoQuantities["buffalo"] || 0;
 
         const pureMilk =
           currentCustomer.milk_type === "pure"
-            ? quantity
+            ? deliveryQuantity
             : demoQuantities["pure"] || 0;
 
         const response = await axios.post(
@@ -317,6 +378,9 @@ function Delivery_Boy_Morning() {
           toast.success(`Delivery successful for ${currentCustomer.name}`, {
             autoClose: 2000,
           });
+
+          // Refresh delivered orders for card view
+          await fetchDeliveredOrdersForCustomer(id);
 
           setCustomers((prevCustomers) => {
             const newCustomers = prevCustomers.filter(
@@ -581,118 +645,7 @@ function Delivery_Boy_Morning() {
                         </div>
                       </div>
 
-                      <p className="text-muted mb-1 fw-semibold">
-                        Type of Milk:
-                      </p>
-                      {currentCustomer.type == "regular" && (
-                        <div className="row align-items-center bg-light p-2 rounded">
-                          <div className="col-12 d-flex justify-content-between align-items-center p-2 flex-wrap">
-                            <div className="d-flex align-items-center">
-                              <span
-                                className="me-2"
-                                onClick={toggleDropdown}
-                                style={{ cursor: "pointer" }}
-                              >
-                                {showDropdown ? (
-                                  <MdArrowDropDown size={24} color="#EF6E0B" />
-                                ) : (
-                                  <IoMdArrowDropright
-                                    size={24}
-                                    color="#EF6E0B"
-                                  />
-                                )}
-                              </span>
-                              <span className="fw-bold fs-6 text-dark">
-                                {currentCustomer.type == "additional"
-                                  ? "cow"
-                                  : currentCustomer.milk_type}
-                              </span>
-                            </div>
-                            <div className="d-flex align-items-center">
-                              <p className="mb-0 me-2 text-secondary">Qty:</p>
-                              <div className="d-flex align-items-center">
-                                <button
-                                  onClick={handleDecrement}
-                                  className="btn btn-sm btn-outline-secondary"
-                                  style={{ width: "32px", height: "32px" }}
-                                >
-                                  -
-                                </button>
-                                <span
-                                  className="fw-bold mx-2"
-                                  style={{
-                                    minWidth: "30px",
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  {/* {currentCustomer.quantity} */}
-                                  {currentCustomer.type == "additional"
-                                    ? currentCustomer.cow_milk
-                                    : currentCustomer.quantity}
-                                </span>
-                                <button
-                                  onClick={handleIncrement}
-                                  className="btn btn-sm btn-outline-secondary"
-                                  style={{ width: "32px", height: "32px" }}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {showDropdown &&
-                            result.map((milkType) => (
-                              <div
-                                className="d-flex flex-wrap mt-2 align-items-center border-top pt-2"
-                                key={milkType}
-                                style={{ backgroundColor: "#fff" }}
-                              >
-                                <div className="col-6">
-                                  <span className="fw-bold text-dark">
-                                    {milkType}
-                                  </span>
-                                </div>
-                                <div className="col-6 d-flex justify-content-end align-items-center">
-                                  <p className="mb-0 me-2 text-secondary">
-                                    Qty:
-                                  </p>
-                                  <div className="d-flex align-items-center">
-                                    <button
-                                      onClick={() =>
-                                        handleDecrementRemain(milkType)
-                                      }
-                                      className="btn btn-sm btn-outline-secondary"
-                                      style={{ width: "32px", height: "32px" }}
-                                    >
-                                      -
-                                    </button>
-                                    <span
-                                      className="fw-bold mx-2"
-                                      style={{
-                                        minWidth: "30px",
-                                        textAlign: "center",
-                                      }}
-                                    >
-                                      {demoQuantities[milkType] || 0}
-                                      {/* {console.log("milk type",milkType)}
-                                    {console.log("Quantities",demoQuantities[milkType])} */}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        handleIncrementRemain(milkType)
-                                      }
-                                      className="btn btn-sm btn-outline-secondary"
-                                      style={{ width: "32px", height: "32px" }}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      )}
+                      {/* Type of Milk / Qty section intentionally hidden on delivery dashboard as per requirement */}
 
                       {currentCustomer.type == "additional" && (
                         <div>
@@ -826,6 +779,210 @@ function Delivery_Boy_Morning() {
                           </div>
                         </div>
                       )}
+
+                      {/* Customer Monthly Milk Card (same design as user dashboard) */}
+                      <div className="mt-4">
+                        <div className="milk-card-container">
+                          <div className="card-header-section">
+                            <div className="card-title">
+                              <h5 style={{ margin: 0, fontWeight: "bold" }}>
+                                {currentCustomer.name}
+                              </h5>
+                              <p style={{ margin: 0, fontSize: "14px" }}>
+                                Dairy: {currentCustomer.dairy_name}
+                              </p>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "10px",
+                                alignItems: "flex-end",
+                              }}
+                            >
+                              <div
+                                className="card-month-info"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "10px",
+                                }}
+                              >
+                                <button
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => {
+                                    const newMonth = new Date(activeMonth);
+                                    newMonth.setMonth(newMonth.getMonth() - 1);
+                                    setActiveMonth(newMonth);
+                                  }}
+                                  style={{ padding: "2px 8px", fontSize: "12px" }}
+                                >
+                                  ← Prev
+                                </button>
+                                <span style={{ fontWeight: "bold" }}>
+                                  {activeMonth.toLocaleString("default", {
+                                    month: "long",
+                                  })}{" "}
+                                  {activeMonth.getFullYear()}
+                                </span>
+                                <button
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => {
+                                    const newMonth = new Date(activeMonth);
+                                    newMonth.setMonth(newMonth.getMonth() + 1);
+                                    setActiveMonth(newMonth);
+                                  }}
+                                  style={{ padding: "2px 8px", fontSize: "12px" }}
+                                >
+                                  Next →
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="milk-card-grid">
+                            <table className="milk-card-table">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Morning</th>
+                                  <th>Evening</th>
+                                  <th>Date</th>
+                                  <th>Morning</th>
+                                  <th>Evening</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Array.from({ length: 16 }, (_, i) => {
+                                  const date1 = i + 1;
+                                  const date2 = i + 17;
+                                  const daysInMonth = new Date(
+                                    activeMonth.getFullYear(),
+                                    activeMonth.getMonth() + 1,
+                                    0
+                                  ).getDate();
+
+                                  const getDateData = (day) => {
+                                    if (day > daysInMonth) return null;
+
+                                    const dateStr = `${activeMonth.getFullYear()}-${String(
+                                      activeMonth.getMonth() + 1
+                                    ).padStart(2, "0")}-${String(day).padStart(
+                                      2,
+                                      "0"
+                                    )}`;
+
+                                    const today = new Date().toISOString().split("T")[0];
+                                    const isToday = dateStr === today;
+                                    const isCurrentMonth = activeMonth.getMonth() === new Date().getMonth() && 
+                                                          activeMonth.getFullYear() === new Date().getFullYear();
+
+                                    const morningOrders = deliveredOrders.filter(
+                                      (q) =>
+                                        q.order_date === dateStr &&
+                                        q.shift === "morning"
+                                    );
+                                    const eveningOrders = deliveredOrders.filter(
+                                      (q) =>
+                                        q.order_date === dateStr &&
+                                        q.shift === "evening"
+                                    );
+
+                                    const getMilkQty = (orders) => {
+                                      const total = orders.reduce(
+                                        (acc, order) => {
+                                          acc.cow += order.cow_quantity || 0;
+                                          acc.buffalo +=
+                                            order.buffalo_quantity || 0;
+                                          acc.pure += order.pure_quantity || 0;
+                                          return acc;
+                                        },
+                                        { cow: 0, buffalo: 0, pure: 0 }
+                                      );
+
+                                      // Show total quantity (sum of all milk types)
+                                      return (
+                                        total.cow + total.buffalo + total.pure
+                                      );
+                                    };
+
+                                    return {
+                                      morning: getMilkQty(morningOrders),
+                                      evening: getMilkQty(eveningOrders),
+                                      isToday: isToday && isCurrentMonth,
+                                    };
+                                  };
+
+                                  const data1 = getDateData(date1);
+                                  const data2 =
+                                    date2 <= daysInMonth
+                                      ? getDateData(date2)
+                                      : null;
+
+                                  return (
+                                    <tr key={i}>
+                                      <td className="date-cell">{date1}</td>
+                                      <td className="qty-cell" style={{ padding: data1?.isToday ? "2px" : "8px" }}>
+                                        {data1?.isToday ? (
+                                          <input
+                                            type="number"
+                                            step="0.25"
+                                            min="0"
+                                            value={todayMilkQuantity}
+                                            onChange={(e) => setTodayMilkQuantity(parseFloat(e.target.value) || 0)}
+                                            style={{
+                                              width: "100%",
+                                              border: "1px solid #007bff",
+                                              borderRadius: "3px",
+                                              padding: "4px",
+                                              textAlign: "center",
+                                              fontSize: "14px",
+                                              backgroundColor: "#e7f3ff",
+                                            }}
+                                          />
+                                        ) : (
+                                          data1?.morning > 0 ? data1.morning : ""
+                                        )}
+                                      </td>
+                                      <td className="qty-cell">
+                                        {data1?.evening > 0 ? data1.evening : ""}
+                                      </td>
+                                      <td className="date-cell">
+                                        {date2 <= daysInMonth ? date2 : ""}
+                                      </td>
+                                      <td className="qty-cell" style={{ padding: data2?.isToday ? "2px" : "8px" }}>
+                                        {data2?.isToday ? (
+                                          <input
+                                            type="number"
+                                            step="0.25"
+                                            min="0"
+                                            value={todayMilkQuantity}
+                                            onChange={(e) => setTodayMilkQuantity(parseFloat(e.target.value) || 0)}
+                                            style={{
+                                              width: "100%",
+                                              border: "1px solid #007bff",
+                                              borderRadius: "3px",
+                                              padding: "4px",
+                                              textAlign: "center",
+                                              fontSize: "14px",
+                                              backgroundColor: "#e7f3ff",
+                                            }}
+                                          />
+                                        ) : (
+                                          data2?.morning > 0 ? data2.morning : ""
+                                        )}
+                                      </td>
+                                      <td className="qty-cell">
+                                        {data2?.evening > 0 ? data2.evening : ""}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
 
                       <div className="row mt-4">
                         <div className="col-6">

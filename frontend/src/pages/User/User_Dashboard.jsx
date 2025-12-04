@@ -750,7 +750,7 @@ function User_Dashboard() {
                             <td className="date-cell">{date1}</td>
                             <td className="qty-cell">
                               {data1?.morningVacant ? (
-                                <span className="vacant-text">V</span>
+                                <span className="vacant-text">Vacation</span>
                               ) : data1?.morning > 0 ? (
                                 data1.morning
                               ) : (
@@ -759,7 +759,7 @@ function User_Dashboard() {
                             </td>
                             <td className="qty-cell">
                               {data1?.eveningVacant ? (
-                                <span className="vacant-text">V</span>
+                                <span className="vacant-text">Vacation</span>
                               ) : data1?.evening > 0 ? (
                                 data1.evening
                               ) : (
@@ -769,7 +769,7 @@ function User_Dashboard() {
                             <td className="date-cell">{date2 <= daysInMonth ? date2 : ""}</td>
                             <td className="qty-cell">
                               {data2?.morningVacant ? (
-                                <span className="vacant-text">V</span>
+                                <span className="vacant-text">Vacation</span>
                               ) : data2?.morning > 0 ? (
                                 data2.morning
                               ) : (
@@ -778,7 +778,7 @@ function User_Dashboard() {
                             </td>
                             <td className="qty-cell">
                               {data2?.eveningVacant ? (
-                                <span className="vacant-text">V</span>
+                                <span className="vacant-text">Vacation</span>
                               ) : data2?.evening > 0 ? (
                                 data2.evening
                               ) : (

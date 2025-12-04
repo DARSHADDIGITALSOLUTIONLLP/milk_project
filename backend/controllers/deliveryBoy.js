@@ -6,6 +6,69 @@ const { Op } = require("sequelize");
 const { sequelize } = require("../models");
 const AdditionalOrder = require("../models/additinalOrder");
 
+// ✅ New: Fetch delivered orders for a specific user (for delivery boy/customer card)
+module.exports.getUserDeliveredOrders = async (req, res) => {
+  try {
+    const { id } = req.params; // customer/user id
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: No dairy association found." });
+    }
+
+    // Ensure the requested user belongs to the same dairy
+    const user = await User.findOne({ where: { id, dairy_name } });
+
+    if (!user) {
+      return res.status(403).json({
+        message: "Unauthorized: This user does not belong to your dairy.",
+      });
+    }
+
+    const deliveredOrders = await DeliveryStatus.findAll({
+      where: { userid: id },
+      attributes: ["delivery_id", "shift", "quantity_array", "date", "status"],
+    });
+
+    // Return 200 with empty array if no orders (so frontend can still render card)
+    if (!deliveredOrders || deliveredOrders.length === 0) {
+      return res.status(200).json({
+        message: "Delivered orders fetched successfully.",
+        orders: [],
+      });
+    }
+
+    // Transform quantity_array into separate fields
+    const transformedOrders = deliveredOrders.map((order) => {
+      // Parse quantity_array if it's a string, otherwise use as-is
+      const quantities =
+        typeof order.quantity_array === "string"
+          ? JSON.parse(order.quantity_array)
+          : order.quantity_array;
+
+      // NOTE: quantity_array format is [pure, cow, buffalo]
+      return {
+        delivery_id: order.delivery_id,
+        shift: order.shift,
+        pure_quantity: quantities[0] || 0,
+        cow_quantity: quantities[1] || 0,
+        buffalo_quantity: quantities[2] || 0,
+        date: order.date,
+        status: order.status,
+      };
+    });
+
+    return res.status(200).json({
+      message: "Delivered orders fetched successfully.",
+      orders: transformedOrders,
+    });
+  } catch (error) {
+    console.error("Error fetching delivered orders for user:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 module.exports.UpdateDeliveryStatus = async (req, res) => {
     try {
@@ -53,7 +116,8 @@ module.exports.UpdateDeliveryStatus = async (req, res) => {
         const cowQuantity = Number(cow_milk) || 0;
         const buffaloQuantity = Number(buffalo_milk) || 0;
         const pureQuantity = Number(pure_milk) || 0;
-        const quantityArray = [cowQuantity, buffaloQuantity, pureQuantity];
+        // NOTE: quantity_array format is [pure, cow, buffalo]
+        const quantityArray = [pureQuantity, cowQuantity, buffaloQuantity];
 
         let updateField = {};
         if (shift.toLowerCase() === "morning") {
