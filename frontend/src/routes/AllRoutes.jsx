@@ -23,6 +23,7 @@ import Payment_History from "../pages/Admin/Payment_History";
 import Farmer_Order_History from "../pages/Admin/Farmer_Order_History";
 import Admin_Farmer_Payment_History from "../pages/Admin/Farmer_Payment_History";
 import Delivery_Boy_List from "../pages/Admin/Delivery_Boy_List";
+import Daily_Report from "../pages/Admin/Daily_Report";
 import Delivery_Boy_Login from "../pages/DeliveryBoy/Delivery_Boy_Login";
 import Delivery_Boy_Morning from "../pages/DeliveryBoy/Delivery_Boy_Morning";
 import Delivery_Boy_Evening from "../pages/DeliveryBoy/Delivery_Boy_Evening";
@@ -205,6 +206,12 @@ function AllRoutes() {
         path="/delivery-boy-list"
         element={
           <UserRoleRoute role="admin" component={<Delivery_Boy_List />} />
+        }
+      />
+      <Route
+        path="/daily-report"
+        element={
+          <UserRoleRoute role="admin" component={<Daily_Report />} />
         }
       />
       <Route

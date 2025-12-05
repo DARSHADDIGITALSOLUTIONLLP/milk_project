@@ -92,17 +92,24 @@
     bottom: 20px;
     left: 0;
     width: 100%;
-    border-top: none;
+    border-top: none !important;
+    border: none !important;
     padding-top: 10px;
   }
-  .sidebar-bottom a {
+  .sidebar-bottom a,
+  .sidebar-bottom .btnLogout {
     display: block;
     padding: 10px;
     text-decoration: none;
     color: #fff;
+    border-top: none !important;
+    border: none !important;
   }
-  .sidebar-bottom a:hover {
+  .sidebar-bottom a:hover,
+  .sidebar-bottom .btnLogout:hover {
     background-color: #555;
+    border-top: none !important;
+    border: none !important;
   }
   .click_btn {
     border: none;

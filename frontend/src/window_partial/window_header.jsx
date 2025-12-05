@@ -34,6 +34,7 @@ function WindowHeader({ dashboardText }) {
   const [activeSubMenu, setActiveSubMenu] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showFarmerModal, setShowFarmerModal] = useState(false);
+  const [showMilkDistributionModal, setShowMilkDistributionModal] = useState(false);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showPaymentPopup, setShowPaymentPopup] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -334,6 +335,108 @@ function WindowHeader({ dashboardText }) {
     fetchCurrentFarmerRates(); // Fetch current rates when modal opens
   };
 
+  const fetchMilkDistribution = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/admin/milk-distribution", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data && response.data.data) {
+        setMilkDistribution(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching milk distribution:", error);
+      toast.error("Failed to fetch milk distribution data");
+    }
+  };
+
+  const openMilkDistributionModal = () => {
+    setShowMilkDistributionModal(true);
+    fetchMilkDistribution(); // Fetch milk distribution data when modal opens
+  };
+
+  const closeMilkDistributionModal = () => {
+    setShowMilkDistributionModal(false);
+    setSelectedDeliveryBoy("");
+    setDistributionFormData({
+      pure_quantity: "",
+      cow_quantity: "",
+      buffalo_quantity: "",
+    });
+  };
+
+  const handleDeliveryBoyChange = (e) => {
+    const deliveryBoyId = e.target.value;
+    setSelectedDeliveryBoy(deliveryBoyId);
+    
+    // Find the selected delivery boy's data
+    const selectedData = milkDistribution.find(
+      (dist) => dist.delivery_boy_id === parseInt(deliveryBoyId)
+    );
+    
+    if (selectedData) {
+      setDistributionFormData({
+        pure_quantity: selectedData.today.pure_quantity || "",
+        cow_quantity: selectedData.today.cow_quantity || "",
+        buffalo_quantity: selectedData.today.buffalo_quantity || "",
+      });
+    } else {
+      setDistributionFormData({
+        pure_quantity: "",
+        cow_quantity: "",
+        buffalo_quantity: "",
+      });
+    }
+  };
+
+  const handleDistributionInputChange = (e) => {
+    const { name, value } = e.target;
+    setDistributionFormData({
+      ...distributionFormData,
+      [name]: value,
+    });
+  };
+
+  const handleSubmitDistribution = async () => {
+    if (!selectedDeliveryBoy) {
+      toast.error("Please select a delivery boy");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        "/api/admin/milk-distribution",
+        {
+          delivery_boy_id: parseInt(selectedDeliveryBoy),
+          pure_quantity: distributionFormData.pure_quantity || 0,
+          cow_quantity: distributionFormData.cow_quantity || 0,
+          buffalo_quantity: distributionFormData.buffalo_quantity || 0,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.status === 200) {
+        toast.success("Milk distribution updated successfully");
+        setDistributionFormData({
+          pure_quantity: "",
+          cow_quantity: "",
+          buffalo_quantity: "",
+        });
+        setSelectedDeliveryBoy("");
+        fetchMilkDistribution(); // Refresh data
+      }
+    } catch (error) {
+      console.error("Error updating milk distribution:", error);
+      toast.error(error.response?.data?.message || "Failed to update milk distribution");
+    }
+  };
+
   const handleClose = () => {
     Cookies.remove("Mauli-Dairy", { path: "/" });
     navigate("/");
@@ -368,6 +471,20 @@ function WindowHeader({ dashboardText }) {
     farmer_buffalo_rate: 0,
     farmer_pure_rate: 0,
   });
+
+  // State for milk distribution
+  const [milkDistribution, setMilkDistribution] = useState([]);
+  const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState("");
+  const [distributionFormData, setDistributionFormData] = useState({
+    pure_quantity: "",
+    cow_quantity: "",
+    buffalo_quantity: "",
+  });
+
+  // Get selected delivery boy's data
+  const selectedDeliveryBoyData = milkDistribution.find(
+    (dist) => dist.delivery_boy_id === parseInt(selectedDeliveryBoy)
+  );
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
@@ -572,6 +689,14 @@ function WindowHeader({ dashboardText }) {
           </li>
           <li>
             <NavLink
+              to="/daily-report"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+            >
+              Daily Report
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
               to="/delivery-boy-list"
               className={({ isActive }) => (isActive ? "active-link" : "")}
             >
@@ -674,6 +799,12 @@ function WindowHeader({ dashboardText }) {
                   style={{ fontSize: "12px" }}
                 >
                   Farmer Rates
+                </NavDropdown.Item>
+                <NavDropdown.Item
+                  onClick={openMilkDistributionModal}
+                  style={{ fontSize: "12px" }}
+                >
+                  Milk Distribution
                 </NavDropdown.Item>
                 <NavDropdown.Divider />
                 <NavDropdown.Item
@@ -1167,6 +1298,119 @@ function WindowHeader({ dashboardText }) {
             </div>
           </form>
         </Modal.Body>
+      </Modal>
+
+      {/* Milk Distribution Modal */}
+      <Modal show={showMilkDistributionModal} onHide={closeMilkDistributionModal} className="mt-4">
+        <Modal.Header className="modal_header" closeButton>
+          <Modal.Title>Milk Distribution to Delivery Boy</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {/* Select Delivery Boy */}
+          <p>
+            Select Delivery Boy<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+            <select
+              className="rate_input"
+              value={selectedDeliveryBoy}
+              onChange={handleDeliveryBoyChange}
+              style={{ width: "100%", marginTop: "5px" }}
+              required
+            >
+              <option value="">Select Delivery Boy</option>
+              {milkDistribution.map((dist) => (
+                <option key={dist.delivery_boy_id} value={dist.delivery_boy_id}>
+                  {dist.delivery_boy_name} ({dist.delivery_boy_email})
+                </option>
+              ))}
+            </select>
+          </p>
+
+          {/* Show Yesterday's Milk Given (Read-only) */}
+          {selectedDeliveryBoyData && (
+            <>
+              <div
+                style={{
+                  backgroundColor: "#f8f9fa",
+                  padding: "15px",
+                  borderRadius: "5px",
+                  marginBottom: "20px",
+                  marginTop: "20px",
+                  border: "1px solid #dee2e6",
+                }}
+              >
+                <h6
+                  style={{
+                    marginBottom: "10px",
+                    fontWeight: "bold",
+                    color: "#333",
+                  }}
+                >
+                  Yesterday's Milk Given:
+                </h6>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <p style={{ margin: 0, fontSize: "14px" }}>
+                    <strong>Pure Milk:</strong> {selectedDeliveryBoyData.yesterday.pure_quantity || 0} L
+                  </p>
+                  <p style={{ margin: 0, fontSize: "14px" }}>
+                    <strong>Cow Milk:</strong> {selectedDeliveryBoyData.yesterday.cow_quantity || 0} L
+                  </p>
+                  <p style={{ margin: 0, fontSize: "14px" }}>
+                    <strong>Buffalo Milk:</strong> {selectedDeliveryBoyData.yesterday.buffalo_quantity || 0} L
+                  </p>
+                </div>
+              </div>
+
+              <hr style={{ marginBottom: "20px" }} />
+            </>
+          )}
+
+          {/* Today's Milk Input Fields */}
+          <p>
+            Pure Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+            <input
+              type="number"
+              step="0.01"
+              className="rate_input"
+              name="pure_quantity"
+              value={distributionFormData.pure_quantity}
+              onChange={handleDistributionInputChange}
+              placeholder={`Current: ${selectedDeliveryBoyData?.today.pure_quantity || 0} - Enter New Quantity`}
+              required
+            />
+            <span style={{ paddingLeft: "4px" }}>/ L</span>
+          </p>
+          <p>
+            Cow Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+            <input
+              type="number"
+              step="0.01"
+              className="rate_input"
+              name="cow_quantity"
+              value={distributionFormData.cow_quantity}
+              onChange={handleDistributionInputChange}
+              placeholder={`Current: ${selectedDeliveryBoyData?.today.cow_quantity || 0} - Enter New Quantity`}
+              required
+            />
+            <span style={{ paddingLeft: "4px" }}>/ L</span>
+          </p>
+          <p>
+            Buffalo Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+            <input
+              type="number"
+              step="0.01"
+              className="rate_input"
+              name="buffalo_quantity"
+              value={distributionFormData.buffalo_quantity}
+              onChange={handleDistributionInputChange}
+              placeholder={`Current: ${selectedDeliveryBoyData?.today.buffalo_quantity || 0} - Enter New Quantity`}
+              required
+            />
+            <span style={{ paddingLeft: "4px" }}>/ L</span>
+          </p>
+        </Modal.Body>
+        <Button className="close_btn" onClick={handleSubmitDistribution}>
+          Submit
+        </Button>
       </Modal>
     </div>
   );

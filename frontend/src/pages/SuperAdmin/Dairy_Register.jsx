@@ -83,11 +83,21 @@ function Dairy_Register() {
       // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error("Please select an image file");
+        event.target.value = ""; // Clear the input
+        return;
+      }
+      // Reject GIF files
+      if (file.type === 'image/gif') {
+        toast.error("GIF files are not allowed. Please use JPG or PNG format.");
+        event.target.value = ""; // Clear the input
+        setDairyLogo(null);
+        setLogoPreview(null);
         return;
       }
       // Validate file size (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
         toast.error("Image size should be less than 2MB");
+        event.target.value = ""; // Clear the input
         return;
       }
       setDairyLogo(file);
@@ -399,11 +409,11 @@ function Dairy_Register() {
                 <Form.Label>Dairy Logo (Optional)</Form.Label>
                 <Form.Control
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png"
                   onChange={handleLogoChange}
                 />
                 <Form.Text className="text-muted">
-                  Upload dairy logo (Max size: 2MB, Formats: JPG, PNG, GIF)
+                  Upload dairy logo (Max size: 2MB, Formats: JPG, PNG only)
                 </Form.Text>
                 {logoPreview && (
                   <div className="mt-3">

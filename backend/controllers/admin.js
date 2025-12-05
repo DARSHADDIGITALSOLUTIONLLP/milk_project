@@ -19,6 +19,7 @@ const upload = require("../middlewares/multer");
 const moment = require("moment-timezone");
 const PaymentDetails = require("../models/payment_details"); // Import PaymentDetails+
 const { start } = require("repl");
+const DeliveryBoyMilkDistribution = require("../models/DeliveryBoyMilkDistribution");
 
 module.exports.checkAdmin = async (req, res) => {
   try {
@@ -3024,5 +3025,264 @@ module.exports.updateDeliverySequence = async (req, res) => {
   } catch (error) {
     console.error("Error updating delivery sequence:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Get milk distribution for all delivery boys (today and yesterday)
+module.exports.getMilkDistribution = async (req, res) => {
+  try {
+    const admin = req.user;
+    const dairyName = admin.dairy_name;
+
+    // Get today and yesterday dates
+    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+    const yesterday = moment().tz("Asia/Kolkata").subtract(1, "days").format("YYYY-MM-DD");
+
+    // Get all delivery boys for this dairy
+    const deliveryBoys = await DeliveryBoy.findAll({
+      where: { dairy_name: dairyName },
+      attributes: ["id", "name", "email", "contact"],
+    });
+
+    // Get milk distribution for today and yesterday for all delivery boys
+    const distributionData = await Promise.all(
+      deliveryBoys.map(async (db) => {
+        const todayDistribution = await DeliveryBoyMilkDistribution.findOne({
+          where: {
+            delivery_boy_id: db.id,
+            date: today,
+          },
+        });
+
+        const yesterdayDistribution = await DeliveryBoyMilkDistribution.findOne({
+          where: {
+            delivery_boy_id: db.id,
+            date: yesterday,
+          },
+        });
+
+        return {
+          delivery_boy_id: db.id,
+          delivery_boy_name: db.name,
+          delivery_boy_email: db.email,
+          delivery_boy_contact: db.contact,
+          today: {
+            pure_quantity: todayDistribution?.pure_quantity || 0,
+            cow_quantity: todayDistribution?.cow_quantity || 0,
+            buffalo_quantity: todayDistribution?.buffalo_quantity || 0,
+          },
+          yesterday: {
+            pure_quantity: yesterdayDistribution?.pure_quantity || 0,
+            cow_quantity: yesterdayDistribution?.cow_quantity || 0,
+            buffalo_quantity: yesterdayDistribution?.buffalo_quantity || 0,
+          },
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: distributionData,
+      today_date: today,
+      yesterday_date: yesterday,
+    });
+  } catch (error) {
+    console.error("Error fetching milk distribution:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Update milk distribution for a delivery boy for today
+module.exports.updateMilkDistribution = async (req, res) => {
+  try {
+    const admin = req.user;
+    const dairyName = admin.dairy_name;
+    const { delivery_boy_id, pure_quantity, cow_quantity, buffalo_quantity } = req.body;
+
+    // Validate input
+    if (!delivery_boy_id) {
+      return res.status(400).json({ message: "Delivery boy ID is required" });
+    }
+
+    // Verify delivery boy belongs to this dairy
+    const deliveryBoy = await DeliveryBoy.findOne({
+      where: {
+        id: delivery_boy_id,
+        dairy_name: dairyName,
+      },
+    });
+
+    if (!deliveryBoy) {
+      return res.status(404).json({ message: "Delivery boy not found or doesn't belong to your dairy" });
+    }
+
+    // Get today's date
+    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+
+    // Convert to numbers
+    const pureQty = parseFloat(pure_quantity) || 0;
+    const cowQty = parseFloat(cow_quantity) || 0;
+    const buffaloQty = parseFloat(buffalo_quantity) || 0;
+
+    // Find or create today's distribution record
+    const [distribution, created] = await DeliveryBoyMilkDistribution.findOrCreate({
+      where: {
+        delivery_boy_id: delivery_boy_id,
+        date: today,
+      },
+      defaults: {
+        delivery_boy_id: delivery_boy_id,
+        date: today,
+        pure_quantity: pureQty,
+        cow_quantity: cowQty,
+        buffalo_quantity: buffaloQty,
+      },
+    });
+
+    // If record exists, update it
+    if (!created) {
+      await distribution.update({
+        pure_quantity: pureQty,
+        cow_quantity: cowQty,
+        buffalo_quantity: buffaloQty,
+        updated_at: new Date(),
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Milk distribution updated successfully",
+      data: {
+        delivery_boy_id: delivery_boy_id,
+        delivery_boy_name: deliveryBoy.name,
+        date: today,
+        pure_quantity: pureQty,
+        cow_quantity: cowQty,
+        buffalo_quantity: buffaloQty,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating milk distribution:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Get daily report metrics
+module.exports.getDailyReport = async (req, res) => {
+  try {
+    const admin = req.user;
+    const dairyName = admin.dairy_name;
+
+    // Get today's date in Asia/Kolkata timezone
+    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+
+    // 1. Overall Total Milk (from DailyFarmerOrder for today)
+    const startOfDay = moment().tz("Asia/Kolkata").startOf("day").toDate();
+    const endOfDay = moment().tz("Asia/Kolkata").endOf("day").toDate();
+
+    const farmerOrders = await DailyFarmerOrder.findAll({
+      where: {
+        created_at: {
+          [Op.gte]: startOfDay,
+          [Op.lt]: endOfDay,
+        },
+      },
+      include: [
+        {
+          model: Farmer,
+          as: "farmer",
+          attributes: ["dairy_name"],
+          where: { dairy_name: dairyName },
+        },
+      ],
+    });
+
+    let overallTotalMilk = 0;
+    farmerOrders.forEach((order) => {
+      overallTotalMilk +=
+        parseFloat(order.pure_quantity || 0) +
+        parseFloat(order.cow_quantity || 0) +
+        parseFloat(order.buffalo_quantity || 0);
+    });
+
+    // 2. Total Milk Given to Delivery Boys (from DeliveryBoyMilkDistribution for today)
+    const deliveryBoys = await DeliveryBoy.findAll({
+      where: { dairy_name: dairyName },
+      attributes: ["id"],
+    });
+
+    const deliveryBoyIds = deliveryBoys.map((db) => db.id);
+
+    const milkDistributions = await DeliveryBoyMilkDistribution.findAll({
+      where: {
+        date: today,
+        delivery_boy_id: {
+          [Op.in]: deliveryBoyIds,
+        },
+      },
+    });
+
+    let totalMilkGivenToDeliveryBoy = 0;
+    milkDistributions.forEach((dist) => {
+      totalMilkGivenToDeliveryBoy +=
+        parseFloat(dist.pure_quantity || 0) +
+        parseFloat(dist.cow_quantity || 0) +
+        parseFloat(dist.buffalo_quantity || 0);
+    });
+
+    // 3. Total Milk Delivered to Customers (from DeliveryStatus for today)
+    const users = await User.findAll({
+      where: { dairy_name: dairyName },
+      attributes: ["id"],
+    });
+
+    const userIds = users.map((u) => u.id);
+
+    const deliveryStatuses = await DeliveryStatus.findAll({
+      where: {
+        date: today,
+        userid: {
+          [Op.in]: userIds,
+        },
+      },
+    });
+
+    let totalMilkDelivered = 0;
+    deliveryStatuses.forEach((status) => {
+      let quantities;
+      if (typeof status.quantity_array === "string") {
+        quantities = JSON.parse(status.quantity_array);
+      } else if (Array.isArray(status.quantity_array)) {
+        quantities = status.quantity_array;
+      } else {
+        quantities = [0, 0, 0];
+      }
+
+      // quantity_array format: [pure, cow, buffalo]
+      const pure = parseFloat(quantities[0] || 0);
+      const cow = parseFloat(quantities[1] || 0);
+      const buffalo = parseFloat(quantities[2] || 0);
+
+      totalMilkDelivered += pure + cow + buffalo;
+    });
+
+    // 4. Remaining Milk (Given to Delivery Boy - Delivered to Customers)
+    const remainingMilk = totalMilkGivenToDeliveryBoy - totalMilkDelivered;
+
+    res.status(200).json({
+      success: true,
+      date: today,
+      data: {
+        overall_total_milk: parseFloat(overallTotalMilk.toFixed(2)),
+        total_milk_given_to_delivery_boy: parseFloat(
+          totalMilkGivenToDeliveryBoy.toFixed(2)
+        ),
+        total_milk_delivered: parseFloat(totalMilkDelivered.toFixed(2)),
+        remaining_milk: parseFloat(remainingMilk.toFixed(2)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching daily report:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

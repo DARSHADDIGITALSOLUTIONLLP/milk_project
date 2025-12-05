@@ -261,7 +261,7 @@ function Login() {
             >
               <img 
                 src={mauli_logo} 
-                className="img-fluid" 
+                className="img-fluid login-logo" 
                 alt="mauli_logo"
                 tabIndex={-1}
                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -345,7 +345,7 @@ function Login() {
                 </Col>
               </Row>
 
-              <div className="row mt-4 p-2">
+              <div className="row mt-3 p-2" style={{ marginBottom: "10px" }}>
                 <div className="col-md-2 d-none d-md-block"></div>
                 <div
                   className="col-md-8 col-sm-12 powered-by-container"

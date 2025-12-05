@@ -1,32 +1,49 @@
 html, body {
   overflow-y: auto;
+  margin: 0;
+  padding: 0;
 }
 
 .login-container {
-  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .login-row {
-  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  margin: 0;
 }
 
 .image-col,
 .form-col {
-  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .image-col {
   background-color: black;
-  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   position: relative;
   padding: 0;
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .image-col {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 }
 
 .image-wrapper {
@@ -41,20 +58,38 @@ html, body {
   box-sizing: border-box;
 }
 
-.image-wrapper img {
-  max-height: 75%;
-  max-width: 75%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  display: block;
-  margin: 0;
-  flex-shrink: 0;
-  left:5% !important;
+.image-wrapper img,
+.image-wrapper .img-fluid,
+.image-wrapper .login-logo {
+  max-height: 60% !important;
+  max-width: 60% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+/* Desktop specific positioning */
+@media (min-width: 768px) {
+  .image-wrapper img,
+  .image-wrapper .img-fluid,
+  .image-wrapper .login-logo {
+    margin-top: -200px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    position: absolute !important;
+    left: 55% !important;
+    top: 50% !important;
+    transform: translateX(-50%) !important;
+  }
 }
 
 .form-col {
   background-color: white;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .rl-btn {
@@ -112,8 +147,9 @@ html, body {
     display: none !important;
   }
 
-  .image-wrapper img {
-    margin-top: 0px;
+  .image-wrapper img,
+  .image-wrapper .img-fluid {
+    margin-top: 0px !important;
   }
 
   /* Ensure form labels are left-aligned on mobile */
@@ -263,5 +299,31 @@ a:focus {
 @media (min-width: 992px) {
   .powered-by-text {
     font-size: 1rem !important;
+  }
+  
+  /* Prevent extra scrolling on desktop */
+  .login-container {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .login-row {
+    height: 100vh;
+  }
+  
+  .form-col {
+    height: 100vh;
+    padding: 20px 0;
+  }
+  
+  .form-col .container {
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  
+  /* Remove extra margin from powered-by section */
+  .powered-by-container {
+    margin-bottom: 0 !important;
   }
 }

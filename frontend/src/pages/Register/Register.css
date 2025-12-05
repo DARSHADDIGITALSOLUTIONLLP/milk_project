@@ -50,6 +50,24 @@
   
   .form-col {
     background-color: white;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  .form-col .container {
+    max-width: 100%;
+    padding: 0;
+  }
+  
+  /* Remove excessive margin on desktop */
+  @media (min-width: 769px) {
+    .form-col {
+      padding: 40px;
+    }
+    
+    .toggle_btn {
+      margin-top: 2rem !important;
+    }
   }
   
   .rl-btn {

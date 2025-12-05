@@ -372,4 +372,28 @@ router.put(
   adminController.updateDeliveryStatus
 );
 
+// Get milk distribution for all delivery boys (today and yesterday)
+router.get(
+  "/milk-distribution",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getMilkDistribution
+);
+
+// Update milk distribution for a delivery boy for today
+router.put(
+  "/milk-distribution",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.updateMilkDistribution
+);
+
+// Get daily report metrics
+router.get(
+  "/daily-report",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getDailyReport
+);
+
 module.exports = router;

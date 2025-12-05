@@ -83,5 +83,10 @@ const DailyFarmerOrder = sequelize.define(
     }
 );
 
+// Define association
+DailyFarmerOrder.belongsTo(Farmer, {
+    foreignKey: "farmer_id",
+    as: "farmer",
+});
 
 module.exports = DailyFarmerOrder;

@@ -24,7 +24,7 @@ function Register() {
   const [selectedDairy, setSelectedDairy] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [toggleBtnMarginTop, setToggleBtnMarginTop] = useState("27rem");
+  const [toggleBtnMarginTop, setToggleBtnMarginTop] = useState("2rem");
   const [backBtnMarginTop, setBackBtnMarginTop] = useState("443px");
   const [error, setError] = useState("");
   const [dairyList, setDairyList] = useState([]);
@@ -74,7 +74,8 @@ function Register() {
       const screenWidth = window.innerWidth;
 
       if (activeForm === "customer") {
-        setToggleBtnMarginTop("30rem");
+        // Desktop: minimal margin
+        setToggleBtnMarginTop("2rem");
         if (screenWidth <= 245) {
           setToggleBtnMarginTop("60rem");
         } else if (screenWidth <= 380) {
@@ -85,7 +86,8 @@ function Register() {
           setToggleBtnMarginTop("50rem");
         }
       } else if (activeForm === "dairy") {
-        setToggleBtnMarginTop("8rem");
+        // Desktop: minimal margin
+        setToggleBtnMarginTop("2rem");
         if (screenWidth <= 320) {
           setToggleBtnMarginTop("35rem");
         } else if (screenWidth <= 480) {
@@ -94,7 +96,7 @@ function Register() {
           setToggleBtnMarginTop("28rem");
         }
       } else {
-        setToggleBtnMarginTop("7rem");
+        setToggleBtnMarginTop("2rem");
       }
     };
 
@@ -125,9 +127,15 @@ function Register() {
   };
   const [DairyValues, setDairyValues] = useState({
     dairyName: "",
+    ownerName: "",
     address: "",
+    city: "",
+    state: "",
+    pincode: "",
     email: "",
     contactNumber: "",
+    gstNumber: "",
+    licenseNumber: "",
     password: "",
   });
 
@@ -189,9 +197,15 @@ function Register() {
     });
     setDairyValues({
       dairyName: "",
+      ownerName: "",
       address: "",
+      city: "",
+      state: "",
+      pincode: "",
       email: "",
       contactNumber: "",
+      gstNumber: "",
+      licenseNumber: "",
       password: "",
     });
     setCustomerValues({
