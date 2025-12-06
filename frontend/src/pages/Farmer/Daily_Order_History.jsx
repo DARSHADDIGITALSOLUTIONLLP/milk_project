@@ -113,7 +113,7 @@ function Daily_Order_History() {
     //   sortable: true,
     // },
     {
-      name: "Pure (Ltr)",
+      name: "Pure (ltr)",
       selector: (row) =>
         row.pure_quantity
           ? `${row.pure_quantity || 0} (F${row.pure_fat ?? "-"}) * Rs ${
@@ -123,7 +123,7 @@ function Daily_Order_History() {
       sortable: true,
     },
     {
-      name: "Cow (Ltr)",
+      name: "Cow (ltr)",
       selector: (row) =>
         row.cow_quantity
           ? `${row.cow_quantity || 0} (F${row.cow_fat ?? "-"}) * Rs ${
@@ -133,7 +133,7 @@ function Daily_Order_History() {
       sortable: true,
     },
     {
-      name: "Buffalo (Ltr)",
+      name: "Buffalo (ltr)",
       selector: (row) =>
         row.buffalo_quantity
           ? `${row.buffalo_quantity || 0} (F${row.buffalo_fat ?? "-"}) * Rs ${

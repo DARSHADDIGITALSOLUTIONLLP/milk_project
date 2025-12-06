@@ -907,42 +907,42 @@ function Admin_Dashboard() {
             transition:Bounce
           />
           <Row className="mt-4">
-            <Col className="mt-3">
+            <Col xs={12} sm={12} md={4} className="mt-3 mb-2">
               <Button
                 style={{
                   backgroundColor: "#ffc107",
                   color: "black",
                   width: "100%",
                   border: "none",
-                  marginTop: "15px",
+                  marginTop: isSmallScreen ? "0px" : "15px",
                 }}
                 onClick={() => setActiveForm("customer")}
               >
                 New Customer Registration
               </Button>
             </Col>
-            <Col className="mt-3">
+            <Col xs={12} sm={12} md={4} className="mt-3 mb-2">
               <Button
                 style={{
                   backgroundColor: "#ffc107",
                   color: "black",
                   width: "100%",
                   border: "none",
-                  marginTop: "15px",
+                  marginTop: isSmallScreen ? "0px" : "15px",
                 }}
                 onClick={() => setActiveForm("farmer")}
               >
                 New Farmer Registration
               </Button>
             </Col>
-            <Col className="mt-3">
+            <Col xs={12} sm={12} md={4} className="mt-3 mb-2">
               <Button
                 style={{
                   backgroundColor: "#ffc107",
                   color: "black",
                   width: "100%",
                   border: "none",
-                  marginTop: "15px",
+                  marginTop: isSmallScreen ? "0px" : "15px",
                 }}
                 onClick={() => setActiveForm("deliveryBoy")}
               >
@@ -960,8 +960,8 @@ function Admin_Dashboard() {
           </h3>
 
           {activeForm === "customer" ? (
-            <Form onSubmit={handleSubmit}>
-              <div className="row mt-4">
+            <Form onSubmit={handleSubmit} style={{ marginTop: isSmallScreen ? "1rem" : "0" }}>
+              <div className="row" style={{ marginTop: isSmallScreen ? "0.5rem" : "1.5rem" }}>
                 <div className="col-12">
                   <Form.Group controlId="fullName">
                     <Form.Label>
@@ -1107,7 +1107,7 @@ function Admin_Dashboard() {
                 </div>
               </div>
 
-              <div className="row mt-4">
+              <div className="row" style={{ marginTop: isSmallScreen ? "0.5rem" : "1.5rem" }}>
                 <div className="col-12 col-md-6">
                   <Form.Group className="mb-3" controlId="formMilkSelect">
                     <Form.Label>
@@ -1136,13 +1136,13 @@ function Admin_Dashboard() {
                   <Form.Group
                     className="mb-3"
                     style={{
-                      padding: "10px",
+                      padding: isSmallScreen ? "5px" : "10px",
                     }}
                   >
-                    <Form.Label className="me-3 mb-0">
+                    <Form.Label className="me-3 mb-2">
                       Milk Quantity<span style={{ color: "red" }}>*</span>
                     </Form.Label>
-                    <InputGroup style={{ flex: "1", maxWidth: "200px" }}>
+                    <InputGroup style={{ flex: "1", maxWidth: isSmallScreen ? "100%" : "200px", width: isSmallScreen ? "100%" : "auto" }}>
                       <Button
                         variant="outline-primary"
                         onClick={() => handleQuantityChange("decrement")}
@@ -1185,7 +1185,7 @@ function Admin_Dashboard() {
                         }}
                       >
                         {quantity >= 1000
-                          ? `${(quantity / 1000).toFixed(2)} Ltr`
+                          ? `${(quantity / 1000).toFixed(2)} ltr`
                           : `${quantity} ML`}
                       </Form.Label>
                     </InputGroup>
@@ -1194,7 +1194,7 @@ function Admin_Dashboard() {
               </div>
 
               <div className="row mt-4">
-                <div className="col-12" style={{ display: "flex" }}>
+                <div className="col-12">
                   <Form.Group className="mb-3" controlId="formShift">
                     <Form.Label>
                       Select Shift <span style={{ color: "red" }}>*</span>
@@ -1202,11 +1202,11 @@ function Admin_Dashboard() {
                     <div
                       style={{
                         display: "flex",
-                        gap: "20px",
-                        padding: "10px",
+                        gap: isSmallScreen ? "15px" : "20px",
+                        padding: isSmallScreen ? "5px" : "10px",
                         borderRadius: "5px",
                         alignItems: "center",
-                        flexWrap: "wrap",
+                        flexWrap: isSmallScreen ? "nowrap" : "wrap",
                       }}
                     >
                       <Form.Check
@@ -1279,7 +1279,7 @@ function Admin_Dashboard() {
                       variant="dark"
                       type="submit"
                       className="mt-2 mb-4"
-                      style={{ width: "70%" }}
+                      style={{ width: isSmallScreen ? "100%" : "70%" }}
                     >
                       Customer Register
                     </Button>
@@ -1288,8 +1288,8 @@ function Admin_Dashboard() {
               </div>
             </Form>
           ) : activeForm === "farmer" ? (
-            <Form onSubmit={handleFarmerSubmit}>
-              <div className="row mt-4">
+            <Form onSubmit={handleFarmerSubmit} style={{ marginTop: isSmallScreen ? "1rem" : "0" }}>
+              <div className="row" style={{ marginTop: isSmallScreen ? "0.5rem" : "1.5rem" }}>
                 <div className="col-12">
                   <Form.Group controlId="fullName">
                     <Form.Label>
@@ -1440,14 +1440,17 @@ function Admin_Dashboard() {
               </div>
 
               <div className="row mt-4">
-                <div className="col-12 col-md-6">
+                <div className="col-12">
                   <Form.Group className="mb-3" controlId="formMilkSelect">
-                    <div className="d-flex flex-wrap">
-                    <Form.Label className="mt-2">
-                      Type of Milk <span style={{ color: "red" }}>*</span> :
+                    <Form.Label className="mb-2">
+                      Type of Milk <span style={{ color: "red" }}>*</span>
                     </Form.Label>
-
-                    <div style={{ padding: "10px" }}>
+                    <div style={{ 
+                      display: "flex", 
+                      flexDirection: isSmallScreen ? "column" : "row",
+                      gap: isSmallScreen ? "10px" : "20px",
+                      padding: isSmallScreen ? "5px" : "10px",
+                    }}>
                       <Form.Check
                         type="checkbox"
                         label="Pure"
@@ -1456,8 +1459,8 @@ function Admin_Dashboard() {
                         onChange={handleMilkChange}
                         name="milkSelect"
                         style={{
-                          display: "inline-block",
-                          marginRight: "20px",
+                          display: "flex",
+                          alignItems: "center",
                         }}
                         id="milkPure"
                       />
@@ -1470,8 +1473,8 @@ function Admin_Dashboard() {
                         onChange={handleMilkChange}
                         name="milkSelect"
                         style={{
-                          display: "inline-block",
-                          marginRight: "20px",
+                          display: "flex",
+                          alignItems: "center",
                         }}
                         id="milkCow"
                       />
@@ -1484,12 +1487,11 @@ function Admin_Dashboard() {
                         onChange={handleMilkChange}
                         name="milkSelect"
                         style={{
-                          display: "inline-block",
-                          marginRight: "20px",
+                          display: "flex",
+                          alignItems: "center",
                         }}
                         id="milkBuffalo"
                       />
-                    </div>
                     </div>
                   </Form.Group>
                 </div>
@@ -1502,7 +1504,7 @@ function Admin_Dashboard() {
                       variant="dark"
                       type="submit"
                       className="mt-2 mb-4"
-                      style={{ width: "70%" }}
+                      style={{ width: isSmallScreen ? "100%" : "70%" }}
                     >
                       Farmer Register
                     </Button>
@@ -1580,7 +1582,7 @@ function Admin_Dashboard() {
                     />
                   </Form.Group>
                 </div>
-                <div className="col-12 col-md-6 mt-4 mt-md-0">
+                <div className="col-12 col-md-6">
                   <Form.Group controlId="mobileNumber">
                     <Form.Label>
                       Mobile Number <span style={{ color: "red" }}>*</span>
@@ -1634,7 +1636,7 @@ function Admin_Dashboard() {
                     </div>
                   </Form.Group>
                 </div>
-                <div className="col-12 col-md-6 mt-4 mt-md-0">
+                <div className="col-12 col-md-6">
                   <Form.Group className="mb-3" controlId="formConfirmPassword">
                     <Form.Label>
                       Confirm Password <span style={{ color: "red" }}>*</span>
@@ -1665,7 +1667,7 @@ function Admin_Dashboard() {
                       variant="dark"
                       type="submit"
                       className="mt-2 mb-4"
-                      style={{ width: "70%" }}
+                      style={{ width: isSmallScreen ? "100%" : "70%" }}
                     >
                       Delivery Boy Register
                     </Button>

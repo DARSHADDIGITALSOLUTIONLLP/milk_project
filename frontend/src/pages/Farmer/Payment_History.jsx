@@ -118,17 +118,17 @@ function Farmer_Payment_History() {
       sortable: true,
     },
     {
-      name: "Pure(Ltr)",
+      name: "Pure(ltr)",
       selector: (row) => row.total_pure_quantity,
       sortable: true,
     },
     {
-      name: "Cow(Ltr)",
+      name: "Cow(ltr)",
       selector: (row) => row.total_cow_quantity,
       sortable: true,
     },
     {
-      name: "Buffalo(Ltr)",
+      name: "Buffalo(ltr)",
       selector: (row) => row.total_buffalo_quantity,
       sortable: true,
     },

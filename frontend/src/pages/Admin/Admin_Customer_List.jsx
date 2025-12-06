@@ -262,7 +262,7 @@ function Admin_Customer_List() {
     },
     {
       name: "Quantity",
-      selector: (row) => row.quantity + " Ltr",
+      selector: (row) => row.quantity + " ltr",
       sortable: true,
     },
     {
@@ -488,8 +488,20 @@ function Admin_Customer_List() {
         </Modal>
 
         <Container fluid className="main-content mt-5 responsive-gap">
+          {/* Search box - shown at top on mobile, before cards */}
+          <div className={`${isSmallScreen ? "d-block" : "d-none"} mb-3`}>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={handleFilter}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition duration-300 ease-in-out"
+              style={{ width: "100%", maxWidth: "100%" }}
+            />
+          </div>
+          
           <div className="container">
-            <div className="row mt-2 mb-4">
+            <div className="row mt-2 mb-4 responsive-gap">
               <div className="col-sm-12 col-md-4">
                 <Card
                   className="main-card"
@@ -508,7 +520,7 @@ function Admin_Customer_List() {
                     <Card.Text>
                       <center>
                         <button type="button" className="btn_submit">
-                          {totalQuantity ? totalQuantity : 0} Ltr
+                          {totalQuantity ? totalQuantity : 0} ltr
                         </button>
                       </center>
                     </Card.Text>
@@ -534,7 +546,7 @@ function Admin_Customer_List() {
                     <Card.Text>
                       <center>
                         <button type="button" className="btn_submit">
-                          {totalcowmilkQuantity ? totalcowmilkQuantity : 0} Ltr
+                          {totalcowmilkQuantity ? totalcowmilkQuantity : 0} ltr
                         </button>
                       </center>
                     </Card.Text>
@@ -563,7 +575,7 @@ function Admin_Customer_List() {
                           {totalbuffalomilkQuantity
                             ? totalbuffalomilkQuantity
                             : 0}{" "}
-                          Ltr
+                          ltr
                         </button>
                       </center>
                     </Card.Text>
@@ -572,6 +584,7 @@ function Admin_Customer_List() {
               </div>
             </div>
           </div>
+
 
           <Modal show={showDetailsModals} onHide={closeModal1}>
             <Modal.Header closeButton>
@@ -588,8 +601,8 @@ function Admin_Customer_List() {
             </Modal.Body>
             <hr />
             <div className="row" style={{ backgroundColor: "#ececec" }}>
-              <div className="col">0.5 Ltr</div>
-              <div className="col">0 Ltr</div>
+              <div className="col">0.5 ltr</div>
+              <div className="col">0 ltr</div>
               <div className="col">Rs 0/-</div>
               <div className="col">Rs 0/-</div>
               <div className="col">Rs 0/-</div>
@@ -600,7 +613,8 @@ function Admin_Customer_List() {
             </Button>
           </Modal>
 
-          <div className="text-end mt-4 mb-4">
+          {/* Search box - shown above table on desktop, hidden on mobile */}
+          <div className={`${isSmallScreen ? "d-none" : "d-block"} text-end mt-4 mb-4`}>
             <input
               type="text"
               placeholder="Search..."

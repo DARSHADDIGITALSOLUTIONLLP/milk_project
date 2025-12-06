@@ -26,6 +26,19 @@ html, body {
   overflow: hidden;
 }
 
+/* Desktop styles */
+@media (min-width: 769px) {
+  .image-col,
+  .form-col {
+    min-height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+}
+
 .image-col {
   background-color: black;
   min-height: 100vh;
@@ -119,30 +132,38 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  .login-container {
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
   .login-row {
     flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
   }
 
   .form-col {
     position: relative;
-    margin-top: 20%;
+    margin-top: 0 !important;
+    top: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    padding: 20px 15px !important;
+    min-height: 100vh;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    overflow-y: auto;
   }
 
-  .form-col {
-    position: relative;
-    top: 10%;
+  .form-col .container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
   }
 
-  .image-col,
-  .form-col {
-    height: 30%;
-    /* Ensures each column takes half screen height in vertical layout */
-
-  }
-
-  /* Hide logo column on mobile */
   .image-col {
     display: none !important;
   }
@@ -159,7 +180,6 @@ html, body {
   .form-col .form-group .form-label {
     text-align: left !important;
   }
-
 }
 
 /* .toggle_btn {
@@ -208,7 +228,7 @@ html, body {
 
 @media (max-width: 768px) {
   .toggle_btn {
-    margin-top: 20rem;
+    margin-top: 0 !important;
     width: 100%; 
     text-align: center; 
   }
@@ -225,7 +245,7 @@ html, body {
 
 @media (max-width: 480px) {
   .toggle_btn {
-    margin-top: 22rem;
+    margin-top: 0 !important;
   }
   
   .toggle_btn .form-label,

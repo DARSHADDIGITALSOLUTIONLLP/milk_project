@@ -360,16 +360,27 @@ function WindowHeader({ dashboardText }) {
   const closeMilkDistributionModal = () => {
     setShowMilkDistributionModal(false);
     setSelectedDeliveryBoy("");
+    setSelectedShift("");
     setDistributionFormData({
-      pure_quantity: "",
-      cow_quantity: "",
-      buffalo_quantity: "",
+      morning: {
+        pure_quantity: "",
+        cow_quantity: "",
+        buffalo_quantity: "",
+      },
+      evening: {
+        pure_quantity: "",
+        cow_quantity: "",
+        buffalo_quantity: "",
+      },
     });
   };
 
   const handleDeliveryBoyChange = (e) => {
     const deliveryBoyId = e.target.value;
     setSelectedDeliveryBoy(deliveryBoyId);
+    
+    // Reset shift selection when delivery boy changes
+    setSelectedShift("");
     
     // Find the selected delivery boy's data
     const selectedData = milkDistribution.find(
@@ -378,30 +389,59 @@ function WindowHeader({ dashboardText }) {
     
     if (selectedData) {
       setDistributionFormData({
-        pure_quantity: selectedData.today.pure_quantity || "",
-        cow_quantity: selectedData.today.cow_quantity || "",
-        buffalo_quantity: selectedData.today.buffalo_quantity || "",
+        morning: {
+          pure_quantity: selectedData.today?.morning?.pure_quantity || "",
+          cow_quantity: selectedData.today?.morning?.cow_quantity || "",
+          buffalo_quantity: selectedData.today?.morning?.buffalo_quantity || "",
+        },
+        evening: {
+          pure_quantity: selectedData.today?.evening?.pure_quantity || "",
+          cow_quantity: selectedData.today?.evening?.cow_quantity || "",
+          buffalo_quantity: selectedData.today?.evening?.buffalo_quantity || "",
+        },
       });
     } else {
       setDistributionFormData({
-        pure_quantity: "",
-        cow_quantity: "",
-        buffalo_quantity: "",
+        morning: {
+          pure_quantity: "",
+          cow_quantity: "",
+          buffalo_quantity: "",
+        },
+        evening: {
+          pure_quantity: "",
+          cow_quantity: "",
+          buffalo_quantity: "",
+        },
       });
     }
   };
 
-  const handleDistributionInputChange = (e) => {
+  const handleShiftRadioChange = (shift) => {
+    setSelectedShift(shift);
+  };
+
+  const handleDistributionInputChange = (e, shift) => {
     const { name, value } = e.target;
+    const selectedShift = shift || e.target.dataset.shift || "morning"; // Get shift from parameter or data attribute
+    
     setDistributionFormData({
       ...distributionFormData,
-      [name]: value,
+      [selectedShift]: {
+        ...distributionFormData[selectedShift],
+        [name]: value,
+      },
     });
   };
 
-  const handleSubmitDistribution = async () => {
+  const handleSubmitDistribution = async (shift) => {
     if (!selectedDeliveryBoy) {
       toast.error("Please select a delivery boy");
+      return;
+    }
+
+    const formData = distributionFormData[shift];
+    if (!formData.pure_quantity && !formData.cow_quantity && !formData.buffalo_quantity) {
+      toast.error(`Please enter at least one milk quantity for ${shift} shift`);
       return;
     }
 
@@ -411,9 +451,10 @@ function WindowHeader({ dashboardText }) {
         "/api/admin/milk-distribution",
         {
           delivery_boy_id: parseInt(selectedDeliveryBoy),
-          pure_quantity: distributionFormData.pure_quantity || 0,
-          cow_quantity: distributionFormData.cow_quantity || 0,
-          buffalo_quantity: distributionFormData.buffalo_quantity || 0,
+          shift: shift,
+          pure_quantity: formData.pure_quantity || 0,
+          cow_quantity: formData.cow_quantity || 0,
+          buffalo_quantity: formData.buffalo_quantity || 0,
         },
         {
           headers: {
@@ -422,13 +463,7 @@ function WindowHeader({ dashboardText }) {
         }
       );
       if (response.status === 200) {
-        toast.success("Milk distribution updated successfully");
-        setDistributionFormData({
-          pure_quantity: "",
-          cow_quantity: "",
-          buffalo_quantity: "",
-        });
-        setSelectedDeliveryBoy("");
+        toast.success(`${shift.charAt(0).toUpperCase() + shift.slice(1)} shift milk distribution updated successfully`);
         fetchMilkDistribution(); // Refresh data
       }
     } catch (error) {
@@ -475,10 +510,18 @@ function WindowHeader({ dashboardText }) {
   // State for milk distribution
   const [milkDistribution, setMilkDistribution] = useState([]);
   const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState("");
+  const [selectedShift, setSelectedShift] = useState(""); // Radio button: "morning" or "evening" or ""
   const [distributionFormData, setDistributionFormData] = useState({
-    pure_quantity: "",
-    cow_quantity: "",
-    buffalo_quantity: "",
+    morning: {
+      pure_quantity: "",
+      cow_quantity: "",
+      buffalo_quantity: "",
+    },
+    evening: {
+      pure_quantity: "",
+      cow_quantity: "",
+      buffalo_quantity: "",
+    },
   });
 
   // Get selected delivery boy's data
@@ -821,7 +864,9 @@ function WindowHeader({ dashboardText }) {
 
       <Modal show={showModal} onHide={closeModal} className="mt-4">
         <Modal.Header className="modal_header" closeButton>
-          <Modal.Title>Add Customer Milk Rates</Modal.Title>
+          <Modal.Title className="responsive-modal-title">
+            Add Customer Milk Rates
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {/* Display Current Rates */}
@@ -909,7 +954,9 @@ function WindowHeader({ dashboardText }) {
 
       <Modal show={showFarmerModal} onHide={closeFarmerModal} className="mt-4">
         <Modal.Header className="modal_header" closeButton>
-          <Modal.Title>Add Farmer Milk Rates</Modal.Title>
+          <Modal.Title className="responsive-modal-title">
+            Add Farmer Milk Rates
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {/* Display Current Rates */}
@@ -1303,7 +1350,9 @@ function WindowHeader({ dashboardText }) {
       {/* Milk Distribution Modal */}
       <Modal show={showMilkDistributionModal} onHide={closeMilkDistributionModal} className="mt-4">
         <Modal.Header className="modal_header" closeButton>
-          <Modal.Title>Milk Distribution to Delivery Boy</Modal.Title>
+          <Modal.Title className="responsive-modal-title">
+            Milk Distribution
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {/* Select Delivery Boy */}
@@ -1325,7 +1374,7 @@ function WindowHeader({ dashboardText }) {
             </select>
           </p>
 
-          {/* Show Yesterday's Milk Given (Read-only) */}
+          {/* Show Yesterday's Total Milk Given (Read-only) */}
           {selectedDeliveryBoyData && (
             <>
               <div
@@ -1340,23 +1389,76 @@ function WindowHeader({ dashboardText }) {
               >
                 <h6
                   style={{
-                    marginBottom: "10px",
+                    marginBottom: "15px",
                     fontWeight: "bold",
                     color: "#333",
+                    fontSize: "16px",
                   }}
                 >
-                  Yesterday's Milk Given:
+                  Yesterday's Total Milk Given:
                 </h6>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                
+                {/* Total (Combined Morning + Evening) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginLeft: "10px" }}>
                   <p style={{ margin: 0, fontSize: "14px" }}>
-                    <strong>Pure Milk:</strong> {selectedDeliveryBoyData.yesterday.pure_quantity || 0} L
+                    <strong>Pure Milk:</strong> {(
+                      parseFloat(selectedDeliveryBoyData.yesterday?.morning?.pure_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.evening?.pure_quantity || 0)
+                    ).toFixed(2)} ltr
                   </p>
                   <p style={{ margin: 0, fontSize: "14px" }}>
-                    <strong>Cow Milk:</strong> {selectedDeliveryBoyData.yesterday.cow_quantity || 0} L
+                    <strong>Cow Milk:</strong> {(
+                      parseFloat(selectedDeliveryBoyData.yesterday?.morning?.cow_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.evening?.cow_quantity || 0)
+                    ).toFixed(2)} ltr
                   </p>
                   <p style={{ margin: 0, fontSize: "14px" }}>
-                    <strong>Buffalo Milk:</strong> {selectedDeliveryBoyData.yesterday.buffalo_quantity || 0} L
+                    <strong>Buffalo Milk:</strong> {(
+                      parseFloat(selectedDeliveryBoyData.yesterday?.morning?.buffalo_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.evening?.buffalo_quantity || 0)
+                    ).toFixed(2)} ltr
                   </p>
+                  <p style={{ margin: 0, fontSize: "14px", marginTop: "8px", fontWeight: "bold" }}>
+                    <strong>Grand Total:</strong> {(
+                      parseFloat(selectedDeliveryBoyData.yesterday?.morning?.pure_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.morning?.cow_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.morning?.buffalo_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.evening?.pure_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.evening?.cow_quantity || 0) +
+                      parseFloat(selectedDeliveryBoyData.yesterday?.evening?.buffalo_quantity || 0)
+                    ).toFixed(2)} ltr
+                  </p>
+                </div>
+              </div>
+
+              {/* Shift Selection Radio Buttons */}
+              <div style={{ marginBottom: "20px" }}>
+                <h6 style={{ marginBottom: "10px", fontWeight: "bold", fontSize: "15px" }}>
+                  Select Shift to Update:<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                </h6>
+                <div style={{ display: "flex", gap: "20px", marginLeft: "10px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="shiftSelection"
+                      value="morning"
+                      checked={selectedShift === "morning"}
+                      onChange={(e) => handleShiftRadioChange(e.target.value)}
+                      style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "14px", fontWeight: "500" }}>Morning</span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="shiftSelection"
+                      value="evening"
+                      checked={selectedShift === "evening"}
+                      onChange={(e) => handleShiftRadioChange(e.target.value)}
+                      style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "14px", fontWeight: "500" }}>Evening</span>
+                  </label>
                 </div>
               </div>
 
@@ -1364,53 +1466,144 @@ function WindowHeader({ dashboardText }) {
             </>
           )}
 
-          {/* Today's Milk Input Fields */}
-          <p>
-            Pure Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
-            <input
-              type="number"
-              step="0.01"
-              className="rate_input"
-              name="pure_quantity"
-              value={distributionFormData.pure_quantity}
-              onChange={handleDistributionInputChange}
-              placeholder={`Current: ${selectedDeliveryBoyData?.today.pure_quantity || 0} - Enter New Quantity`}
-              required
-            />
-            <span style={{ paddingLeft: "4px" }}>/ L</span>
-          </p>
-          <p>
-            Cow Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
-            <input
-              type="number"
-              step="0.01"
-              className="rate_input"
-              name="cow_quantity"
-              value={distributionFormData.cow_quantity}
-              onChange={handleDistributionInputChange}
-              placeholder={`Current: ${selectedDeliveryBoyData?.today.cow_quantity || 0} - Enter New Quantity`}
-              required
-            />
-            <span style={{ paddingLeft: "4px" }}>/ L</span>
-          </p>
-          <p>
-            Buffalo Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
-            <input
-              type="number"
-              step="0.01"
-              className="rate_input"
-              name="buffalo_quantity"
-              value={distributionFormData.buffalo_quantity}
-              onChange={handleDistributionInputChange}
-              placeholder={`Current: ${selectedDeliveryBoyData?.today.buffalo_quantity || 0} - Enter New Quantity`}
-              required
-            />
-            <span style={{ paddingLeft: "4px" }}>/ L</span>
-          </p>
+          {/* Today's Milk Input Fields - Show only if shift is selected */}
+          {selectedDeliveryBoyData && selectedShift === "morning" && (
+            <>
+              <h6 style={{ marginBottom: "10px", fontWeight: "bold", color: "#333", fontSize: "16px", marginTop: "10px" }}>
+                Today's Milk Distribution - Morning Shift:
+              </h6>
+              <p>
+                Pure Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rate_input"
+                  name="pure_quantity"
+                  data-shift="morning"
+                  value={distributionFormData.morning.pure_quantity}
+                  onChange={(e) => handleDistributionInputChange(e, "morning")}
+                  placeholder={`Current: ${selectedDeliveryBoyData?.today?.morning?.pure_quantity || 0} - Enter New Quantity`}
+                  required
+                />
+                <span style={{ paddingLeft: "4px" }}>/ ltr</span>
+              </p>
+              <p>
+                Cow Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rate_input"
+                  name="cow_quantity"
+                  data-shift="morning"
+                  value={distributionFormData.morning.cow_quantity}
+                  onChange={(e) => handleDistributionInputChange(e, "morning")}
+                  placeholder={`Current: ${selectedDeliveryBoyData?.today?.morning?.cow_quantity || 0} - Enter New Quantity`}
+                  required
+                />
+                <span style={{ paddingLeft: "4px" }}>/ ltr</span>
+              </p>
+              <p>
+                Buffalo Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rate_input"
+                  name="buffalo_quantity"
+                  data-shift="morning"
+                  value={distributionFormData.morning.buffalo_quantity}
+                  onChange={(e) => handleDistributionInputChange(e, "morning")}
+                  placeholder={`Current: ${selectedDeliveryBoyData?.today?.morning?.buffalo_quantity || 0} - Enter New Quantity`}
+                  required
+                />
+                <span style={{ paddingLeft: "4px" }}>/ ltr</span>
+              </p>
+              <Button 
+                className="close_btn" 
+                onClick={() => handleSubmitDistribution("morning")}
+                style={{ marginTop: "10px", marginBottom: "20px" }}
+              >
+                Update Morning Shift
+              </Button>
+            </>
+          )}
+
+          {/* Today's Milk Input Fields - Evening Shift */}
+          {selectedDeliveryBoyData && selectedShift === "evening" && (
+            <>
+              <h6 style={{ marginBottom: "10px", fontWeight: "bold", color: "#333", fontSize: "16px", marginTop: "10px" }}>
+                Today's Milk Distribution - Evening Shift:
+              </h6>
+              <p>
+                Pure Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rate_input"
+                  name="pure_quantity"
+                  data-shift="evening"
+                  value={distributionFormData.evening.pure_quantity}
+                  onChange={(e) => handleDistributionInputChange(e, "evening")}
+                  placeholder={`Current: ${selectedDeliveryBoyData?.today?.evening?.pure_quantity || 0} - Enter New Quantity`}
+                  required
+                />
+                <span style={{ paddingLeft: "4px" }}>/ ltr</span>
+              </p>
+              <p>
+                Cow Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rate_input"
+                  name="cow_quantity"
+                  data-shift="evening"
+                  value={distributionFormData.evening.cow_quantity}
+                  onChange={(e) => handleDistributionInputChange(e, "evening")}
+                  placeholder={`Current: ${selectedDeliveryBoyData?.today?.evening?.cow_quantity || 0} - Enter New Quantity`}
+                  required
+                />
+                <span style={{ paddingLeft: "4px" }}>/ ltr</span>
+              </p>
+              <p>
+                Buffalo Milk<span style={{ color: "red", paddingLeft: "4px" }}>*</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rate_input"
+                  name="buffalo_quantity"
+                  data-shift="evening"
+                  value={distributionFormData.evening.buffalo_quantity}
+                  onChange={(e) => handleDistributionInputChange(e, "evening")}
+                  placeholder={`Current: ${selectedDeliveryBoyData?.today?.evening?.buffalo_quantity || 0} - Enter New Quantity`}
+                  required
+                />
+                <span style={{ paddingLeft: "4px" }}>/ ltr</span>
+              </p>
+              <Button 
+                className="close_btn" 
+                onClick={() => handleSubmitDistribution("evening")}
+                style={{ marginTop: "10px" }}
+              >
+                Update Evening Shift
+              </Button>
+            </>
+          )}
+
+          {/* Show message if no shift is selected */}
+          {selectedDeliveryBoyData && !selectedShift && (
+            <div style={{ 
+              padding: "15px", 
+              backgroundColor: "#fff3cd", 
+              border: "1px solid #ffc107", 
+              borderRadius: "5px",
+              marginTop: "20px",
+              textAlign: "center"
+            }}>
+              <p style={{ margin: 0, color: "#856404", fontSize: "14px" }}>
+                Please select a shift (Morning or Evening) to update milk distribution.
+              </p>
+            </div>
+          )}
         </Modal.Body>
-        <Button className="close_btn" onClick={handleSubmitDistribution}>
-          Submit
-        </Button>
       </Modal>
     </div>
   );

@@ -244,13 +244,26 @@ const [filteredRecords, setFilteredRecords] = useState([]);
         }}
       >
         <Container fluid className="main-content mt-2">
+          {/* Search box - shown at top on mobile */}
+          <div className={`${isSmallScreen ? "d-block" : "d-none"} mt-3 mb-3`}>
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchTerm}
+              onChange={handleFilter}
+              className="form-control"
+              style={{ width: "100%" }}
+            />
+          </div>
+          
           <div className="d-flex justify-content-between flex-wrap align-items-center mt-4 pt-4 mb-4">
             <div>
               <p className="mb-0">
                 Today's Status: {dateTime.toLocaleString()}
               </p>
             </div>
-            <div>
+            {/* Search box - shown on desktop, hidden on mobile */}
+            <div className={isSmallScreen ? "d-none" : "d-block"}>
               <input
                 type="text"
                 placeholder="Search"

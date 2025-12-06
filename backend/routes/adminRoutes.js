@@ -396,4 +396,12 @@ router.get(
   adminController.getDailyReport
 );
 
+// Get delivery boy monthly report
+router.get(
+  "/delivery-boy-monthly-report",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getDeliveryBoyMonthlyReport
+);
+
 module.exports = router;

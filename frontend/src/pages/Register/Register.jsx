@@ -536,7 +536,7 @@ function Register() {
             style={{ fontWeight: "600", color: "#333", whiteSpace: "nowrap" }}
           >
             {quantity >= 1000
-              ? `${(quantity / 1000).toFixed(2)} Ltr`
+              ? `${(quantity / 1000).toFixed(2)} ltr`
               : `${quantity} ML`}
           </Form.Label>
         </InputGroup>
@@ -554,8 +554,7 @@ function Register() {
             padding: "10px",
             borderRadius: "5px",
             alignItems: "center",
-            flexWrap: "wrap",
-            // justifyContent: "space-between",
+            flexWrap: "nowrap",
           }}
         >
           <Form.Check

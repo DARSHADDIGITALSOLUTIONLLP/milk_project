@@ -3044,22 +3044,47 @@ module.exports.getMilkDistribution = async (req, res) => {
       attributes: ["id", "name", "email", "contact"],
     });
 
-    // Get milk distribution for today and yesterday for all delivery boys
+    // Get milk distribution for today and yesterday for all delivery boys (morning and evening)
     const distributionData = await Promise.all(
       deliveryBoys.map(async (db) => {
-        const todayDistribution = await DeliveryBoyMilkDistribution.findOne({
+        // Today's distribution - morning and evening
+        const todayMorning = await DeliveryBoyMilkDistribution.findOne({
           where: {
             delivery_boy_id: db.id,
             date: today,
+            shift: "morning",
           },
         });
 
-        const yesterdayDistribution = await DeliveryBoyMilkDistribution.findOne({
+        const todayEvening = await DeliveryBoyMilkDistribution.findOne({
+          where: {
+            delivery_boy_id: db.id,
+            date: today,
+            shift: "evening",
+          },
+        });
+
+        // Yesterday's distribution - morning and evening
+        const yesterdayMorning = await DeliveryBoyMilkDistribution.findOne({
           where: {
             delivery_boy_id: db.id,
             date: yesterday,
+            shift: "morning",
           },
         });
+
+        const yesterdayEvening = await DeliveryBoyMilkDistribution.findOne({
+          where: {
+            delivery_boy_id: db.id,
+            date: yesterday,
+            shift: "evening",
+          },
+        });
+
+        // Calculate totals for yesterday
+        const yesterdayTotalPure = (parseFloat(yesterdayMorning?.pure_quantity || 0) + parseFloat(yesterdayEvening?.pure_quantity || 0));
+        const yesterdayTotalCow = (parseFloat(yesterdayMorning?.cow_quantity || 0) + parseFloat(yesterdayEvening?.cow_quantity || 0));
+        const yesterdayTotalBuffalo = (parseFloat(yesterdayMorning?.buffalo_quantity || 0) + parseFloat(yesterdayEvening?.buffalo_quantity || 0));
 
         return {
           delivery_boy_id: db.id,
@@ -3067,14 +3092,33 @@ module.exports.getMilkDistribution = async (req, res) => {
           delivery_boy_email: db.email,
           delivery_boy_contact: db.contact,
           today: {
-            pure_quantity: todayDistribution?.pure_quantity || 0,
-            cow_quantity: todayDistribution?.cow_quantity || 0,
-            buffalo_quantity: todayDistribution?.buffalo_quantity || 0,
+            morning: {
+              pure_quantity: todayMorning?.pure_quantity || 0,
+              cow_quantity: todayMorning?.cow_quantity || 0,
+              buffalo_quantity: todayMorning?.buffalo_quantity || 0,
+            },
+            evening: {
+              pure_quantity: todayEvening?.pure_quantity || 0,
+              cow_quantity: todayEvening?.cow_quantity || 0,
+              buffalo_quantity: todayEvening?.buffalo_quantity || 0,
+            },
           },
           yesterday: {
-            pure_quantity: yesterdayDistribution?.pure_quantity || 0,
-            cow_quantity: yesterdayDistribution?.cow_quantity || 0,
-            buffalo_quantity: yesterdayDistribution?.buffalo_quantity || 0,
+            morning: {
+              pure_quantity: yesterdayMorning?.pure_quantity || 0,
+              cow_quantity: yesterdayMorning?.cow_quantity || 0,
+              buffalo_quantity: yesterdayMorning?.buffalo_quantity || 0,
+            },
+            evening: {
+              pure_quantity: yesterdayEvening?.pure_quantity || 0,
+              cow_quantity: yesterdayEvening?.cow_quantity || 0,
+              buffalo_quantity: yesterdayEvening?.buffalo_quantity || 0,
+            },
+            total: {
+              pure_quantity: yesterdayTotalPure,
+              cow_quantity: yesterdayTotalCow,
+              buffalo_quantity: yesterdayTotalBuffalo,
+            },
           },
         };
       })
@@ -3097,11 +3141,15 @@ module.exports.updateMilkDistribution = async (req, res) => {
   try {
     const admin = req.user;
     const dairyName = admin.dairy_name;
-    const { delivery_boy_id, pure_quantity, cow_quantity, buffalo_quantity } = req.body;
+    const { delivery_boy_id, shift, pure_quantity, cow_quantity, buffalo_quantity } = req.body;
 
     // Validate input
     if (!delivery_boy_id) {
       return res.status(400).json({ message: "Delivery boy ID is required" });
+    }
+
+    if (!shift || !["morning", "evening"].includes(shift)) {
+      return res.status(400).json({ message: "Shift is required and must be 'morning' or 'evening'" });
     }
 
     // Verify delivery boy belongs to this dairy
@@ -3124,15 +3172,17 @@ module.exports.updateMilkDistribution = async (req, res) => {
     const cowQty = parseFloat(cow_quantity) || 0;
     const buffaloQty = parseFloat(buffalo_quantity) || 0;
 
-    // Find or create today's distribution record
+    // Find or create today's distribution record for the specific shift
     const [distribution, created] = await DeliveryBoyMilkDistribution.findOrCreate({
       where: {
         delivery_boy_id: delivery_boy_id,
         date: today,
+        shift: shift,
       },
       defaults: {
         delivery_boy_id: delivery_boy_id,
         date: today,
+        shift: shift,
         pure_quantity: pureQty,
         cow_quantity: cowQty,
         buffalo_quantity: buffaloQty,
@@ -3151,7 +3201,7 @@ module.exports.updateMilkDistribution = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Milk distribution updated successfully",
+      message: `Milk distribution updated successfully for ${shift} shift`,
       data: {
         delivery_boy_id: delivery_boy_id,
         delivery_boy_name: deliveryBoy.name,
@@ -3163,28 +3213,59 @@ module.exports.updateMilkDistribution = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating milk distribution:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    
+    // Check for specific database errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ 
+        message: "A record already exists for this delivery boy, date, and shift combination",
+        error: error.message 
+      });
+    }
+    
+    if (error.name === 'SequelizeDatabaseError') {
+      return res.status(500).json({ 
+        message: "Database error. Please ensure the 'shift' column and unique index exist in the database.",
+        error: error.message,
+        hint: "Run the SQL migration: ADD_MISSING_UNIQUE_INDEX.sql"
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "Server error", 
+      error: error.message,
+      details: error.stack 
+    });
   }
 };
 
-// Get daily report metrics
+// Get daily report metrics (now supports monthly totals)
 module.exports.getDailyReport = async (req, res) => {
   try {
     const admin = req.user;
     const dairyName = admin.dairy_name;
+    const { year, month } = req.query;
 
-    // Get today's date in Asia/Kolkata timezone
-    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+    // If month and year are provided, calculate monthly totals, otherwise use today
+    let startDate, endDate, dateLabel;
+    if (year && month) {
+      startDate = moment(`${year}-${month}-01`).tz("Asia/Kolkata").startOf("month").format("YYYY-MM-DD");
+      endDate = moment(`${year}-${month}-01`).tz("Asia/Kolkata").endOf("month").format("YYYY-MM-DD");
+      dateLabel = moment(`${year}-${month}-01`).format("YYYY-MM");
+    } else {
+      const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+      startDate = today;
+      endDate = today;
+      dateLabel = today;
+    }
 
-    // 1. Overall Total Milk (from DailyFarmerOrder for today)
-    const startOfDay = moment().tz("Asia/Kolkata").startOf("day").toDate();
-    const endOfDay = moment().tz("Asia/Kolkata").endOf("day").toDate();
+    // 1. Overall Total Milk (from DailyFarmerOrder for the period)
+    const startDateTime = moment(startDate).tz("Asia/Kolkata").startOf("day").toDate();
+    const endDateTime = moment(endDate).tz("Asia/Kolkata").endOf("day").toDate();
 
     const farmerOrders = await DailyFarmerOrder.findAll({
       where: {
         created_at: {
-          [Op.gte]: startOfDay,
-          [Op.lt]: endOfDay,
+          [Op.between]: [startDateTime, endDateTime],
         },
       },
       include: [
@@ -3205,7 +3286,7 @@ module.exports.getDailyReport = async (req, res) => {
         parseFloat(order.buffalo_quantity || 0);
     });
 
-    // 2. Total Milk Given to Delivery Boys (from DeliveryBoyMilkDistribution for today)
+    // 2. Total Milk Given to Delivery Boys (from DeliveryBoyMilkDistribution for the period)
     const deliveryBoys = await DeliveryBoy.findAll({
       where: { dairy_name: dairyName },
       attributes: ["id"],
@@ -3215,7 +3296,9 @@ module.exports.getDailyReport = async (req, res) => {
 
     const milkDistributions = await DeliveryBoyMilkDistribution.findAll({
       where: {
-        date: today,
+        date: {
+          [Op.between]: [startDate, endDate],
+        },
         delivery_boy_id: {
           [Op.in]: deliveryBoyIds,
         },
@@ -3230,7 +3313,7 @@ module.exports.getDailyReport = async (req, res) => {
         parseFloat(dist.buffalo_quantity || 0);
     });
 
-    // 3. Total Milk Delivered to Customers (from DeliveryStatus for today)
+    // 3. Total Milk Delivered to Customers (from DeliveryStatus for the period)
     const users = await User.findAll({
       where: { dairy_name: dairyName },
       attributes: ["id"],
@@ -3240,7 +3323,9 @@ module.exports.getDailyReport = async (req, res) => {
 
     const deliveryStatuses = await DeliveryStatus.findAll({
       where: {
-        date: today,
+        date: {
+          [Op.between]: [startDate, endDate],
+        },
         userid: {
           [Op.in]: userIds,
         },
@@ -3271,7 +3356,8 @@ module.exports.getDailyReport = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      date: today,
+      date: dateLabel,
+      period: year && month ? `${moment(`${year}-${month}-01`).format("MMMM YYYY")}` : "Today",
       data: {
         overall_total_milk: parseFloat(overallTotalMilk.toFixed(2)),
         total_milk_given_to_delivery_boy: parseFloat(
@@ -3283,6 +3369,179 @@ module.exports.getDailyReport = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching daily report:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Get delivery boy monthly report
+module.exports.getDeliveryBoyMonthlyReport = async (req, res) => {
+  try {
+    const admin = req.user;
+    const dairyName = admin.dairy_name;
+    const { delivery_boy_id, year, month } = req.query;
+
+    // Validate input
+    if (!delivery_boy_id) {
+      return res.status(400).json({ message: "Delivery boy ID is required" });
+    }
+
+    if (!year || !month) {
+      return res.status(400).json({ message: "Year and month are required" });
+    }
+
+    // Verify delivery boy belongs to this dairy
+    const deliveryBoy = await DeliveryBoy.findOne({
+      where: {
+        id: parseInt(delivery_boy_id),
+        dairy_name: dairyName,
+      },
+      attributes: ["id", "name", "email"],
+    });
+
+    if (!deliveryBoy) {
+      return res.status(404).json({ message: "Delivery boy not found or doesn't belong to your dairy" });
+    }
+
+    // Calculate date range for the month
+    const startDate = moment(`${year}-${month}-01`).tz("Asia/Kolkata").startOf("month").format("YYYY-MM-DD");
+    const endDate = moment(`${year}-${month}-01`).tz("Asia/Kolkata").endOf("month").format("YYYY-MM-DD");
+
+    // Get milk given to delivery boy for the month (from DeliveryBoyMilkDistribution)
+    const milkGivenRecords = await DeliveryBoyMilkDistribution.findAll({
+      where: {
+        delivery_boy_id: parseInt(delivery_boy_id),
+        date: {
+          [Op.between]: [startDate, endDate],
+        },
+      },
+      order: [["date", "ASC"], ["shift", "ASC"]],
+    });
+
+    // Get milk delivered by delivery boy for the month (from DeliveryStatus)
+    // Get all users for this dairy (all users in the dairy are served by delivery boys from the same dairy)
+    const users = await User.findAll({
+      where: {
+        dairy_name: dairyName,
+      },
+      attributes: ["id"],
+    });
+
+    const userIds = users.map((u) => u.id);
+
+    const milkDeliveredRecords = await DeliveryStatus.findAll({
+      where: {
+        userid: {
+          [Op.in]: userIds.length > 0 ? userIds : [-1], // Use -1 if no users to prevent empty IN clause
+        },
+        date: {
+          [Op.between]: [startDate, endDate],
+        },
+      },
+      order: [["date", "ASC"]],
+    });
+
+    // Get unique dates from both milk given and milk delivered records
+    const allDates = new Set();
+    
+    milkGivenRecords.forEach((r) => {
+      const dateStr = moment(r.date).format("YYYY-MM-DD");
+      allDates.add(dateStr);
+    });
+    
+    milkDeliveredRecords.forEach((r) => {
+      const dateStr = moment(r.date).format("YYYY-MM-DD");
+      allDates.add(dateStr);
+    });
+
+    // Convert to sorted array
+    const dates = Array.from(allDates).sort();
+
+    // Process data by date - only for dates that have entries
+    const reportData = dates.map((date) => {
+      // Calculate milk given for this date (sum of morning and evening)
+      const givenRecords = milkGivenRecords.filter((r) => {
+        const recordDate = moment(r.date).format("YYYY-MM-DD");
+        return recordDate === date;
+      });
+      let pureGiven = 0;
+      let cowGiven = 0;
+      let buffaloGiven = 0;
+      let milkGiven = 0;
+      givenRecords.forEach((record) => {
+        const pure = parseFloat(record.pure_quantity || 0);
+        const cow = parseFloat(record.cow_quantity || 0);
+        const buffalo = parseFloat(record.buffalo_quantity || 0);
+        pureGiven += pure;
+        cowGiven += cow;
+        buffaloGiven += buffalo;
+        milkGiven += pure + cow + buffalo;
+      });
+
+      // Calculate milk delivered for this date
+      const deliveredRecords = milkDeliveredRecords.filter((r) => {
+        const recordDate = moment(r.date).format("YYYY-MM-DD");
+        return recordDate === date;
+      });
+      let pureDelivered = 0;
+      let cowDelivered = 0;
+      let buffaloDelivered = 0;
+      let milkDelivered = 0;
+      deliveredRecords.forEach((record) => {
+        const quantities = Array.isArray(record.quantity_array)
+          ? record.quantity_array
+          : JSON.parse(record.quantity_array || "[]");
+        // quantity_array format: [pure, cow, buffalo]
+        const pure = parseFloat(quantities[0] || 0);
+        const cow = parseFloat(quantities[1] || 0);
+        const buffalo = parseFloat(quantities[2] || 0);
+        pureDelivered += pure;
+        cowDelivered += cow;
+        buffaloDelivered += buffalo;
+        milkDelivered += pure + cow + buffalo;
+      });
+
+      // Calculate remaining milk
+      const remainingMilk = milkGiven - milkDelivered;
+      const pureRemaining = pureGiven - pureDelivered;
+      const cowRemaining = cowGiven - cowDelivered;
+      const buffaloRemaining = buffaloGiven - buffaloDelivered;
+
+      // Ensure all values are numbers, not NaN or null
+      const milkGivenNum = isNaN(milkGiven) ? 0 : Number(milkGiven);
+      const milkDeliveredNum = isNaN(milkDelivered) ? 0 : Number(milkDelivered);
+      const remainingMilkNum = isNaN(remainingMilk) ? 0 : Number(remainingMilk);
+
+      return {
+        date: date,
+        milk_given: parseFloat(milkGivenNum.toFixed(2)),
+        milk_delivered: parseFloat(milkDeliveredNum.toFixed(2)),
+        remaining_milk: parseFloat(remainingMilkNum.toFixed(2)),
+        // Individual milk types
+        pure_given: parseFloat((isNaN(pureGiven) ? 0 : Number(pureGiven)).toFixed(2)),
+        cow_given: parseFloat((isNaN(cowGiven) ? 0 : Number(cowGiven)).toFixed(2)),
+        buffalo_given: parseFloat((isNaN(buffaloGiven) ? 0 : Number(buffaloGiven)).toFixed(2)),
+        pure_delivered: parseFloat((isNaN(pureDelivered) ? 0 : Number(pureDelivered)).toFixed(2)),
+        cow_delivered: parseFloat((isNaN(cowDelivered) ? 0 : Number(cowDelivered)).toFixed(2)),
+        buffalo_delivered: parseFloat((isNaN(buffaloDelivered) ? 0 : Number(buffaloDelivered)).toFixed(2)),
+        pure_remaining: parseFloat((isNaN(pureRemaining) ? 0 : Number(pureRemaining)).toFixed(2)),
+        cow_remaining: parseFloat((isNaN(cowRemaining) ? 0 : Number(cowRemaining)).toFixed(2)),
+        buffalo_remaining: parseFloat((isNaN(buffaloRemaining) ? 0 : Number(buffaloRemaining)).toFixed(2)),
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      delivery_boy: {
+        id: deliveryBoy.id,
+        name: deliveryBoy.name,
+        email: deliveryBoy.email,
+      },
+      month: month,
+      year: year,
+      data: reportData,
+    });
+  } catch (error) {
+    console.error("Error fetching delivery boy monthly report:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

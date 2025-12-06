@@ -25,6 +25,12 @@ const DeliveryBoyMilkDistribution = sequelize.define(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    shift: {
+      type: DataTypes.ENUM("morning", "evening"),
+      allowNull: false,
+      defaultValue: "morning",
+      comment: "Shift: morning or evening",
+    },
     pure_quantity: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
@@ -61,8 +67,8 @@ const DeliveryBoyMilkDistribution = sequelize.define(
     indexes: [
       {
         unique: true,
-        fields: ["delivery_boy_id", "date"],
-        name: "unique_delivery_boy_date",
+        fields: ["delivery_boy_id", "date", "shift"],
+        name: "unique_delivery_boy_date_shift",
       },
     ],
   }

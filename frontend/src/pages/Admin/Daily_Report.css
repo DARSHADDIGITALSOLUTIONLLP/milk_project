@@ -28,3 +28,36 @@
   }
 }
 
+/* Dropdown styling for Daily Report page */
+.daily-report-filters .form-label {
+  display: block;
+  margin-bottom: 8px !important;
+  font-weight: bold;
+  color: #333;
+}
+
+.daily-report-filters .form-control,
+.daily-report-filters select {
+  width: 100%;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.daily-report-filters .col-md-4 {
+  margin-bottom: 20px;
+}
+
+.daily-report-filters .col-md-4:last-child {
+  margin-bottom: 20px;
+}
+
+/* Ensure proper spacing between label and dropdown */
+.daily-report-filters label + select,
+.daily-report-filters label + .form-control {
+  margin-top: 8px !important;
+}
+

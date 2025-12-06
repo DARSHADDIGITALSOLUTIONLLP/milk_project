@@ -1009,7 +1009,7 @@ function User_Dashboard() {
                 >
                   <div className="col-6">
                     <p>
-                      {milkType} milk: {quantity} Ltr
+                      {milkType} milk: {quantity} ltr
                     </p>
                   </div>
                   <div className="col-6 text-end">
@@ -1024,7 +1024,7 @@ function User_Dashboard() {
                   >
                     <div className="col-6">
                       <p>
-                        Cow : 35 Ltr
+                        Cow : 35 ltr
                       </p>
                     </div>
                     <div className="col-6 text-end">
@@ -1039,7 +1039,7 @@ function User_Dashboard() {
                   >
                     <div className="col-6">
                       <p>
-                        Buffalo : 25 Ltr
+                        Buffalo : 25 ltr
                       </p>
                     </div>
                     <div className="col-6 text-end">
@@ -1055,7 +1055,7 @@ function User_Dashboard() {
                   >
                     <div className="col-6">
                       <p>
-                        Pure : 00 Ltr
+                        Pure : 00 ltr
                       </p>
                     </div>
                     <div className="col-6 text-end">

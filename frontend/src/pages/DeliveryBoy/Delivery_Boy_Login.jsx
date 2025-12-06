@@ -81,9 +81,9 @@ function Delivery_Boy_Login() {
             <div className="col-12">
               <Card style={{ margin: "8px" }}>
                 <Card.Body>
-                  <Card.Title>
-                    Date: &nbsp; {today}
-                    <span style={{ float: "right" }}>Time:{currentTime}</span>
+                  <Card.Title style={{ fontSize: "16px" }}>
+                    Date: {today}
+                    <span style={{ float: "right" }}>Time: {currentTime}</span>
                   </Card.Title>
                   <Card.Text className="mt-4">
                     <p>Select milk delivery shift :</p>
