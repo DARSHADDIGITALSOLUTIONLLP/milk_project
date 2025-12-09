@@ -188,7 +188,9 @@ module.exports.paymentVerification = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("http://localhost:5173");
+    // Use environment variable for frontend URL, fallback to localhost for development
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    res.redirect(frontendUrl);
   } catch (err) {
     console.error("Error in payment verification:", err);
     res
@@ -372,7 +374,9 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.redirect("http://localhost:5173/admin-dashboard?payment=success");
+    // Use environment variable for frontend URL, fallback to localhost for development
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    res.redirect(`${frontendUrl}/admin-dashboard?payment=success`);
   } catch (err) {
     console.error("Error in payment verification:", err);
     res

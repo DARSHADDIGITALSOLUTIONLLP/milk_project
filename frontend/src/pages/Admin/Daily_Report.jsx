@@ -337,7 +337,7 @@ function Daily_Report() {
             <>
               {deliveryBoyInfo && (
                 <div className="mb-3">
-                  <h5>
+                  <h5 className="delivery-boy-report-header">
                     Report for: <strong>{deliveryBoyInfo.name}</strong> ({deliveryBoyInfo.email}) -{" "}
                     {new Date(selectedYear, selectedMonth - 1).toLocaleDateString("en-US", {
                       month: "long",

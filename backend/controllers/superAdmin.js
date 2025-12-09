@@ -8,6 +8,7 @@ const DeliveryBoy = require("../models/DeliveryBoy.js");
 const Farmer = require("../models/Farmer");
 const { sendEmail } = require("../utils/sendMail.js");
 const { Op } = require("sequelize");
+const { sequelize } = require("../config/db");
 require("dotenv").config();
 const {
   updateAdminPaymentSchema,
@@ -39,23 +40,79 @@ module.exports.RegisterSuperAdmin = async (req, res) => {
 
 module.exports.login = async (req, res) => {
   try {
-    const { identifier, password_hash } = req.body; // Accepts either email or contact
+    // Debug logging
+    console.log("🔍 Login request received:");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    console.log("Request headers:", req.headers['content-type']);
+    
+    let { identifier, password_hash } = req.body; // Accepts either email or contact
 
-    if (!identifier || !password_hash) {
+    // Trim whitespace from identifier
+    if (identifier) {
+      identifier = identifier.trim();
+    }
+
+    // More specific error messages
+    if (!identifier && !password_hash) {
       return res
         .status(400)
         .json({ message: "Email/Contact and password are required" });
+    }
+    
+    if (!identifier || identifier === "") {
+      return res
+        .status(400)
+        .json({ message: "Email/Contact is required" });
+    }
+    
+    if (!password_hash || password_hash === "") {
+      return res
+        .status(400)
+        .json({ message: "Password is required" });
     }
 
     let user;
     let role;
 
     // Check SuperAdmin login
+    console.log("🔍 Searching for SuperAdmin with identifier:", identifier);
+    console.log("  - Identifier type:", typeof identifier);
+    console.log("  - Identifier length:", identifier?.length);
+    console.log("  - Identifier trimmed:", identifier?.trim());
+    
     user = await SuperAdmin.findOne({
       where: { [Op.or]: [{ email: identifier }, { contact: identifier }] },
     });
+    
     if (user) {
       role = "super_admin";
+      console.log("✅ SuperAdmin found:");
+      console.log("  - ID:", user.id);
+      console.log("  - Email:", user.email);
+      console.log("  - Contact:", user.contact);
+    } else {
+      console.log("❌ SuperAdmin not found for identifier:", identifier);
+      // Try case-insensitive search
+      const caseInsensitiveUser = await SuperAdmin.findOne({
+        where: { 
+          [Op.or]: [
+            { email: { [Op.like]: identifier } },
+            { contact: identifier }
+          ] 
+        },
+      });
+      if (caseInsensitiveUser) {
+        console.log("⚠️  Found SuperAdmin with case-insensitive search:", caseInsensitiveUser.email);
+        user = caseInsensitiveUser;
+        role = "super_admin";
+      } else {
+        // List all superadmins for debugging
+        const allSuperAdmins = await SuperAdmin.findAll({
+          attributes: ['id', 'email', 'contact'],
+          raw: true
+        });
+        console.log("  - All SuperAdmins in database:", JSON.stringify(allSuperAdmins, null, 2));
+      }
     }
 
     // Check Admin login (Ensure request status is true)
@@ -83,7 +140,9 @@ module.exports.login = async (req, res) => {
       user = await DeliveryBoy.findOne({
         where: { [Op.or]: [{ email: identifier }, { contact: identifier }] },
       });
-      role = "delivery_boy";
+      if (user) {
+        role = "delivery_boy";
+      }
     }
 
     // Check User login (Ensure request status is true)
@@ -142,18 +201,50 @@ module.exports.login = async (req, res) => {
 
     // If no user found, return error
     if (!user) {
+      console.log("❌ No user found for identifier:", identifier);
+      console.log("Searched in: SuperAdmin, Admin, DeliveryBoy, User, Farmer");
       return res
         .status(400)
         .json({ message: "Invalid email/contact or password" });
     }
 
+    console.log("✅ User found!");
+    console.log("  - Role:", role);
+    console.log("  - Email:", user.email);
+    console.log("  - Has password_hash:", !!user.password_hash);
+
     // Verify password
+    console.log("🔐 Verifying password...");
+    console.log("  - Password provided length:", password_hash?.length || 0);
+    console.log("  - Password provided (first 3 chars):", password_hash?.substring(0, 3) || "null");
+    console.log("  - Password provided (last 3 chars):", password_hash?.substring(password_hash.length - 3) || "null");
+    console.log("  - Stored hash length:", user.password_hash?.length || 0);
+    
+    // Test with the expected password for debugging
+    const expectedPassword = "pass-super@123";
+    console.log("  - Expected password length:", expectedPassword.length);
+    console.log("  - Provided password matches expected length:", password_hash?.length === expectedPassword.length);
+    
     const isMatch = await bcrypt.compare(password_hash, user.password_hash);
+    
     if (!isMatch) {
+      console.log("❌ Password verification FAILED!");
+      console.log("  - Identifier:", identifier);
+      console.log("  - Role:", role);
+      console.log("  - Provided password:", password_hash);
+      console.log("  - Expected password length:", expectedPassword.length);
+      console.log("  - Provided password length:", password_hash?.length);
+      
+      // Try with expected password for debugging
+      const testMatch = await bcrypt.compare(expectedPassword, user.password_hash);
+      console.log("  - Test with expected password:", testMatch ? "✅ MATCHES" : "❌ DOES NOT MATCH");
+      
       return res
         .status(400)
         .json({ message: "Invalid email/contact or password" });
     }
+    
+    console.log("✅ Password verified successfully!");
 
     if (!process.env.JWT_SECRET) {
       throw new Error("JWT_SECRET is not defined in environment variables.");

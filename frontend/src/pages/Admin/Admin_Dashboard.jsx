@@ -81,12 +81,12 @@ function Admin_Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
-      setFCMToken(token);
       const fcm_token = await generateToken();
       if (!fcm_token) {
         console.error("FCM token not generated.");
         return;
       }
+      setFCMToken(fcm_token);
       onMessage(messaging, (payload) => {
         // console.log(payload);
       });
@@ -108,7 +108,7 @@ function Admin_Dashboard() {
     };
 
     fetchData(); 
-  }, [fcm_token]); 
+  }, []); // Empty dependency array - run once on mount 
 
   const handleMilkChange = (e) => {
     const { value, checked } = e.target;

@@ -241,9 +241,9 @@ function Admin_Customer_List() {
       sortable: true,
       cell: (row) => (
         <div className="hover-container">
-          <span className="address-preview">{row.address.slice(0, 15)}...</span>
+          <span className="address-preview">{(row.address || "").slice(0, 15)}...</span>
           <div className="address-popup">
-            {row.address}
+            {row.address || ""}
           </div>
         </div>
       ),
@@ -489,14 +489,14 @@ function Admin_Customer_List() {
 
         <Container fluid className="main-content mt-5 responsive-gap">
           {/* Search box - shown at top on mobile, before cards */}
-          <div className={`${isSmallScreen ? "d-block" : "d-none"} mb-3`}>
+          <div className={`${isSmallScreen ? "d-block" : "d-none"} mb-3`} style={{ paddingLeft: "15px", paddingRight: "15px" }}>
             <input
               type="text"
               placeholder="Search..."
               value={searchTerm}
               onChange={handleFilter}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition duration-300 ease-in-out"
-              style={{ width: "100%", maxWidth: "100%" }}
+              style={{ width: "100%", maxWidth: "100%", paddingLeft: "12px", paddingRight: "12px" }}
             />
           </div>
           

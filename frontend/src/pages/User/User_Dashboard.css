@@ -367,7 +367,86 @@
   
   .card-header-section {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 15px;
+  }
+  
+  .card-header-left {
+    width: 100% !important;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .card-header-left .dairy-logo {
+    width: 50px !important;
+    height: 50px !important;
+    flex-shrink: 0;
+  }
+  
+  .card-header-right {
+    width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+  
+  .card-month-info {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: nowrap;
+    padding: 5px 0;
+  }
+  
+  .card-month-info .month-year-text {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  
+  .card-month-info .month-nav-btn {
+    flex-shrink: 0;
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+    min-width: 60px;
+  }
+  
+  .card-month-info .prev-btn {
+    order: 1;
+  }
+  
+  .card-month-info .month-year-text {
+    order: 2;
+  }
+  
+  .card-month-info .next-btn {
+    order: 3;
+  }
+  
+  .manage-vacation-link {
+    width: 100%;
+    text-align: center !important;
+    padding: 5px 0;
+  }
+  
+  .card-title h5 {
+    font-size: 16px;
+    word-wrap: break-word;
+  }
+  
+  .card-title p {
+    font-size: 12px;
+    word-wrap: break-word;
   }
   
   .date-cell {
@@ -376,5 +455,42 @@
   
   .qty-cell {
     min-width: 45px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .card-header-left {
+    gap: 10px !important;
+  }
+  
+  .card-header-left .dairy-logo {
+    width: 45px !important;
+    height: 45px !important;
+  }
+  
+  .card-title h5 {
+    font-size: 14px !important;
+  }
+  
+  .card-title p {
+    font-size: 11px !important;
+  }
+  
+  .card-month-info {
+    gap: 5px !important;
+  }
+  
+  .card-month-info .month-year-text {
+    font-size: 12px !important;
+  }
+  
+  .card-month-info .month-nav-btn {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+    min-width: 55px;
+  }
+  
+  .manage-vacation-link {
+    font-size: 12px !important;
   }
 }

@@ -52,25 +52,39 @@ function Delivery_Boy_Evening() {
         );
 
         // Process regular orders
-        const regularOrders = response.data.regular_orders.map((customer) => ({
+        const regularOrders = (response.data?.regular_orders || []).map((customer) => ({
           ...customer,
           quantity: customer.quantity || 0,
           type: "regular",
         }));
 
-        const additionalOrders = response.data.additional_orders.map(
+        const additionalOrders = (response.data?.additional_orders || []).map(
           (order) => {
-            const quantities = JSON.parse(order.quantity_array); // e.g. [1.5, 0.25, 2]
-            return {
-              id: order.userid,
-              name: order.user.name,
-              dairy_name: order.user.dairy_name,
-              cow_milk: quantities[0] || 0,
-              buffalo_milk: quantities[1] || 0,
-              pure_milk: quantities[2] || 0,
-              type: "additional",
-              date: order.date,
-            };
+            try {
+              const quantities = JSON.parse(order.quantity_array || "[]"); // e.g. [1.5, 0.25, 2]
+              return {
+                id: order.userid,
+                name: order.user?.name || "",
+                dairy_name: order.user?.dairy_name || "",
+                cow_milk: quantities[0] || 0,
+                buffalo_milk: quantities[1] || 0,
+                pure_milk: quantities[2] || 0,
+                type: "additional",
+                date: order.date,
+              };
+            } catch (error) {
+              console.error("Error parsing quantity_array:", error);
+              return {
+                id: order.userid,
+                name: order.user?.name || "",
+                dairy_name: order.user?.dairy_name || "",
+                cow_milk: 0,
+                buffalo_milk: 0,
+                pure_milk: 0,
+                type: "additional",
+                date: order.date,
+              };
+            }
           }
         );
 

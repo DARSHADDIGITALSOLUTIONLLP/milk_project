@@ -245,14 +245,14 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       >
         <Container fluid className="main-content mt-2">
           {/* Search box - shown at top on mobile */}
-          <div className={`${isSmallScreen ? "d-block" : "d-none"} mt-3 mb-3`}>
+          <div className={`${isSmallScreen ? "d-block" : "d-none"} mt-3 mb-3`} style={{ paddingLeft: "15px", paddingRight: "15px" }}>
             <input
               type="text"
               placeholder="Search"
               value={searchTerm}
               onChange={handleFilter}
               className="form-control"
-              style={{ width: "100%" }}
+              style={{ width: "100%", paddingLeft: "12px", paddingRight: "12px" }}
             />
           </div>
           

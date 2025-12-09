@@ -61,3 +61,18 @@
   margin-top: 8px !important;
 }
 
+/* Delivery Boy Report Header - Mobile responsive */
+.delivery-boy-report-header {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+  .delivery-boy-report-header {
+    font-size: 14px !important;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+}
+

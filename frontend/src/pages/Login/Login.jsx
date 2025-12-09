@@ -149,11 +149,49 @@ function Login() {
 
   const handleLogin = async (event) => {
     event.preventDefault();
-    try {
-      const response = await axios.post("/api/login", {
-        identifier: identifier,
-        password_hash: password,
+    
+    // Frontend validation
+    if (!identifier || identifier.trim() === "") {
+      Swal.fire({
+        title: "Error",
+        text: "Please enter your email address or contact number",
+        icon: "error",
+        confirmButtonText: "OK",
       });
+      return;
+    }
+    
+    if (!password || password.trim() === "") {
+      Swal.fire({
+        title: "Error",
+        text: "Please enter your password",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+    
+    try {
+      console.log("🔍 Sending login request:", {
+        identifier: identifier,
+        password_length: password.length,
+        password_preview: password.substring(0, 3) + "..." + password.substring(password.length - 3)
+      });
+      
+      const requestData = {
+        identifier: identifier.trim(),
+        password_hash: password,
+      };
+      
+      console.log("📤 Request data being sent:", {
+        identifier: requestData.identifier,
+        password_hash_length: requestData.password_hash?.length,
+        password_hash_preview: requestData.password_hash ? 
+          requestData.password_hash.substring(0, 3) + "..." + requestData.password_hash.substring(requestData.password_hash.length - 3) : 
+          "null"
+      });
+      
+      const response = await axios.post("/api/login", requestData);
 
       const { role, token, user } = response.data;
       localStorage.setItem("token", token);
@@ -214,17 +252,29 @@ function Login() {
           });
       }
     }  catch (error) {
-      if (
-        error.response && 
-        error.response.data.message
-      ) {
+      console.error("❌ Login error:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
+      if (error.response) {
+        // Server responded with error
+        const errorMessage = error.response.data?.message || "Failed to login. Please try again.";
         Swal.fire({
-          title: "Access Denied",
-          text: error.response.data.message,
+          title: error.response.status === 400 ? "Validation Error" : "Access Denied",
+          text: errorMessage,
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+      } else if (error.request) {
+        // Request was made but no response received
+        Swal.fire({
+          title: "Connection Error",
+          text: "Unable to connect to the server. Please check if the backend server is running on port 5001.",
           icon: "error",
           confirmButtonText: "OK",
         });
       } else {
+        // Something else happened
         Swal.fire({
           title: "Error",
           text: "Failed to login. Please try again later.",

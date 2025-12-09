@@ -570,11 +570,12 @@ function User_Dashboard() {
             <Col lg={6} md={12} className="mt-2">
               <div className="milk-card-container">
                 <div className="card-header-section">
-                  <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  <div className="card-header-left" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                     {dairyLogo && (
                       <img
                         src={dairyLogo}
                         alt="Dairy Logo"
+                        className="dairy-logo"
                         style={{
                           width: "60px",
                           height: "60px",
@@ -594,12 +595,13 @@ function User_Dashboard() {
                       </p>
                     </div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-end" }}>
+                  <div className="card-header-right" style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-end" }}>
                     <div className="card-month-info" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <Button
                         size="sm"
                         variant="outline-secondary"
-                    onClick={() => {
+                        className="month-nav-btn prev-btn"
+                        onClick={() => {
                           const newMonth = new Date(activeMonth);
                           newMonth.setMonth(newMonth.getMonth() - 1);
                           setActiveMonth(newMonth);
@@ -608,28 +610,30 @@ function User_Dashboard() {
                       >
                         ← Prev
                       </Button>
-                      <span style={{ fontWeight: "bold" }}>
+                      <span className="month-year-text" style={{ fontWeight: "bold" }}>
                         {activeMonth.toLocaleString('default', { month: 'long' })} {activeMonth.getFullYear()}
                       </span>
                       <Button
                         size="sm"
                         variant="outline-secondary"
+                        className="month-nav-btn next-btn"
                         onClick={() => {
                           const newMonth = new Date(activeMonth);
                           newMonth.setMonth(newMonth.getMonth() + 1);
                           setActiveMonth(newMonth);
-                    }}
+                        }}
                         style={{ padding: "2px 8px", fontSize: "12px" }}
                       >
                         Next →
                       </Button>
                     </div>
                     <label
+                      className="manage-vacation-link"
                       style={{ color: "#EF6E0B", cursor: "pointer", fontSize: "14px" }}
                       onClick={() => setOpenModelWindow(true)}
-                  >
-                    Manage Vacation
-                  </label>
+                    >
+                      Manage Vacation
+                    </label>
                   </div>
                 </div>
 

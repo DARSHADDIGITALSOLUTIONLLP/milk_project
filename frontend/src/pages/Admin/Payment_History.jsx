@@ -229,8 +229,8 @@ function Payment_History() {
       sortable: true,
       cell: (row) => (
         <div className="hover-container">
-          <span className="address-preview">{row.address.slice(0, 15)}...</span>
-          <div className="address-popup">{row.address}</div>
+          <span className="address-preview">{(row.address || "").slice(0, 15)}...</span>
+          <div className="address-popup">{row.address || ""}</div>
         </div>
       ),
     },
