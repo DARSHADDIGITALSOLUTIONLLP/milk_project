@@ -24,6 +24,9 @@ import Farmer_Order_History from "../pages/Admin/Farmer_Order_History";
 import Admin_Farmer_Payment_History from "../pages/Admin/Farmer_Payment_History";
 import Delivery_Boy_List from "../pages/Admin/Delivery_Boy_List";
 import Daily_Report from "../pages/Admin/Daily_Report";
+import Customer_Registration from "../pages/Admin/Customer_Registration";
+import Farmer_Registration from "../pages/Admin/Farmer_Registration";
+import Delivery_Boy_Registration from "../pages/Admin/Delivery_Boy_Registration";
 import Delivery_Boy_Login from "../pages/DeliveryBoy/Delivery_Boy_Login";
 import Delivery_Boy_Morning from "../pages/DeliveryBoy/Delivery_Boy_Morning";
 import Delivery_Boy_Evening from "../pages/DeliveryBoy/Delivery_Boy_Evening";
@@ -241,6 +244,24 @@ function AllRoutes() {
         path="/farmer-order-history"
         element={
           <UserRoleRoute role="admin" component={<Farmer_Order_History />} />
+        }
+      />
+      <Route
+        path="/customer-registration"
+        element={
+          <UserRoleRoute role="admin" component={<Customer_Registration />} />
+        }
+      />
+      <Route
+        path="/farmer-registration"
+        element={
+          <UserRoleRoute role="admin" component={<Farmer_Registration />} />
+        }
+      />
+      <Route
+        path="/delivery-boy-registration"
+        element={
+          <UserRoleRoute role="admin" component={<Delivery_Boy_Registration />} />
         }
       />
 

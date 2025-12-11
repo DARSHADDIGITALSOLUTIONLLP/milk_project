@@ -31,6 +31,7 @@ function WindowHeader({ dashboardText }) {
   // const username = getUsernameFromCookie();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customerListOpen, setCustomerListOpen] = useState(true);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
   const [activeSubMenu, setActiveSubMenu] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showFarmerModal, setShowFarmerModal] = useState(false);
@@ -263,6 +264,10 @@ function WindowHeader({ dashboardText }) {
 
   const toggleCustomerList = () => {
     setCustomerListOpen((prevOpen) => !prevOpen);
+  };
+
+  const toggleRegistration = () => {
+    setRegistrationOpen((prevOpen) => !prevOpen);
   };
 
   const handleSubMenuClick = (menu) => {
@@ -676,6 +681,50 @@ function WindowHeader({ dashboardText }) {
             >
               Farmer Payment History
             </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="#"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+              onClick={(e) => {
+                e.preventDefault();
+                toggleRegistration();
+              }}
+            >
+              Registration
+              <FontAwesomeIcon icon={faChevronDown} className="dropdown-icon" />
+            </NavLink>
+            {registrationOpen && (
+              <ul className="sub-menu">
+                <li>
+                  <NavLink
+                    to="/customer-registration"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                    onClick={() => handleSubMenuClick("customer")}
+                  >
+                    Customer Registration
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/farmer-registration"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                    onClick={() => handleSubMenuClick("farmer")}
+                  >
+                    Farmer Registration
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/delivery-boy-registration"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                    onClick={() => handleSubMenuClick("deliveryBoy")}
+                  >
+                    Delivery Boy Registration
+                  </NavLink>
+                </li>
+              </ul>
+            )}
           </li>
           <li>
             <NavLink

@@ -53,8 +53,60 @@
     flex-grow: 1;
     margin-left: 0;
     padding: 20px;
+    padding-top: 100px; /* Increased padding to account for fixed header and ensure headings are visible */
     transition: margin-left 0.3s ease, width 0.3s ease;
     overflow-y: auto;
+  }
+  
+  /* Ensure headings are below the header - override App.css margin-top */
+  .main-content .heading,
+  .main-content h1,
+  .main-content h2,
+  .main-content h3,
+  .main-content .page-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure first element in main-content (including headings) has proper spacing */
+  .main-content > *:first-child {
+    margin-top: 0 !important;
+  }
+  
+  /* Headings inside divs should also respect spacing */
+  .main-content div .heading,
+  .main-content div h1,
+  .main-content div h2,
+  .main-content div h3 {
+    margin-top: 0 !important;
+  }
+  
+  /* Override mt-4 on wrapper divs that contain headings to prevent going under header */
+  .main-content > div.mt-4 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure headings inside mt-4 divs don't go under header */
+  .main-content div.mt-4 .heading,
+  .main-content div.mt-4 h1,
+  .main-content div.mt-4 h2,
+  .main-content div.mt-4 h3 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Override Bootstrap mt-4 utility class for first content divs */
+  .main-content > div.mt-4:first-of-type {
+    margin-top: 0 !important;
+  }
+  
+  /* Ensure any div containing heading doesn't push content under header */
+  .main-content > div:has(.heading),
+  .main-content > div:has(h1),
+  .main-content > div:has(h2),
+  .main-content > div:has(h3) {
+    margin-top: 0 !important;
   }
   .sidebar.open ~ .main-content {
     margin-left: 19%;
@@ -146,6 +198,17 @@
     .main-content {
       width: 100%;
       margin-left: 0;
+      padding-top: 100px; /* Increased padding to account for fixed header on mobile */
+    }
+    
+    /* Ensure headings are below the header on mobile */
+    .main-content .heading,
+    .main-content h1,
+    .main-content h2,
+    .main-content h3,
+    .main-content .page-title {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
     }
     .bg-dark.navbar-dark {
       width: 100%;
