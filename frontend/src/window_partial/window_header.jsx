@@ -8,7 +8,7 @@ import {
   Button,
   Image,
 } from "react-bootstrap";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
@@ -27,11 +27,14 @@ import Cookies from "js-cookie";
 import Swal from "sweetalert2";
 
 function WindowHeader({ dashboardText }) {
+  const location = useLocation();
   const [username, setUsername] = useState("");
   // const username = getUsernameFromCookie();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [customerListOpen, setCustomerListOpen] = useState(true);
-  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [customerListOpen, setCustomerListOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [farmerOpen, setFarmerOpen] = useState(false);
+  const [dailyOpen, setDailyOpen] = useState(false);
   const [activeSubMenu, setActiveSubMenu] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showFarmerModal, setShowFarmerModal] = useState(false);
@@ -269,6 +272,44 @@ function WindowHeader({ dashboardText }) {
   const toggleRegistration = () => {
     setRegistrationOpen((prevOpen) => !prevOpen);
   };
+
+  const toggleFarmer = () => {
+    setFarmerOpen((prevOpen) => !prevOpen);
+  };
+
+  const toggleDaily = () => {
+    setDailyOpen((prevOpen) => !prevOpen);
+  };
+
+  // Ensure the correct dropdown is open based on current route
+  useEffect(() => {
+    const path = location.pathname || "";
+
+    const isRegistrationRoute =
+      path.startsWith("/customer-registration") ||
+      path.startsWith("/farmer-registration") ||
+      path.startsWith("/delivery-boy-registration") ||
+      path.startsWith("/user-request");
+
+    const isCustomerRoute =
+      path.startsWith("/customer-morning") ||
+      path.startsWith("/customer-evening") ||
+      path.startsWith("/payment-history") ||
+      path.startsWith("/admin-customer-list");
+
+    const isFarmerRoute =
+      path.startsWith("/farmer-list") ||
+      path.startsWith("/farmer-order-history") ||
+      path.startsWith("/farmer-payment-history");
+
+    const isDailyRoute =
+      path.startsWith("/delivery-boy-list") || path.startsWith("/daily-report");
+
+    setRegistrationOpen(isRegistrationRoute);
+    setCustomerListOpen(isCustomerRoute);
+    setFarmerOpen(isFarmerRoute);
+    setDailyOpen(isDailyRoute);
+  }, [location.pathname]);
 
   const handleSubMenuClick = (menu) => {
     setActiveSubMenu(menu);
@@ -651,41 +692,9 @@ function WindowHeader({ dashboardText }) {
             </NavLink>
           </li>
           <li>
-            <NavLink
-              to="/user-request"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              User Request
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/farmer-list"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              Farmer List
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/farmer-order-history"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              Farmer Order History
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/farmer-payment-history"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              Farmer Payment History
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="#"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
+            <a
+              href="#"
+              className="sidebar-link"
               onClick={(e) => {
                 e.preventDefault();
                 toggleRegistration();
@@ -693,7 +702,7 @@ function WindowHeader({ dashboardText }) {
             >
               Registration
               <FontAwesomeIcon icon={faChevronDown} className="dropdown-icon" />
-            </NavLink>
+            </a>
             {registrationOpen && (
               <ul className="sub-menu">
                 <li>
@@ -723,27 +732,46 @@ function WindowHeader({ dashboardText }) {
                     Delivery Boy Registration
                   </NavLink>
                 </li>
+                <li>
+                  <NavLink
+                    to="/user-request"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                    onClick={() => handleSubMenuClick("userRequest")}
+                  >
+                    User Request
+                  </NavLink>
+                </li>
               </ul>
             )}
           </li>
+
+          {/* Customer Group */}
           <li>
-            <NavLink
-              to="/admin-customer-list"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-              onClick={toggleCustomerList}
+            <a
+              href="#"
+              className="sidebar-link"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleCustomerList();
+              }}
             >
-              Customer List
+              Customer
               <FontAwesomeIcon icon={faChevronDown} className="dropdown-icon" />
-            </NavLink>
+            </a>
             {customerListOpen && (
               <ul className="sub-menu">
                 <li>
                   <NavLink
+                    to="/admin-customer-list"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Customer List
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
                     to="/customer-morning"
-                    className={
-                      activeSubMenu === "morning" ? "active" : "inactive"
-                    }
-                    onClick={() => handleSubMenuClick("morning")}
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
                   >
                     Morning
                   </NavLink>
@@ -751,12 +779,95 @@ function WindowHeader({ dashboardText }) {
                 <li>
                   <NavLink
                     to="/customer-evening"
-                    className={
-                      activeSubMenu === "evening" ? "active" : "inactive"
-                    }
-                    onClick={() => handleSubMenuClick("evening")}
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
                   >
                     Evening
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/payment-history"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Payment History
+                  </NavLink>
+                </li>
+              </ul>
+            )}
+          </li>
+
+          {/* Farmer Group */}
+          <li>
+            <a
+              href="#"
+              className="sidebar-link"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleFarmer();
+              }}
+            >
+              Farmer
+              <FontAwesomeIcon icon={faChevronDown} className="dropdown-icon" />
+            </a>
+            {farmerOpen && (
+              <ul className="sub-menu">
+                <li>
+                  <NavLink
+                    to="/farmer-list"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Farmer List
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/farmer-order-history"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Farmer Order History
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/farmer-payment-history"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Farmer Payment History
+                  </NavLink>
+                </li>
+              </ul>
+            )}
+          </li>
+
+          {/* Daily Report Group */}
+          <li>
+            <a
+              href="#"
+              className="sidebar-link"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleDaily();
+              }}
+            >
+              Daily Report
+              <FontAwesomeIcon icon={faChevronDown} className="dropdown-icon" />
+            </a>
+            {dailyOpen && (
+              <ul className="sub-menu">
+                <li>
+                  <NavLink
+                    to="/delivery-boy-list"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Delivery Boy List
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/daily-report"
+                    className={({ isActive }) => (isActive ? "active" : "inactive")}
+                  >
+                    Daily Report
                   </NavLink>
                 </li>
               </ul>
@@ -771,36 +882,14 @@ function WindowHeader({ dashboardText }) {
               Additional Orders
             </NavLink>
           </li> */}
-          <li>
-            <NavLink
-              to="/payment-history"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              Payment History
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/daily-report"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              Daily Report
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/delivery-boy-list"
-              className={({ isActive }) => (isActive ? "active-link" : "")}
-            >
-              Delivery Boy List
-            </NavLink>
-          </li>
         </ul>
+        {/* Sidebar Logout button commented as per request */}
+        {/*
         <div className="sidebar-bottom">
-          <NavLink 
-            to="#" 
-            className="btnLogout" 
-            style={{ color: "white" }} 
+          <NavLink
+            to="#"
+            className="btnLogout"
+            style={{ color: "white" }}
             onClick={(e) => {
               e.preventDefault();
               handleLogout();
@@ -813,6 +902,7 @@ function WindowHeader({ dashboardText }) {
             Logout
           </NavLink>
         </div>
+        */}
       </div>
       <Navbar className="bg-dark navbar-dark">
         <Container fluid>

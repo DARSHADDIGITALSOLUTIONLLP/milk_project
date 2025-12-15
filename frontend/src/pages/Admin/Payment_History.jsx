@@ -5,6 +5,7 @@ import { Container, Button, Modal, ToastContainer } from "react-bootstrap";
 import "./Payment_History.css";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import { encode } from "base64-arraybuffer";
 import { toast } from "react-toastify";
 import { Bounce } from "react-toastify";
@@ -212,30 +213,36 @@ function Payment_History() {
     setFilteredRecords(records);
   }, [records]);
 
-  const columns = [
+  const allColumns = [
     {
-      name: "Sr No.",
+      id: "srNo",
+      headerLabel: "Sr No.",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
-      name: "Customer Name",
+      id: "name",
+      headerLabel: "Customer Name",
       selector: (row) => row.name,
       sortable: true,
     },
     {
-      name: "Address",
+      id: "address",
+      headerLabel: "Address",
       selector: (row) => row.address,
       sortable: true,
       cell: (row) => (
         <div className="hover-container">
-          <span className="address-preview">{(row.address || "").slice(0, 15)}...</span>
+          <span className="address-preview">
+            {(row.address || "").slice(0, 15)}...
+          </span>
           <div className="address-popup">{row.address || ""}</div>
         </div>
       ),
     },
     {
-      name: "Status",
+      id: "status",
+      headerLabel: "Status",
       selector: (row) => (
         <Button
           variant={row.status === "Paid" ? "success" : "danger"}
@@ -247,45 +254,38 @@ function Payment_History() {
       sortable: true,
     },
     {
-      name: "Start Date",
+      id: "startDate",
+      headerLabel: "Start Date",
       selector: (row) => row.startDate,
       sortable: true,
     },
-    // {
-    //   name: "End Date",
-    //   selector: (row) => row.endDate,
-    //   sortable: true,
-    // },
     {
-      name: "Shift",
+      id: "shift",
+      headerLabel: "Shift",
       selector: (row) => row.shift,
       sortable: true,
     },
     {
-      name: "Advance Payment",
+      id: "advancePayment",
+      headerLabel: "Advance Payment",
       selector: (row) => row.advance_payment,
       sortable: true,
     },
     {
-      name: "Received Amount",
+      id: "receivedAmount",
+      headerLabel: "Received Amount",
       selector: (row) => row.amount,
       sortable: true,
     },
     {
-      name: "Total Pending Amount",
+      id: "pendingAmount",
+      headerLabel: "Total Pending Amount",
       selector: (row) => row.cumulativeBalanceAmount,
       sortable: true,
     },
-    // {
-    //   name: "Actions",
-    //   cell: (row) => (
-    //     <Button variant="info" onClick={() => handleViewClick(row)}>
-    //       View
-    //     </Button>
-    //   ),
-    // },
     {
-      name: "Received Payment",
+      id: "receivedPayment",
+      headerLabel: "Received Payment",
       cell: (row) => (
         <Button variant="info" onClick={() => handlePaymentViewClick(row)}>
           View
@@ -293,6 +293,31 @@ function Payment_History() {
       ),
     },
   ];
+
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;
+    if (w <= 1024) return 4;
+    return 100;
+  });
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
   const customStyles = {
     headCells: {
       style: {
@@ -307,7 +332,19 @@ function Payment_History() {
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -418,6 +455,37 @@ function Payment_History() {
             progressPending={loading}
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀ Columns
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                Columns ▶
+              </button>
+              <span style={{ fontSize: "12px" }}>
+                Group {safeColumnPage + 1} of {maxColumnPage + 1}
+              </span>
+            </div>
+          )}
         </Container>
 
         <Modal show={showConfirmation} onHide={closeModal} centered>

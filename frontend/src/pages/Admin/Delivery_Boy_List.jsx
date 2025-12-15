@@ -3,6 +3,7 @@ import WindowHeader from "../../window_partial/window_header";
 import { Container, Button, Modal, Row, Col } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import { NavLink } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -111,31 +112,35 @@ function Delivery_Boy_List() {
     }
   };
 
-  const columns = [
+  const allColumns = [
     {
-      name: "ID",
+      id: "id",
+      headerLabel: "ID",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
-      name: "Name",
+      id: "name",
+      headerLabel: "Name",
       selector: (row) => row.name,
       sortable: true,
     },
     {
-      name: "Email",
+      id: "email",
+      headerLabel: "Email",
       selector: (row) => row.email,
       sortable: true,
     },
     {
-      name: "Status",
+      id: "status",
+      headerLabel: "Status",
       selector: (row) => row.status,
       sortable: true,
       cell: (row) => (
         <span
           style={{
             color: row.status === "Active" ? "green" : "red",
-            fontWeight: row.status === "Active" ? "bold" : "bold",
+            fontWeight: "bold",
           }}
         >
           {row.status}
@@ -143,7 +148,8 @@ function Delivery_Boy_List() {
       ),
     },
     {
-      name: "Action",
+      id: "action",
+      headerLabel: "Action",
       cell: (row) =>
         row.loggedIn ? (
           <Button variant="danger" onClick={() => handleLogout(row.id)}>
@@ -161,7 +167,8 @@ function Delivery_Boy_List() {
         ),
     },
     {
-      name: "Remove",
+      id: "remove",
+      headerLabel: "Remove",
       cell: (row) => (
         <Button
           variant="danger"
@@ -179,7 +186,33 @@ function Delivery_Boy_List() {
     },
   ];
 
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;
+    if (w <= 1024) return 4;
+    return 100;
+  });
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
+
   const [dateTime, setDateTime] = useState(new Date());
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -188,10 +221,21 @@ function Delivery_Boy_List() {
 
     return () => clearInterval(timer);
   }, []);
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -219,6 +263,37 @@ function Delivery_Boy_List() {
             pagination
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀ Columns
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                Columns ▶
+              </button>
+              <span style={{ fontSize: "12px" }}>
+                Group {safeColumnPage + 1} of {maxColumnPage + 1}
+              </span>
+            </div>
+          )}
         </Container>
 
         <Modal

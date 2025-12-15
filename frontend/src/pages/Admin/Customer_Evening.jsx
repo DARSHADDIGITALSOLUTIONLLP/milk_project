@@ -7,6 +7,7 @@ import "../../window_partial/window.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../SuperAdmin/Dairy_List.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 
 function Customer_Evening() {
   const [showProfile, setShowProfile] = useState(false); // State for profile popup
@@ -20,6 +21,13 @@ function Customer_Evening() {
   const deliveryTimeouts = useRef({});
   const [dateTime, setDateTime] = useState(new Date());
   const [quantity, setQuantity] = useState(0);
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const width = window.innerWidth || 0;
+    if (width <= 600) return 3; // mobile
+    if (width <= 1024) return 4; // tablet
+    return 100; // desktop - effectively all columns
+  });
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
@@ -261,8 +269,9 @@ const [filteredRecords, setFilteredRecords] = useState([]);
     }
   };
 
-  const columns = [
+  const allColumns = [
     {
+      id: "sequence",
       name: "Sequence",
       cell: (row) => {
         const index = filteredRecords.findIndex((r) => r.id === row.id);
@@ -298,16 +307,19 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       width: "120px",
     },
     {
+      id: "srNo",
       name: "Sr No.",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
+      id: "name",
       name: "Customer Name",
       selector: (row) => row.name,
       sortable: true,
     },
     {
+      id: "address",
       name: "Address",
       selector: (row) => row.address,
       sortable: true,
@@ -321,6 +333,7 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       ),
     },
     {
+      id: "status",
       name: "Status",
       selector: (row) => (
         <Button
@@ -333,6 +346,7 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       sortable: true,
     },
     {
+      id: "startDate",
       name: "Start Date",
       selector: (row) => {
         const date = new Date(row.start_date);
@@ -341,16 +355,19 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       sortable: true,
     },
     {
+      id: "shift",
       name: "Shift",
       selector: () => "Evening",
       sortable: true,
     },
     {
+      id: "vacationMode",
       name:"Vacation Mode",
       selector: (row) => row.vacation_mode_evening?"ON":"OFF",
       sortable: true,
     },
     {
+      id: "delivery",
       name: "Delivery",
       selector: (row) => (
         <>
@@ -386,6 +403,7 @@ const [filteredRecords, setFilteredRecords] = useState([]);
     //   sortable: true,
     // },
     {
+      id: "actions",
       name: "Actions",
       cell: (row) => (
         <Button variant="info" onClick={() => handleViewClick(row)}>
@@ -394,6 +412,23 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       ),
     },
   ];
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
 
   useEffect(() => {
     return () => {
@@ -404,7 +439,19 @@ const [filteredRecords, setFilteredRecords] = useState([]);
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -457,6 +504,35 @@ const [filteredRecords, setFilteredRecords] = useState([]);
             highlightOnHover
             responsive
           />
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀ Columns
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                Columns ▶
+              </button>
+              <span style={{ fontSize: "12px" }}>
+                Group {safeColumnPage + 1} of {maxColumnPage + 1}
+              </span>
+            </div>
+          )}
         </Container>
 
         <Modal show={showConfirmation} onHide={closeModal} centered>

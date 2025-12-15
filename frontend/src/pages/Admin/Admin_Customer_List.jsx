@@ -12,6 +12,7 @@ import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../SuperAdmin/Dairy_List.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 
 function Admin_Customer_List() {
   const [showProfile, setShowProfile] = useState(false);
@@ -136,6 +137,14 @@ function Admin_Customer_List() {
     setFilteredRecords(filteredData);
   };
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
+  const [customerColumnPage, setCustomerColumnPage] = useState(0);
+  const [customerColumnsPerPage, setCustomerColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;      // mobile
+    if (w <= 1024) return 4;     // tablet
+    return 100;                  // all on desktop
+  });
 
   useEffect(() => {
     setFilteredRecords(records);
@@ -224,32 +233,36 @@ function Admin_Customer_List() {
     }
   };
 
-  const columns = [
+  const allColumns = [
     {
-      name: "Sr No.",
+      id: "srNo",
+      headerLabel: "Sr No.",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
-      name: "Customer Name",
+      id: "name",
+      headerLabel: "Customer Name",
       selector: (row) => row.name,
       sortable: true,
     },
     {
-      name: "Address",
+      id: "address",
+      headerLabel: "Address",
       selector: (row) => row.address,
       sortable: true,
       cell: (row) => (
         <div className="hover-container">
-          <span className="address-preview">{(row.address || "").slice(0, 15)}...</span>
-          <div className="address-popup">
-            {row.address || ""}
-          </div>
+          <span className="address-preview">
+            {(row.address || "").slice(0, 15)}...
+          </span>
+          <div className="address-popup">{row.address || ""}</div>
         </div>
       ),
-    },  
+    },
     {
-      name: "Status",
+      id: "status",
+      headerLabel: "Status",
       selector: (row) => (
         <Button
           variant={row.status === "Active" ? "success" : "danger"}
@@ -261,12 +274,14 @@ function Admin_Customer_List() {
       sortable: true,
     },
     {
-      name: "Quantity",
-      selector: (row) => row.quantity + " ltr",
+      id: "quantity",
+      headerLabel: "Quantity",
+      selector: (row) => `${row.quantity} ltr`,
       sortable: true,
     },
     {
-      name: "Start Date",
+      id: "startDate",
+      headerLabel: "Start Date",
       selector: (row) => {
         const date = new Date(row.start_date);
         return isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString();
@@ -274,33 +289,55 @@ function Admin_Customer_List() {
       sortable: true,
     },
     {
-      name: "Milk Type",
+      id: "milkType",
+      headerLabel: "Milk Type",
       selector: (row) => row.milk_type,
       sortable: true,
     },
     {
-      name: "Shift",
+      id: "shift",
+      headerLabel: "Shift",
       selector: (row) => row.shift,
       sortable: true,
     },
-    
     {
-      name: "Advance Payment",
+      id: "advancePayment",
+      headerLabel: "Advance Payment",
       selector: (row) => row.advance_payment,
       sortable: true,
     },
     {
-      name: "Actions",
+      id: "actions",
+      headerLabel: "Actions",
       cell: (row) => (
         <Button variant="primary" onClick={() => handleViewClick(row)}>
           Advance
         </Button>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     },
   ];
+
+  const effectiveColumnsPerPage = Math.min(
+    customerColumnsPerPage,
+    allColumns.length || customerColumnsPerPage
+  );
+  const maxCustomerColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeCustomerColumnPage = Math.min(
+    customerColumnPage,
+    maxCustomerColumnPage
+  );
+  const columnStart = safeCustomerColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    // Reset visible columns whenever the column group (page) changes
+    resetKey: safeCustomerColumnPage,
+  });
   useEffect(() => {
     return () => {
       Object.values(deliveryTimeouts.current).forEach(clearTimeout);
@@ -327,10 +364,20 @@ function Admin_Customer_List() {
     profit: "",
   });
 
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
-
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setCustomerColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setCustomerColumnsPerPage(4);
+      } else {
+        setCustomerColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -517,12 +564,10 @@ function Admin_Customer_List() {
                       </Card.Title>
                     </center>
                     <hr />
-                    <Card.Text>
-                      <center>
-                        <button type="button" className="btn_submit">
-                          {totalQuantity ? totalQuantity : 0} ltr
-                        </button>
-                      </center>
+                    <Card.Text as="div" className="text-center">
+                      <button type="button" className="btn_submit">
+                        {totalQuantity ? totalQuantity : 0} ltr
+                      </button>
                     </Card.Text>
                   </Card.Body>
                 </Card>
@@ -543,12 +588,10 @@ function Admin_Customer_List() {
                       </Card.Title>
                     </center>
                     <hr />
-                    <Card.Text>
-                      <center>
-                        <button type="button" className="btn_submit">
-                          {totalcowmilkQuantity ? totalcowmilkQuantity : 0} ltr
-                        </button>
-                      </center>
+                    <Card.Text as="div" className="text-center">
+                      <button type="button" className="btn_submit">
+                        {totalcowmilkQuantity ? totalcowmilkQuantity : 0} ltr
+                      </button>
                     </Card.Text>
                   </Card.Body>
                 </Card>
@@ -569,15 +612,11 @@ function Admin_Customer_List() {
                       </Card.Title>
                     </center>
                     <hr />
-                    <Card.Text>
-                      <center>
-                        <button type="button" className="btn_submit">
-                          {totalbuffalomilkQuantity
-                            ? totalbuffalomilkQuantity
-                            : 0}{" "}
-                          ltr
-                        </button>
-                      </center>
+                    <Card.Text as="div" className="text-center">
+                      <button type="button" className="btn_submit">
+                        {totalbuffalomilkQuantity ? totalbuffalomilkQuantity : 0}{" "}
+                        ltr
+                      </button>
                     </Card.Text>
                   </Card.Body>
                 </Card>
@@ -632,6 +671,40 @@ function Admin_Customer_List() {
             pagination
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxCustomerColumnPage > 0 && (
+            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeCustomerColumnPage === 0}
+                onClick={() =>
+                  setCustomerColumnPage((prev) =>
+                    prev > 0 ? prev - 1 : prev
+                  )
+                }
+              >
+                ◀ Columns
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeCustomerColumnPage >= maxCustomerColumnPage}
+                onClick={() =>
+                  setCustomerColumnPage((prev) =>
+                    prev < maxCustomerColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                Columns ▶
+              </button>
+              <span style={{ fontSize: "12px" }}>
+                Group {safeCustomerColumnPage + 1} of{" "}
+                {maxCustomerColumnPage + 1}
+              </span>
+            </div>
+          )}
         </Container>
         
         <Modal show={showDetailsModal} onHide={closeModal}>
@@ -700,3 +773,4 @@ function Admin_Customer_List() {
 }
 
 export default Admin_Customer_List;
+

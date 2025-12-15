@@ -9,6 +9,7 @@ import {
 } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import { encode } from "base64-arraybuffer";
 import { toast, ToastContainer, Bounce } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -74,6 +75,14 @@ function Farmer_Order_History() {
 
 
   const [dateTime, setDateTime] = useState(new Date());
+  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;
+    if (w <= 1024) return 4;
+    return 100;
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -98,35 +107,32 @@ function Farmer_Order_History() {
     setFilteredRecords(filteredData);
   };
 
-  const [filteredRecords, setFilteredRecords] = useState([]);
-
   useEffect(() => {
     setFilteredRecords(records);
   }, [records]);
 
-  const columns = [
+  const allColumns = [
     {
-      name: "Sir No.",
+      id: "srNo",
+      headerLabel: "Sir No.",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
-      name: "Farmer Name",
+      id: "name",
+      headerLabel: "Farmer Name",
       selector: (row) => row.full_name,
       sortable: true,
     },
     {
-      name: "Date",
+      id: "date",
+      headerLabel: "Date",
       selector: (row) => row.created_At,
       sortable: true,
     },
-    // {
-    //   name: "Time",
-    //   selector: (row) => row.time || "-",
-    //   sortable: true,
-    // },
     {
-      name: "Pure (ltr)",
+      id: "pure",
+      headerLabel: "Pure (ltr)",
       selector: (row) =>
         row.pure_quantity
           ? `${row.pure_quantity || 0} (F${row.pure_fat ?? "-"}) * Rs ${farmerRates.farmer_pure_rate}`
@@ -134,7 +140,8 @@ function Farmer_Order_History() {
       sortable: true,
     },
     {
-      name: "Cow (ltr)",
+      id: "cow",
+      headerLabel: "Cow (ltr)",
       selector: (row) =>
         row.cow_quantity
           ? `${row.cow_quantity || 0} (F${row.cow_fat ?? "-"}) * Rs ${farmerRates.farmer_cow_rate}`
@@ -142,7 +149,8 @@ function Farmer_Order_History() {
       sortable: true,
     },
     {
-      name: "Buffalo (ltr)",
+      id: "buffalo",
+      headerLabel: "Buffalo (ltr)",
       selector: (row) =>
         row.buffalo_quantity
           ? `${row.buffalo_quantity || 0} (F${row.buffalo_fat ?? "-"}) * Rs ${farmerRates.farmer_buffalo_rate}`
@@ -150,6 +158,23 @@ function Farmer_Order_History() {
       sortable: true,
     },
   ];
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
   const customStyles = {
     headCells: {
       style: {
@@ -164,7 +189,19 @@ function Farmer_Order_History() {
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -218,6 +255,37 @@ function Farmer_Order_History() {
             progressPending={loading}
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀ Columns
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                Columns ▶
+              </button>
+              <span style={{ fontSize: "12px" }}>
+                Group {safeColumnPage + 1} of {maxColumnPage + 1}
+              </span>
+            </div>
+          )}
         </Container>
       </div>
     </div>

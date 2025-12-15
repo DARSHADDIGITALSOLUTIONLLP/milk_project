@@ -1,21 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import WindowHeader from "../../window_partial/window_header";
-import {
-  Container,
-  Button,
-  Row,
-  Col,
-  Modal,
-  Card,
-} from "react-bootstrap";
+import { Container, Button, Row, Col, Modal, Card } from "react-bootstrap";
+import DataTable from "react-data-table-component";
 import Swal from "sweetalert2";
 import "../../window_partial/window.css";
+import "../SuperAdmin/Dairy_List.css";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import { ToastContainer, toast } from "react-toastify";
 import { onMessage } from "firebase/messaging";
 import { generateToken, messaging } from "../../notifications/firebase";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 
 function Admin_Dashboard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -164,6 +160,20 @@ function Admin_Dashboard() {
   const [paymentJustCompleted, setPaymentJustCompleted] = useState(false);
   const [popupShown, setPopupShown] = useState(false);
 
+  // Customer list for dashboard (same info as Admin Customer List)
+  const [customerRecords, setCustomerRecords] = useState([]);
+  const [filteredCustomerRecords, setFilteredCustomerRecords] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [resetCustomerColumnsKey, setResetCustomerColumnsKey] = useState(0);
+  const [customerColumnPage, setCustomerColumnPage] = useState(0);
+  const [customerColumnsPerPage, setCustomerColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;      // mobile
+    if (w <= 1024) return 4;     // tablet
+    return 100;                  // effectively "all" on desktop
+  });
+
   // Check localStorage for recent payment (persists across navigation)
   const checkRecentPayment = () => {
     const recentPayment = localStorage.getItem('subscription_payment_timestamp');
@@ -304,6 +314,34 @@ function Admin_Dashboard() {
       );
       setSubscriptionChecked(true); // Mark as checked even on error to prevent infinite popup
     }
+  }, []);
+
+  // Fetch all customers for dashboard (same as /admin-customer-list)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const fetchCustomers = async () => {
+      try {
+        setCustomerLoading(true);
+
+        const response = await axios.get("/api/admin/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const updatedRecords = (response.data?.users || []).map((record) => ({
+          ...record,
+          status: "Active",
+        }));
+
+        setCustomerRecords(updatedRecords);
+        setFilteredCustomerRecords(updatedRecords);
+      } catch (error) {
+        console.error("Error fetching customers for dashboard:", error);
+      } finally {
+        setCustomerLoading(false);
+      }
+    };
+
+    fetchCustomers();
   }, []);
 
   // Fetch subscription data on mount and when location changes (after payment redirect)
@@ -458,10 +496,135 @@ function Admin_Dashboard() {
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      // Update how many columns we show at once for the customer table
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setCustomerColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setCustomerColumnsPerPage(4);
+      } else {
+        setCustomerColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const handleCustomerFilter = (event) => {
+    const value = event.target.value.toLowerCase();
+    const filteredData = customerRecords.filter((row) => {
+      return (
+        row.name?.toLowerCase().includes(value) ||
+        row.address?.toLowerCase().includes(value) ||
+        (row.status || "").toLowerCase().includes(value)
+      );
+    });
+    setCustomerSearchTerm(value);
+    setFilteredCustomerRecords(filteredData);
+  };
+
+  const customerTableStyles = {
+    headCells: {
+      style: {
+        backgroundColor: "#FFAC30",
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: "15px",
+        textAlign: "center",
+      },
+    },
+  };
+
+  const allCustomerColumns = [
+    {
+      id: "srNo",
+      headerLabel: "Sr No.",
+      selector: (row, index) => index + 1,
+      sortable: true,
+      width: "80px",
+    },
+    {
+      id: "name",
+      headerLabel: "Customer Name",
+      selector: (row) => row.name,
+      sortable: true,
+    },
+    {
+      id: "address",
+      headerLabel: "Address",
+      selector: (row) => row.address,
+      sortable: true,
+      cell: (row) => (
+        <div className="hover-container">
+          <span className="address-preview">
+            {(row.address || "").slice(0, 15)}...
+          </span>
+          <div className="address-popup">{row.address || ""}</div>
+        </div>
+      ),
+    },
+    {
+      id: "quantity",
+      headerLabel: "Quantity",
+      selector: (row) => `${row.quantity} ltr`,
+      sortable: true,
+    },
+    {
+      id: "startDate",
+      headerLabel: "Start Date",
+      selector: (row) => {
+        const date = new Date(row.start_date);
+        return isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString();
+      },
+      sortable: true,
+    },
+    {
+      id: "milkType",
+      headerLabel: "Milk Type",
+      selector: (row) => row.milk_type,
+      sortable: true,
+    },
+    {
+      id: "shift",
+      headerLabel: "Shift",
+      selector: (row) => row.shift,
+      sortable: true,
+    },
+    {
+      id: "advancePayment",
+      headerLabel: "Advance Payment",
+      selector: (row) => row.advance_payment,
+      sortable: true,
+    },
+  ];
+
+  // Column paging based on screen size
+  const effectiveColumnsPerPage = Math.min(
+    customerColumnsPerPage,
+    allCustomerColumns.length || customerColumnsPerPage
+  );
+  const maxCustomerColumnPage = Math.max(
+    0,
+    Math.ceil(allCustomerColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeCustomerColumnPage = Math.min(
+    customerColumnPage,
+    maxCustomerColumnPage
+  );
+  const customerColumnStart = safeCustomerColumnPage * effectiveColumnsPerPage;
+  const customerColumnEnd = customerColumnStart + effectiveColumnsPerPage;
+  const pagedCustomerColumnsRaw = allCustomerColumns.slice(
+    customerColumnStart,
+    customerColumnEnd
+  );
+
+  const customerColumns = useResponsiveHideableColumns(pagedCustomerColumnsRaw, {
+    resetKey: `${resetCustomerColumnsKey}-${safeCustomerColumnPage}`,
+  });
 
   async function checkout(totalAmount, periods) {
     try {
@@ -577,15 +740,80 @@ function Admin_Dashboard() {
             theme="light"
             transition:Bounce
           />
-          <div className="mt-4">
-            <h3 className="heading">Admin Dashboard</h3>
-            <p className="mt-3" style={{ fontSize: "16px", color: "#666" }}>
-              Welcome to the Admin Dashboard. Use the sidebar menu to navigate to different sections.
-            </p>
-            <p style={{ fontSize: "16px", color: "#666" }}>
-              To register new users, go to <strong>Registration</strong> in the sidebar menu.
-            </p>
-          </div>
+          {/* Customer List on Dashboard (same info as Admin Customer List) */}
+          <Row className="mt-4 mb-4">
+            <Col xs={12}>
+              <h3 className="heading">Customer List</h3>
+
+              {/* Search (Reset Columns button commented as per request) */}
+              <div className="d-flex justify-content-end align-items-center mb-3 flex-wrap gap-2">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={customerSearchTerm}
+                  onChange={handleCustomerFilter}
+                  className="w-full lg:w-96 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition duration-300 ease-in-out"
+                  style={{ maxWidth: "260px", flex: "1 1 auto" }}
+                />
+                {/* 
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    setResetCustomerColumnsKey((prevKey) => prevKey + 1)
+                  }
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  Reset Columns
+                </button>
+                */}
+              </div>
+
+              <DataTable
+                columns={customerColumns}
+                data={filteredCustomerRecords}
+                customStyles={customerTableStyles}
+                progressPending={customerLoading}
+                pagination
+                highlightOnHover
+                responsive
+              />
+
+              {/* Horizontal column navigation (based on screen size) */}
+              {maxCustomerColumnPage > 0 && (
+                <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    disabled={safeCustomerColumnPage === 0}
+                    onClick={() =>
+                      setCustomerColumnPage((prev) =>
+                        prev > 0 ? prev - 1 : prev
+                      )
+                    }
+                  >
+                    ◀ Columns
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    disabled={safeCustomerColumnPage >= maxCustomerColumnPage}
+                    onClick={() =>
+                      setCustomerColumnPage((prev) =>
+                        prev < maxCustomerColumnPage ? prev + 1 : prev
+                      )
+                    }
+                  >
+                    Columns ▶
+                  </button>
+                  <span style={{ fontSize: "12px" }}>
+                    Group {safeCustomerColumnPage + 1} of{" "}
+                    {maxCustomerColumnPage + 1}
+                  </span>
+                </div>
+              )}
+            </Col>
+          </Row>
 
           <Modal
             show={showPaymentModal}
@@ -745,3 +973,4 @@ function Admin_Dashboard() {
 }
 
 export default Admin_Dashboard;
+

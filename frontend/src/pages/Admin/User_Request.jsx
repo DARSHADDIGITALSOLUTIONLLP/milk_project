@@ -4,6 +4,7 @@ import { Container, Button, Modal, Image, Row, Col } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import logo from "/mauli_logo.png";
 import "../../window_partial/window.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -21,6 +22,15 @@ function User_Request() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [dateTime, setDateTime] = useState(new Date());
   const [dairyName, setDairyName] = useState("");
+  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;
+    if (w <= 1024) return 4;
+    return 100;
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -123,11 +133,6 @@ function User_Request() {
     setSearchTerm(value);
     setFilteredRecords(filteredData);
   };
-const [filteredRecords, setFilteredRecords] = useState([]);
-
-  useEffect(() => {
-    setFilteredRecords(records);
-  }, [records]);
 
   // Handle status click
   const handleStatusClick = (record) => {
@@ -175,19 +180,22 @@ const [filteredRecords, setFilteredRecords] = useState([]);
     setShowDetailsModal(true);
   };
 
-  const columns = [
+  const allColumns = [
     {
-      name: "Sr No.",
+      id: "srNo",
+      headerLabel: "Sr No.",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
-      name: "Name",
+      id: "name",
+      headerLabel: "Name",
       selector: (row) => row.name,
       sortable: true,
     },
     {
-      name: "Status",
+      id: "status",
+      headerLabel: "Status",
       cell: (row) => (
         <Button
           variant={row.status === "pending" ? "danger" : "success"}
@@ -201,7 +209,8 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       sortable: true,
     },
     {
-      name: "Remove",
+      id: "remove",
+      headerLabel: "Remove",
       cell: (row) => (
         <Button
           variant="danger"
@@ -218,7 +227,8 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       ),
     },
     {
-      name: "Action",
+      id: "action",
+      headerLabel: "Action",
       cell: (row) => (
         <Button variant="primary" onClick={() => handleViewClick(row)}>
           View
@@ -227,10 +237,38 @@ const [filteredRecords, setFilteredRecords] = useState([]);
       sortable: false,
     },
   ];
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -284,6 +322,37 @@ const [filteredRecords, setFilteredRecords] = useState([]);
             pagination
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀ Columns
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                Columns ▶
+              </button>
+              <span style={{ fontSize: "12px" }}>
+                Group {safeColumnPage + 1} of {maxColumnPage + 1}
+              </span>
+            </div>
+          )}
         </Container>
 
         <Modal show={showDetailsModal} onHide={closeModal}>

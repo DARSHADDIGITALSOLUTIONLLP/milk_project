@@ -6,6 +6,7 @@ import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Daily_Report.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 
 function Daily_Report() {
   const [reportData, setReportData] = useState({
@@ -15,7 +16,6 @@ function Daily_Report() {
     remaining_milk: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [date, setDate] = useState("");
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
   
   // Delivery boy monthly report states
@@ -23,12 +23,36 @@ function Daily_Report() {
   const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const todayStr = new Date().toISOString().split("T")[0];
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [monthlyReportData, setMonthlyReportData] = useState([]);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
   const [deliveryBoyInfo, setDeliveryBoyInfo] = useState(null);
 
+  // Column grouping state for monthly report table
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const width = window.innerWidth || 0;
+    if (width <= 600) return 3; // mobile
+    if (width <= 1024) return 4; // tablet
+    return 100; // desktop - effectively all columns
+  });
+
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -44,6 +68,18 @@ function Daily_Report() {
       setSelectedDeliveryBoy(deliveryBoys[0].id.toString());
     }
   }, [deliveryBoys]);
+
+  // Keep month/year in sync with the selected start date (for API calls)
+  useEffect(() => {
+    if (!startDate) return;
+    const d = new Date(startDate);
+    if (isNaN(d.getTime())) return;
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    if (year !== selectedYear) setSelectedYear(year);
+    if (month !== selectedMonth) setSelectedMonth(month);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate]);
 
   useEffect(() => {
     if (selectedDeliveryBoy && selectedMonth && selectedYear) {
@@ -68,7 +104,6 @@ function Daily_Report() {
 
       if (response.data && response.data.success) {
         setReportData(response.data.data);
-        setDate(response.data.period || response.data.date);
       }
     } catch (error) {
       console.error("Error fetching daily report:", error);
@@ -141,27 +176,186 @@ function Daily_Report() {
     }
   };
 
-  if (loading) {
-    return (
-      <div>
-        <WindowHeader dashboardText="Daily Report" />
-        <div
-          style={{
-            marginTop: isSmallScreen ? "70px" : "0px",
-          }}
-        >
-          <Container fluid className="main-content mt-5">
-            <div className="text-center" style={{ padding: "50px" }}>
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </Spinner>
-              <p className="mt-3">Loading daily report...</p>
-            </div>
-          </Container>
-        </div>
-      </div>
-    );
-  }
+  // Filter monthly delivery-boy data by selected date range (start to end)
+  const filteredMonthlyReportData =
+    monthlyReportData.length > 0
+      ? monthlyReportData.filter((row) => {
+          if (!row.date) return false;
+          const rowDate = new Date(row.date);
+          if (isNaN(rowDate.getTime())) return false;
+          const rowStr = rowDate.toISOString().split("T")[0];
+
+          if (startDate && rowStr < startDate) return false;
+          if (endDate && rowStr > endDate) return false;
+          return true;
+        })
+      : monthlyReportData;
+
+  const today = new Date();
+
+  // Monthly report table columns (for grouping + responsive hide)
+  const allColumns = [
+    {
+      id: "srNo",
+      name: "Sr No.",
+      selector: (row, index) => index + 1,
+      sortable: true,
+      width: "70px",
+    },
+    {
+      id: "date",
+      name: "Date",
+      selector: (row) =>
+        new Date(row.date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
+      sortable: true,
+      width: "120px",
+    },
+    {
+      id: "pureGiven",
+      name: "Pure Given (ltr)",
+      selector: (row) => (row.pure_given || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "cowGiven",
+      name: "Cow Given (ltr)",
+      selector: (row) => (row.cow_given || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "buffaloGiven",
+      name: "Buffalo Given (ltr)",
+      selector: (row) => (row.buffalo_given || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "totalGiven",
+      name: "Total Given (ltr)",
+      selector: (row) => (row.milk_given || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "pureDelivered",
+      name: "Pure Delivered (ltr)",
+      selector: (row) => (row.pure_delivered || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "cowDelivered",
+      name: "Cow Delivered (ltr)",
+      selector: (row) => (row.cow_delivered || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "buffaloDelivered",
+      name: "Buffalo Delivered (ltr)",
+      selector: (row) => (row.buffalo_delivered || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "totalDelivered",
+      name: "Total Delivered (ltr)",
+      selector: (row) => (row.milk_delivered || 0).toFixed(2),
+      sortable: true,
+    },
+    {
+      id: "pureRemaining",
+      name: "Pure Remaining (ltr)",
+      selector: (row) => (row.pure_remaining || 0).toFixed(2),
+      sortable: true,
+      cell: (row) => {
+        const remaining = row.pure_remaining || 0;
+        return (
+          <span
+            style={{
+              color: remaining < 0 ? "red" : "inherit",
+              fontWeight: remaining < 0 ? "bold" : "normal",
+            }}
+          >
+            {remaining.toFixed(2)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "cowRemaining",
+      name: "Cow Remaining (ltr)",
+      selector: (row) => (row.cow_remaining || 0).toFixed(2),
+      sortable: true,
+      cell: (row) => {
+        const remaining = row.cow_remaining || 0;
+        return (
+          <span
+            style={{
+              color: remaining < 0 ? "red" : "inherit",
+              fontWeight: remaining < 0 ? "bold" : "normal",
+            }}
+          >
+            {remaining.toFixed(2)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "buffaloRemaining",
+      name: "Buffalo Remaining (ltr)",
+      selector: (row) => (row.buffalo_remaining || 0).toFixed(2),
+      sortable: true,
+      cell: (row) => {
+        const remaining = row.buffalo_remaining || 0;
+        return (
+          <span
+            style={{
+              color: remaining < 0 ? "red" : "inherit",
+              fontWeight: remaining < 0 ? "bold" : "normal",
+            }}
+          >
+            {remaining.toFixed(2)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "totalRemaining",
+      name: "Total Remaining (ltr)",
+      selector: (row) => (row.remaining_milk || 0).toFixed(2),
+      sortable: true,
+      cell: (row) => {
+        const remaining = row.remaining_milk || 0;
+        return (
+          <span
+            style={{
+              color: remaining < 0 ? "red" : "inherit",
+              fontWeight: remaining < 0 ? "bold" : "normal",
+            }}
+          >
+            {remaining.toFixed(2)}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const tableColumns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
 
   return (
     <div>
@@ -188,14 +382,25 @@ function Daily_Report() {
         <div className="daily-report-header">
           <h2 className="page-title">Daily Report</h2>
           <p className="report-date">
-            Date: {date ? new Date(date).toLocaleDateString("en-US", {
+            Date:{" "}
+            {today.toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
-            }) : "Today"}
+            })}
           </p>
         </div>
 
+        {loading && (
+          <div className="text-center" style={{ padding: "30px 0" }}>
+            <Spinner animation="border" role="status">
+              <span className="visually-hidden">Loading daily report...</span>
+            </Spinner>
+            <p className="mt-3">Loading daily report...</p>
+          </div>
+        )}
+
+        {!loading && (
         <div className="row mb-4 responsive-gap">
           {/* Card 1: Overall Total Milk */}
           <div className="col-md-3">
@@ -257,6 +462,7 @@ function Daily_Report() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Delivery Boy Monthly Report Section */}
         <div className="mt-5">
@@ -284,44 +490,30 @@ function Daily_Report() {
             </div>
             <div className="col-md-4 mb-3">
               <label className="form-label fw-bold" style={{ display: "block", marginBottom: "8px" }}>
-                Select Month:
+                Start Date:
               </label>
-              <select
+              <input
+                type="date"
                 className="form-control"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
                 style={{ width: "100%", marginTop: "0" }}
-              >
-                <option value="1">January</option>
-                <option value="2">February</option>
-                <option value="3">March</option>
-                <option value="4">April</option>
-                <option value="5">May</option>
-                <option value="6">June</option>
-                <option value="7">July</option>
-                <option value="8">August</option>
-                <option value="9">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-              </select>
+                max={today.toISOString().split("T")[0]}
+              />
             </div>
             <div className="col-md-4 mb-3">
               <label className="form-label fw-bold" style={{ display: "block", marginBottom: "8px" }}>
-                Select Year:
+                End Date:
               </label>
-              <select
+              <input
+                type="date"
                 className="form-control"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
                 style={{ width: "100%", marginTop: "0" }}
-              >
-                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+                min={startDate}
+                max={today.toISOString().split("T")[0]}
+              />
             </div>
           </div>
 
@@ -339,147 +531,27 @@ function Daily_Report() {
                 <div className="mb-3">
                   <h5 className="delivery-boy-report-header">
                     Report for: <strong>{deliveryBoyInfo.name}</strong> ({deliveryBoyInfo.email}) -{" "}
-                    {new Date(selectedYear, selectedMonth - 1).toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {startDate && endDate
+                      ? `${new Date(startDate).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })} to ${new Date(endDate).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}`
+                      : new Date(selectedYear, selectedMonth - 1).toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        })}
                   </h5>
                 </div>
               )}
               <div className="table-responsive">
                 <DataTable
-                  columns={[
-                    {
-                      name: "Sr No.",
-                      selector: (row, index) => index + 1,
-                      sortable: true,
-                      width: "70px",
-                    },
-                    {
-                      name: "Date",
-                      selector: (row) =>
-                        new Date(row.date).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        }),
-                      sortable: true,
-                      width: "120px",
-                    },
-                    {
-                      name: "Pure Given (ltr)",
-                      selector: (row) => (row.pure_given || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Cow Given (ltr)",
-                      selector: (row) => (row.cow_given || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Buffalo Given (ltr)",
-                      selector: (row) => (row.buffalo_given || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Total Given (ltr)",
-                      selector: (row) => (row.milk_given || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Pure Delivered (ltr)",
-                      selector: (row) => (row.pure_delivered || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Cow Delivered (ltr)",
-                      selector: (row) => (row.cow_delivered || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Buffalo Delivered (ltr)",
-                      selector: (row) => (row.buffalo_delivered || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Total Delivered (ltr)",
-                      selector: (row) => (row.milk_delivered || 0).toFixed(2),
-                      sortable: true,
-                    },
-                    {
-                      name: "Pure Remaining (ltr)",
-                      selector: (row) => (row.pure_remaining || 0).toFixed(2),
-                      sortable: true,
-                      cell: (row) => {
-                        const remaining = row.pure_remaining || 0;
-                        return (
-                          <span
-                            style={{
-                              color: remaining < 0 ? "red" : "inherit",
-                              fontWeight: remaining < 0 ? "bold" : "normal",
-                            }}
-                          >
-                            {remaining.toFixed(2)}
-                          </span>
-                        );
-                      },
-                    },
-                    {
-                      name: "Cow Remaining (ltr)",
-                      selector: (row) => (row.cow_remaining || 0).toFixed(2),
-                      sortable: true,
-                      cell: (row) => {
-                        const remaining = row.cow_remaining || 0;
-                        return (
-                          <span
-                            style={{
-                              color: remaining < 0 ? "red" : "inherit",
-                              fontWeight: remaining < 0 ? "bold" : "normal",
-                            }}
-                          >
-                            {remaining.toFixed(2)}
-                          </span>
-                        );
-                      },
-                    },
-                    {
-                      name: "Buffalo Remaining (ltr)",
-                      selector: (row) => (row.buffalo_remaining || 0).toFixed(2),
-                      sortable: true,
-                      cell: (row) => {
-                        const remaining = row.buffalo_remaining || 0;
-                        return (
-                          <span
-                            style={{
-                              color: remaining < 0 ? "red" : "inherit",
-                              fontWeight: remaining < 0 ? "bold" : "normal",
-                            }}
-                          >
-                            {remaining.toFixed(2)}
-                          </span>
-                        );
-                      },
-                    },
-                    {
-                      name: "Total Remaining (ltr)",
-                      selector: (row) => (row.remaining_milk || 0).toFixed(2),
-                      sortable: true,
-                      cell: (row) => {
-                        const remaining = row.remaining_milk || 0;
-                        return (
-                          <span
-                            style={{
-                              color: remaining < 0 ? "red" : "inherit",
-                              fontWeight: remaining < 0 ? "bold" : "normal",
-                            }}
-                          >
-                            {remaining.toFixed(2)}
-                          </span>
-                        );
-                      },
-                    },
-                  ]}
-                  data={monthlyReportData}
+                  columns={tableColumns}
+                  data={filteredMonthlyReportData}
                   customStyles={{
                     headCells: {
                       style: {
@@ -495,6 +567,35 @@ function Daily_Report() {
                   highlightOnHover
                   responsive
                 />
+                {maxColumnPage > 0 && (
+                  <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled={safeColumnPage === 0}
+                      onClick={() =>
+                        setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                      }
+                    >
+                      ◀ Columns
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled={safeColumnPage >= maxColumnPage}
+                      onClick={() =>
+                        setColumnPage((prev) =>
+                          prev < maxColumnPage ? prev + 1 : prev
+                        )
+                      }
+                    >
+                      Columns ▶
+                    </button>
+                    <span style={{ fontSize: "12px" }}>
+                      Group {safeColumnPage + 1} of {maxColumnPage + 1}
+                    </span>
+                  </div>
+                )}
               </div>
             </>
           ) : selectedDeliveryBoy ? (

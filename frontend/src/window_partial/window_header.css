@@ -37,9 +37,11 @@
   .sidebar-nav li a {
     display: block;
     padding: 2px;
-     /* transition: transform 0.3s ease in out; */
+    /* transition: transform 0.3s ease in out; */
     text-decoration: none;
     color: #fff;
+    width: 100%;
+    box-sizing: border-box;
   }
   .sidebar-nav li a:hover {
     background-color: #555;
@@ -191,8 +193,16 @@
   .sub-menu li a.inactive {
     color: grey;
   }
+  /* Layout for dropdown label + arrow so all arrows align in one vertical line */
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* text on left, arrow on right */
+    width: 100%;
+  }
+
   .dropdown-icon {
-    margin-left: 30px;
+    margin-left: 8px;
   }
   @media (max-width: 768px) {
     .main-content {
