@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Container, ToastContainer } from "react-bootstrap";
 import DataTable from "react-data-table-component";
+import { Bounce, toast } from "react-toastify";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import "../SuperAdmin/Dairy_List.css";
 import FarmerHeader from "../../partial/header/FarmerHeader";
 
@@ -58,7 +60,7 @@ function Daily_Order_History() {
       console.error("Error fetching farmers:", error);
     }
   };
-  useState(() => {
+  useEffect(() => {
     getOrderHistory();
   }, []);
 
@@ -73,6 +75,14 @@ function Daily_Order_History() {
   }, []);
 
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const width = window.innerWidth || 0;
+    if (width <= 600) return 2; // mobile
+    if (width <= 1024) return 4; // tablet
+    return 100; // desktop - effectively all columns
+  });
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   const handleFilter = (event) => {
     const value = event.target.value.toLowerCase();
@@ -91,29 +101,28 @@ function Daily_Order_History() {
     setFilteredRecords(records);
   }, [records]);
 
-  const columns = [
+  const allColumns = [
     {
-      name: "Sir No.",
+      id: "srNo",
+      headerLabel: "Sir No.",
       selector: (row, index) => index + 1,
       sortable: true,
     },
     {
-      name: "Dairy Name",
+      id: "dairyName",
+      headerLabel: "Dairy Name",
       selector: (row) => row.dairy_name,
       sortable: true,
     },
     {
-      name: "Date",
+      id: "date",
+      headerLabel: "Date",
       selector: (row) => row.created_At.split("T")[0],
       sortable: true,
     },
-    // {
-    //   name: "Time",
-    //   selector: (row) => row.time || "-",
-    //   sortable: true,
-    // },
     {
-      name: "Pure (ltr)",
+      id: "pure",
+      headerLabel: "Pure (ltr)",
       selector: (row) =>
         row.pure_quantity
           ? `${row.pure_quantity || 0} (F${row.pure_fat ?? "-"}) * Rs ${
@@ -123,7 +132,8 @@ function Daily_Order_History() {
       sortable: true,
     },
     {
-      name: "Cow (ltr)",
+      id: "cow",
+      headerLabel: "Cow (ltr)",
       selector: (row) =>
         row.cow_quantity
           ? `${row.cow_quantity || 0} (F${row.cow_fat ?? "-"}) * Rs ${
@@ -133,7 +143,8 @@ function Daily_Order_History() {
       sortable: true,
     },
     {
-      name: "Buffalo (ltr)",
+      id: "buffalo",
+      headerLabel: "Buffalo (ltr)",
       selector: (row) =>
         row.buffalo_quantity
           ? `${row.buffalo_quantity || 0} (F${row.buffalo_fat ?? "-"}) * Rs ${
@@ -143,6 +154,23 @@ function Daily_Order_History() {
       sortable: true,
     },
   ];
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
   const customStyles = {
     headCells: {
       style: {
@@ -154,10 +182,20 @@ function Daily_Order_History() {
       },
     },
   };
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
-
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -182,7 +220,7 @@ function Daily_Order_History() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">
@@ -211,6 +249,34 @@ function Daily_Order_History() {
             progressPending={loading}
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                ▶
+              </button>
+            </div>
+          )}
         </Container>
       </div>
     </div>

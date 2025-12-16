@@ -145,6 +145,11 @@ function Farmer_Payment_History() {
     setFilteredRecords(filteredData);
   };
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [totalPayment, setTotalPayment] = useState({
+    advance_payment: 0,
+    received_payment: 0,
+    total_pending_payment: 0,
+  });
   const [columnPage, setColumnPage] = useState(0);
   const [columnsPerPage, setColumnsPerPage] = useState(() => {
     const w = window.innerWidth || 0;
@@ -155,6 +160,44 @@ function Farmer_Payment_History() {
 
   useEffect(() => {
     setFilteredRecords(records);
+    
+    // Calculate totals from records
+    if (records.length > 0) {
+      // Calculate advance_payment: Sum unique farmers' advance_payment (each farmer counted only once)
+      const uniqueFarmers = new Map();
+      records.forEach((r) => {
+        const farmerId = r.farmer_id || r.id;
+        if (farmerId && !uniqueFarmers.has(farmerId)) {
+          uniqueFarmers.set(farmerId, parseFloat(r.advance_payment) || 0);
+        }
+      });
+      const advancePayment = Array.from(uniqueFarmers.values()).reduce(
+        (sum, amount) => sum + amount,
+        0
+      );
+
+      // Calculate received_payment: Sum of total_amount from "Paid" records
+      const receivedPayment = records
+        .filter((r) => r.status === "Paid")
+        .reduce((sum, r) => sum + (parseFloat(r.total_amount) || 0), 0);
+
+      // Calculate total_pending_payment: Sum of total_amount from "Pending" records
+      const totalPendingPayment = records
+        .filter((r) => r.status === "Pending")
+        .reduce((sum, r) => sum + (parseFloat(r.total_amount) || 0), 0);
+
+      setTotalPayment({
+        advance_payment: advancePayment,
+        received_payment: receivedPayment,
+        total_pending_payment: totalPendingPayment,
+      });
+    } else {
+      setTotalPayment({
+        advance_payment: 0,
+        received_payment: 0,
+        total_pending_payment: 0,
+      });
+    }
   }, [records]);
 
   const allColumns = [
@@ -320,6 +363,55 @@ function Farmer_Payment_History() {
             </div>
           )}
 
+          {/* Payment Cards */}
+          <div className="row mb-4 responsive-gap">
+            <div className="col-md-4 col-sm-6 mb-3">
+              <div
+                className="card text-white text-center"
+                style={{ backgroundColor: "#FFAC30" }}
+              >
+                <div className="card-body">
+                  <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
+                    Advanced Payment
+                  </h5>
+                  <p className="card-text fs-4 fw-bold" style={{ fontSize: "18px" }}>
+                    Rs {totalPayment.advance_payment || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4 col-sm-6 mb-3">
+              <div
+                className="card text-white text-center"
+                style={{ backgroundColor: "#FFAC30" }}
+              >
+                <div className="card-body">
+                  <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
+                    Received Payment
+                  </h5>
+                  <p className="card-text fs-4 fw-bold" style={{ fontSize: "18px" }}>
+                    Rs {totalPayment.received_payment || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4 col-sm-6 mb-3">
+              <div
+                className="card text-white text-center"
+                style={{ backgroundColor: "#FFAC30" }}
+              >
+                <div className="card-body">
+                  <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
+                    Total Pending Payment
+                  </h5>
+                  <p className="card-text fs-4 fw-bold" style={{ fontSize: "18px" }}>
+                    Rs {totalPayment.total_pending_payment || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <DataTable
             columns={columns}
             data={filteredRecords}
@@ -337,7 +429,7 @@ function Farmer_Payment_History() {
 
           {/* Horizontal column navigation (based on screen size) */}
           {maxColumnPage > 0 && (
-            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+            <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
@@ -346,7 +438,7 @@ function Farmer_Payment_History() {
                   setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
                 }
               >
-                ◀ Columns
+                ◀
               </button>
               <button
                 type="button"
@@ -358,11 +450,8 @@ function Farmer_Payment_History() {
                   )
                 }
               >
-                Columns ▶
+                ▶
               </button>
-              <span style={{ fontSize: "12px" }}>
-                Group {safeColumnPage + 1} of {maxColumnPage + 1}
-              </span>
             </div>
           )}
         </Container>

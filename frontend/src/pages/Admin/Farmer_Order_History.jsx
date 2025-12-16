@@ -258,7 +258,7 @@ function Farmer_Order_History() {
 
           {/* Horizontal column navigation (based on screen size) */}
           {maxColumnPage > 0 && (
-            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+            <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
@@ -267,7 +267,7 @@ function Farmer_Order_History() {
                   setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
                 }
               >
-                ◀ Columns
+                ◀
               </button>
               <button
                 type="button"
@@ -279,11 +279,8 @@ function Farmer_Order_History() {
                   )
                 }
               >
-                Columns ▶
+                ▶
               </button>
-              <span style={{ fontSize: "12px" }}>
-                Group {safeColumnPage + 1} of {maxColumnPage + 1}
-              </span>
             </div>
           )}
         </Container>

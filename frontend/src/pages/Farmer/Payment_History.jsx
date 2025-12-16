@@ -8,6 +8,8 @@ import {
   Form,
 } from "react-bootstrap";
 import DataTable from "react-data-table-component";
+import { Bounce } from "react-toastify";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import "../SuperAdmin/Dairy_List.css";
 import FarmerHeader from "../../partial/header/FarmerHeader";
 
@@ -52,9 +54,38 @@ function Farmer_Payment_History() {
   };
 
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const width = window.innerWidth || 0;
+    if (width <= 600) return 2; // mobile
+    if (width <= 1024) return 4; // tablet
+    return 100; // desktop - effectively all columns
+  });
+  const [totalPayment, setTotalPayment] = useState({
+    advance_payment: 0,
+    received_payment: 0,
+    total_pending_payment: 0,
+  });
 
   useEffect(() => {
     setFilteredRecords(records);
+    
+    // Calculate totals from records
+    if (records.length > 0) {
+      const advancePayment = records[0]?.advance_payment || 0;
+      const receivedPayment = records
+        .filter((r) => r.status === "Paid")
+        .reduce((sum, r) => sum + (parseFloat(r.total_amount) || 0), 0);
+      const totalPendingPayment = records
+        .filter((r) => r.status === "Pending")
+        .reduce((sum, r) => sum + (parseFloat(r.total_amount) || 0), 0);
+
+      setTotalPayment({
+        advance_payment: advancePayment,
+        received_payment: receivedPayment,
+        total_pending_payment: totalPendingPayment,
+      });
+    }
   }, [records]);
 
   const fetchPayment = async () => {
@@ -88,28 +119,32 @@ function Farmer_Payment_History() {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     fetchPayment();
   }, []);
 
-  const columns = [
+  const allColumns = [
     {
-      name: "Bill No.",
+      id: "billNo",
+      headerLabel: "Bill No.",
       selector: (row, index) => `000${index + 1}`,
       sortable: true,
     },
     {
-      name: "Bill Date",
+      id: "billDate",
+      headerLabel: "Bill Date",
       selector: (row) => row.end_date,
       sortable: true,
     },
     {
-      name: "Dairy Name",
+      id: "dairyName",
+      headerLabel: "Dairy Name",
       selector: (row) => row.dairy_name,
       sortable: true,
     },
     {
-      name: "Status",
+      id: "status",
+      headerLabel: "Status",
       selector: (row) => (
         <Button variant={row.status === "Paid" ? "success" : "danger"}>
           {row.status}
@@ -118,41 +153,37 @@ function Farmer_Payment_History() {
       sortable: true,
     },
     {
-      name: "Pure(ltr)",
+      id: "pure",
+      headerLabel: "Pure(ltr)",
       selector: (row) => row.total_pure_quantity,
       sortable: true,
     },
     {
-      name: "Cow(ltr)",
+      id: "cow",
+      headerLabel: "Cow(ltr)",
       selector: (row) => row.total_cow_quantity,
       sortable: true,
     },
     {
-      name: "Buffalo(ltr)",
+      id: "buffalo",
+      headerLabel: "Buffalo(ltr)",
       selector: (row) => row.total_buffalo_quantity,
       sortable: true,
     },
     {
-      name: "Total Amount",
+      id: "totalAmount",
+      headerLabel: "Total Amount",
       selector: (row) => `Rs ${row.total_amount}`,
       sortable: true,
     },
-    // {
-    //   name: "Advance Payment",
-    //   selector: (row) => `Rs ${row.advance_payment}`,
-    //   sortable: true,
-    // },
-    // {
-    //   name: "Advance Payment Date",
-    //   selector: (row) => row.advance_payment_date,
-    //   sortable: true,
-    // },
     {
-      name: "Action",
+      id: "action",
+      headerLabel: "Action",
       cell: (row) => (
         <Button
           variant="info"
-          style={{ wordBreak: "keep-all", whiteSpace: "nowrap" }}
+          size="sm"
+          style={{ fontSize: "11px", padding: "2px 8px", whiteSpace: "nowrap" }}
           onClick={() => handleAdvance(row)}
         >
           Advance
@@ -160,6 +191,23 @@ function Farmer_Payment_History() {
       ),
     },
   ];
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
   const customStyles = {
     headCells: {
       style: {
@@ -174,7 +222,19 @@ function Farmer_Payment_History() {
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallScreen(window.innerWidth <= 600);
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -199,7 +259,7 @@ function Farmer_Payment_History() {
           draggable
           pauseOnHover
           theme="light"
-          transition:Bounce
+          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">
@@ -219,6 +279,55 @@ function Farmer_Payment_History() {
             </div>
           </div>
 
+          {/* Payment Cards */}
+          <div className="row mb-4 responsive-gap">
+            <div className="col-md-4 col-sm-6 mb-3">
+              <div
+                className="card text-white text-center"
+                style={{ backgroundColor: "#FFAC30" }}
+              >
+                <div className="card-body">
+                  <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
+                    Advanced Payment
+                  </h5>
+                  <p className="card-text fs-4 fw-bold" style={{ fontSize: "18px" }}>
+                    Rs {totalPayment.advance_payment || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4 col-sm-6 mb-3">
+              <div
+                className="card text-white text-center"
+                style={{ backgroundColor: "#FFAC30" }}
+              >
+                <div className="card-body">
+                  <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
+                    Received Payment
+                  </h5>
+                  <p className="card-text fs-4 fw-bold" style={{ fontSize: "18px" }}>
+                    Rs {totalPayment.received_payment || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4 col-sm-6 mb-3">
+              <div
+                className="card text-white text-center"
+                style={{ backgroundColor: "#FFAC30" }}
+              >
+                <div className="card-body">
+                  <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
+                    Total Pending Payment
+                  </h5>
+                  <p className="card-text fs-4 fw-bold" style={{ fontSize: "18px" }}>
+                    Rs {totalPayment.total_pending_payment || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <DataTable
             columns={columns}
             data={filteredRecords}
@@ -228,6 +337,34 @@ function Farmer_Payment_History() {
             progressPending={loading}
             responsive
           />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                ▶
+              </button>
+            </div>
+          )}
         </Container>
         <Modal show={showDetailsModal} onHide={closeModal}>
           <Modal.Header closeButton style={{ backgroundColor: "#FFAC30" }}>

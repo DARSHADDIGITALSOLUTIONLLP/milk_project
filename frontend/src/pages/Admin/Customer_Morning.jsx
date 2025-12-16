@@ -8,6 +8,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../SuperAdmin/Dairy_List.css";
 import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
+import "../User/User_Dashboard.css";
 
 function Customer_Morning() {
   const [records, setRecords] = useState([]);
@@ -15,6 +16,23 @@ function Customer_Morning() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showDairyCardModal, setShowDairyCardModal] = useState(false);
+  const [selectedCustomerForView, setSelectedCustomerForView] = useState(null);
+  const [dairyCardData, setDairyCardData] = useState({
+    dairyName: "",
+    dairyLogo: null,
+    adminName: "",
+    quantity: 0,
+    rate: 0,
+    milkType: "",
+    orders: [],
+    vacations: [],
+    paymentDetails: {},
+    paymentHistory: [],
+  });
+  const [activeMonth, setActiveMonth] = useState(new Date());
+  const [loadingDairyCard, setLoadingDairyCard] = useState(false);
+  const [currentPaymentDetails, setCurrentPaymentDetails] = useState({});
   const deliveryTimeouts = useRef({});
   const [dateTime, setDateTime] = useState(new Date());
   const [quantity, setQuantity] = useState(0);
@@ -139,6 +157,123 @@ function Customer_Morning() {
     setSelectedRecord(row);
     setShowDetailsModal(true);
   };
+
+  const handleDairyCardView = async (row) => {
+    setSelectedCustomerForView(row);
+    setShowDairyCardModal(true);
+    setLoadingDairyCard(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      
+      const [dairyInfoRes, ordersRes, paymentSummaryRes, ratesRes] = await Promise.allSettled([
+        axios.get(`/api/admin/customer/${row.id}/dairy-info`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`/api/admin/customer/${row.id}/delivered-orders`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`/api/admin/customer/${row.id}/payment-summary`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`/api/admin/customer/${row.id}/rates`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      if (dairyInfoRes.status === 'fulfilled') {
+        const data = dairyInfoRes.value.data;
+        setDairyCardData(prev => ({
+          ...prev,
+          dairyName: data.dairy_name || row.dairy_name || "Mauli Dairy",
+          dairyLogo: data.dairy_logo ? `data:image/jpeg;base64,${data.dairy_logo}` : null,
+          adminName: data.admin_name || row.name || "Customer",
+        }));
+      } else {
+        setDairyCardData(prev => ({
+          ...prev,
+          dairyName: row.dairy_name || "Mauli Dairy",
+          adminName: row.name || "Customer",
+        }));
+      }
+
+      if (ordersRes.status === 'fulfilled') {
+        const orders = ordersRes.value.data.orders || [];
+        setDairyCardData(prev => ({
+          ...prev,
+          orders: orders.map(order => ({
+            cow_quantity: order.cow_quantity || 0,
+            buffalo_quantity: order.buffalo_quantity || 0,
+            pure_quantity: order.pure_quantity || 0,
+            shift: order.shift,
+            order_date: order.date || order.order_date,
+            status: order.status,
+          })),
+        }));
+      }
+
+      if (paymentSummaryRes.status === 'fulfilled') {
+        const data = paymentSummaryRes.value.data;
+        setDairyCardData(prev => ({
+          ...prev,
+          paymentHistory: data.paymentHistory || [],
+        }));
+      }
+
+      if (ratesRes.status === 'fulfilled') {
+        const data = ratesRes.value.data;
+        setDairyCardData(prev => ({
+          ...prev,
+          rate: data.rate || 0,
+          quantity: data.quantity || 0,
+          milkType: data.milk_type || row.milk_type || "",
+        }));
+      } else {
+        setDairyCardData(prev => ({
+          ...prev,
+          milkType: row.milk_type || "",
+        }));
+      }
+
+    } catch (error) {
+      console.error("Error fetching dairy card data:", error);
+      setDairyCardData(prev => ({
+        ...prev,
+        dairyName: row.dairy_name || "Mauli Dairy",
+        adminName: row.name || "Customer",
+        milkType: row.milk_type || "",
+      }));
+    } finally {
+      setLoadingDairyCard(false);
+    }
+  };
+
+  // Update payment details when month changes
+  useEffect(() => {
+    if (dairyCardData.paymentHistory.length > 0 && showDairyCardModal) {
+      const selectedMonth = activeMonth.getMonth() + 1;
+      const selectedYear = activeMonth.getFullYear();
+      const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
+
+      const entry = dairyCardData.paymentHistory.find((p) => p.month_year === monthStr);
+
+      if (entry) {
+        const endDate = new Date(selectedYear, selectedMonth, 0);
+        setCurrentPaymentDetails({
+          start_date: entry.start_date || "",
+          end_date: endDate.toISOString().split("T")[0],
+          payment: entry.payment || 0,
+          totalbalancepayment: entry.pending_payment || 0,
+          delivery_charges: entry.delivery_charges || 0,
+          advance_payment: entry.advancePayment || selectedCustomerForView?.advance_payment || 0,
+          status: entry.pending_payment === 0 ? "true" : "false",
+          received_payment: entry.received_payment || 0,
+        });
+      } else {
+        setCurrentPaymentDetails({});
+      }
+    }
+  }, [activeMonth, dairyCardData.paymentHistory, showDairyCardModal, selectedCustomerForView]);
 
   const confirmStatusChange = async (status) => {
     const token = localStorage.getItem("token");
@@ -430,9 +565,24 @@ function Customer_Morning() {
       id: "actions",
       name: "Actions",
       cell: (row) => (
-        <Button variant="info" onClick={() => handleViewClick(row)}>
-          Edit
-        </Button>
+        <div style={{ display: "flex", gap: "5px" }}>
+          <Button 
+            variant="info" 
+            size="sm" 
+            onClick={() => handleDairyCardView(row)}
+            style={{ fontSize: "11px", padding: "2px 8px", whiteSpace: "nowrap" }}
+          >
+            View
+          </Button>
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={() => handleViewClick(row)}
+            style={{ fontSize: "11px", padding: "2px 8px", whiteSpace: "nowrap" }}
+          >
+            Edit
+          </Button>
+        </div>
       ),
     },
   ];
@@ -529,7 +679,7 @@ function Customer_Morning() {
             responsive
           />
           {maxColumnPage > 0 && (
-            <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+            <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
@@ -538,7 +688,7 @@ function Customer_Morning() {
                   setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
                 }
               >
-                ◀ Columns
+                ◀
               </button>
               <button
                 type="button"
@@ -550,11 +700,8 @@ function Customer_Morning() {
                   )
                 }
               >
-                Columns ▶
+                ▶
               </button>
-              <span style={{ fontSize: "12px" }}>
-                Group {safeColumnPage + 1} of {maxColumnPage + 1}
-              </span>
             </div>
           )}
         </Container>
@@ -622,6 +769,301 @@ function Customer_Morning() {
               </Button>
             </div>
           </div>
+        </Modal>
+
+        {/* Dairy Card Modal */}
+        <Modal 
+          show={showDairyCardModal} 
+          onHide={() => {
+            setShowDairyCardModal(false);
+            setSelectedCustomerForView(null);
+            setDairyCardData({
+              dairyName: "",
+              dairyLogo: null,
+              adminName: "",
+              quantity: 0,
+              rate: 0,
+              milkType: "",
+              orders: [],
+              vacations: [],
+              paymentDetails: {},
+              paymentHistory: [],
+            });
+          }}
+          size="xl"
+          fullscreen="lg-down"
+        >
+          <Modal.Header closeButton style={{ backgroundColor: "#FFAC30" }}>
+            <Modal.Title style={{ fontSize: isSmallScreen ? "14px" : "18px" }}>
+              Customer Dairy Card & Summary
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ maxHeight: "80vh", overflowY: "auto" }}>
+            {loadingDairyCard ? (
+              <div className="text-center p-4">
+                <p>Loading customer data...</p>
+              </div>
+            ) : (
+              <Row>
+                <Col lg={6} md={12} className="mt-2">
+                  {/* Dairy Card */}
+                  <div className="milk-card-container">
+                    <div className="card-header-section">
+                      <div className="card-header-left" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                        {dairyCardData.dairyLogo && (
+                          <img
+                            src={dairyCardData.dairyLogo}
+                            alt="Dairy Logo"
+                            className="dairy-logo"
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              objectFit: "contain",
+                              border: "1px solid #ddd",
+                              borderRadius: "5px",
+                              padding: "5px",
+                            }}
+                          />
+                        )}
+                        <div className="card-title">
+                          <h5 style={{ margin: 0, fontWeight: "bold" }}>
+                            {dairyCardData.dairyName || "Mauli Dairy"}
+                          </h5>
+                          <p style={{ margin: 0, fontSize: "14px" }}>
+                            Customer Name: {dairyCardData.adminName || selectedCustomerForView?.name || "Customer"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="card-header-right" style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-end" }}>
+                        <div className="card-month-info" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <Button
+                            size="sm"
+                            variant="outline-secondary"
+                            className="month-nav-btn prev-btn"
+                            onClick={() => {
+                              const newMonth = new Date(activeMonth);
+                              newMonth.setMonth(newMonth.getMonth() - 1);
+                              setActiveMonth(newMonth);
+                            }}
+                            style={{ padding: "2px 8px", fontSize: "12px" }}
+                          >
+                            ← Prev
+                          </Button>
+                          <span className="month-year-text" style={{ fontWeight: "bold" }}>
+                            {activeMonth.toLocaleString('default', { month: 'long' })} {activeMonth.getFullYear()}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline-secondary"
+                            className="month-nav-btn next-btn"
+                            onClick={() => {
+                              const newMonth = new Date(activeMonth);
+                              newMonth.setMonth(newMonth.getMonth() + 1);
+                              setActiveMonth(newMonth);
+                            }}
+                            style={{ padding: "2px 8px", fontSize: "12px" }}
+                          >
+                            Next →
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="milk-card-grid">
+                      <table className="milk-card-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Morning</th>
+                            <th>Evening</th>
+                            <th>Date</th>
+                            <th>Morning</th>
+                            <th>Evening</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({ length: 16 }, (_, i) => {
+                            const date1 = i + 1;
+                            const date2 = i + 17;
+                            const daysInMonth = new Date(
+                              activeMonth.getFullYear(),
+                              activeMonth.getMonth() + 1,
+                              0
+                            ).getDate();
+
+                            const getDateData = (day) => {
+                              if (day > daysInMonth) return null;
+                              
+                              const dateStr = `${activeMonth.getFullYear()}-${String(
+                                activeMonth.getMonth() + 1
+                              ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                              
+                              const morningOrders = dairyCardData.orders.filter(
+                                (q) => q.order_date === dateStr && q.shift === "morning"
+                              );
+                              const eveningOrders = dairyCardData.orders.filter(
+                                (q) => q.order_date === dateStr && q.shift === "evening"
+                              );
+                              
+                              const getMilkQty = (orders) => {
+                                const total = orders.reduce(
+                                  (acc, order) => {
+                                    acc.cow += order.cow_quantity || 0;
+                                    acc.buffalo += order.buffalo_quantity || 0;
+                                    acc.pure += order.pure_quantity || 0;
+                                    return acc;
+                                  },
+                                  { cow: 0, buffalo: 0, pure: 0 }
+                                );
+                                
+                                const selectedMilkType = dairyCardData.milkType?.toLowerCase();
+                                if (selectedMilkType === "cow") return total.cow;
+                                if (selectedMilkType === "buffalo") return total.buffalo;
+                                if (selectedMilkType === "pure") return total.pure;
+                                return total.cow + total.buffalo + total.pure;
+                              };
+                              
+                              return {
+                                morning: getMilkQty(morningOrders),
+                                evening: getMilkQty(eveningOrders),
+                              };
+                            };
+
+                            const data1 = getDateData(date1);
+                            const data2 = date2 <= daysInMonth ? getDateData(date2) : null;
+
+                            return (
+                              <tr key={i}>
+                                <td className="date-cell">{date1}</td>
+                                <td className="qty-cell">
+                                  {data1?.morning > 0 ? data1.morning : ""}
+                                </td>
+                                <td className="qty-cell">
+                                  {data1?.evening > 0 ? data1.evening : ""}
+                                </td>
+                                <td className="date-cell">{date2 <= daysInMonth ? date2 : ""}</td>
+                                <td className="qty-cell">
+                                  {data2?.morning > 0 ? data2.morning : ""}
+                                </td>
+                                <td className="qty-cell">
+                                  {data2?.evening > 0 ? data2.evening : ""}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </Col>
+
+                <Col lg={6} md={12} className="mt-2" style={{ paddingTop: "35px" }}>
+                  {/* Summary Section */}
+                  <div
+                    className="col-container p-3"
+                    style={{
+                      borderRadius: "3px",
+                      border: "1px solid #ddd",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "black",
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        borderBottom: "2px solid #CDCDCD",
+                        paddingBottom: "5px",
+                      }}
+                    >
+                      Summary
+                    </p>
+
+                    <div
+                      style={{ borderBottom: "1px solid #CDCDCD", display: "flex" }}
+                    >
+                      <div className="col-6">
+                        <p>
+                          {dairyCardData.milkType || "N/A"} milk: {dairyCardData.quantity || 0} ltr
+                        </p>
+                      </div>
+                      <div className="col-6 text-end">
+                        <p>Rs: {dairyCardData.rate || 0}/-</p>
+                      </div>
+                    </div>
+
+                    <div className="row">
+                      <div className="col-6">
+                        <p className="mt-1">Payment:</p>
+                      </div>
+                      <div className="col-6 text-end">
+                        <p className="mt-1">
+                          Rs: {currentPaymentDetails.payment || 0}/-
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{ borderBottom: "1px solid #CDCDCD", display: "flex" }}
+                    >
+                      <div className="col-9">
+                        <p className="mt-1">Delivery Charges:</p>
+                      </div>
+                      <div className="col-3 text-end">
+                        <p className="mt-1">
+                          Rs: {currentPaymentDetails.delivery_charges || 0}/-
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="row">
+                      <div className="col-9">
+                        <p className="mt-1">Advanced Payment:</p>
+                      </div>
+                      <div className="col-3 text-end">
+                        <p className="mt-1">
+                          Rs: {currentPaymentDetails.advance_payment || selectedCustomerForView?.advance_payment || 0}/-
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{ borderBottom: "1px solid #CDCDCD", display: "flex" }}
+                    >
+                      <div className="col-9">
+                        <p className="mt-1">Received Payment:</p>
+                      </div>
+                      <div className="col-3 text-end">
+                        <p className="mt-1">
+                          Rs: {currentPaymentDetails.received_payment || 0}/-
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="row">
+                      <div className="col-6">
+                        <p className="mt-2">Total Pending Payment:</p>
+                      </div>
+                      <div className="col-6 text-end">
+                        <p className="mt-2">
+                          <strong>
+                            Rs: {currentPaymentDetails.totalbalancepayment || 0}/-
+                          </strong>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => {
+              setShowDairyCardModal(false);
+              setSelectedCustomerForView(null);
+            }}>
+              Close
+            </Button>
+          </Modal.Footer>
         </Modal>
       </div>
     </div>

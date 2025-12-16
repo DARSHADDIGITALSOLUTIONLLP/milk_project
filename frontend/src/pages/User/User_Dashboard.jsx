@@ -601,7 +601,7 @@ function User_Dashboard() {
                         size="sm"
                         variant="outline-secondary"
                         className="month-nav-btn prev-btn"
-                        onClick={() => {
+                    onClick={() => {
                           const newMonth = new Date(activeMonth);
                           newMonth.setMonth(newMonth.getMonth() - 1);
                           setActiveMonth(newMonth);
@@ -631,9 +631,9 @@ function User_Dashboard() {
                       className="manage-vacation-link"
                       style={{ color: "#EF6E0B", cursor: "pointer", fontSize: "14px" }}
                       onClick={() => setOpenModelWindow(true)}
-                    >
-                      Manage Vacation
-                    </label>
+                  >
+                    Manage Vacation
+                  </label>
                   </div>
                 </div>
 

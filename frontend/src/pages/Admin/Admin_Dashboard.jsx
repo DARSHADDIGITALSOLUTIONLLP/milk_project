@@ -781,7 +781,7 @@ function Admin_Dashboard() {
 
               {/* Horizontal column navigation (based on screen size) */}
               {maxCustomerColumnPage > 0 && (
-                <div className="d-flex justify-content-end align-items-center mt-2 gap-2 flex-wrap">
+                <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
                   <button
                     type="button"
                     className="btn btn-outline-secondary btn-sm"
@@ -792,7 +792,7 @@ function Admin_Dashboard() {
                       )
                     }
                   >
-                    ◀ Columns
+                    ◀
                   </button>
                   <button
                     type="button"
@@ -804,12 +804,8 @@ function Admin_Dashboard() {
                       )
                     }
                   >
-                    Columns ▶
+                    ▶
                   </button>
-                  <span style={{ fontSize: "12px" }}>
-                    Group {safeCustomerColumnPage + 1} of{" "}
-                    {maxCustomerColumnPage + 1}
-                  </span>
                 </div>
               )}
             </Col>
