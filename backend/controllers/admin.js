@@ -2263,11 +2263,10 @@ module.exports.getAllPendingFarmerPayments = async (req, res) => {
 
     const farmerIds = farmers.map((f) => f.id);
 
-    // Step 2: Get date range (last 2 months)
-    const currentMonth = moment().tz("Asia/Kolkata");
-    const lastMonth = moment().tz("Asia/Kolkata").subtract(1, "month");
-    const startDate = lastMonth.clone().startOf("month").toDate();
-    const endDate = currentMonth.clone().endOf("month").toDate();
+    // Step 2: Get date range (last 10 days)
+    const now = moment().tz("Asia/Kolkata");
+    const startDate = now.clone().subtract(10, "days").startOf("day").toDate();
+    const endDate = now.clone().endOf("day").toDate();
 
     // Step 3: Fetch all daily orders for these farmers
     const dailyOrders = await DailyFarmerOrder.findAll({

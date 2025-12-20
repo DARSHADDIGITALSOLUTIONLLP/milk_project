@@ -208,7 +208,7 @@ function Farmer_Order_History() {
 
   return (
     <div>
-      <WindowHeader dashboardText="Farmer Order History" />
+      <WindowHeader dashboardText="Farmer Milk Summary" />
       <div
         style={{
           marginTop: isSmallScreen ? "70px" : "0px",

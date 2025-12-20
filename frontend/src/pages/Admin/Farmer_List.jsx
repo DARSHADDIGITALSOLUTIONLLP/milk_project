@@ -573,7 +573,7 @@ function Farmer_List() {
     },
     {
       id: "order",
-      headerLabel: "Order",
+      headerLabel: "milk collection",
       cell: (row) => (
         <Button
           variant="info"
@@ -585,7 +585,7 @@ function Farmer_List() {
           }}
           onClick={() => handleOrderNow(row)}
         >
-          Order Now
+          milk collection
         </Button>
       ),
     },
@@ -731,7 +731,7 @@ function Farmer_List() {
 
         <Modal show={showOrderModel} onHide={closeModal} centered>
           <Modal.Header closeButton style={{ backgroundColor: "#ffa726" }}>
-            <Modal.Title className="text-white">Order Now</Modal.Title>
+            <Modal.Title className="text-white">milk collection</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {selectedMilkTypes && selectedMilkTypes.length > 0 ? (

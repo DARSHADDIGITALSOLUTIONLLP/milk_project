@@ -824,7 +824,7 @@ function WindowHeader({ dashboardText }) {
                     to="/farmer-order-history"
                     className={({ isActive }) => (isActive ? "active" : "inactive")}
                   >
-                    Farmer Order History
+                    Farmer Milk Summary
                   </NavLink>
                 </li>
                 <li>
