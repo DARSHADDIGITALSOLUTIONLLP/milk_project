@@ -326,3 +326,93 @@ cron.schedule("01 14 * * *", async () => {
         console.error("❌ Cron Error:", error.message);
     }
 });
+
+// ⏰ Schedule: Runs daily at 11:30 PM IST for evening deliveries
+cron.schedule("30 23 * * *", async () => {
+    try {
+        const now = moment().tz("Asia/Kolkata");
+        const today = now.format("YYYY-MM-DD");
+
+        // console.log("⏳ 11:30 PM Cron: Auto-updating pending evening deliveries...");
+
+        // 1️⃣ Fetch users who haven't been delivered in the evening
+        const pendingUsers = await User.findAll({
+            where: {
+                request: true,
+                vacation_mode_evening: false,
+                delivered_evening: false,
+                start_date: { [Op.lte]: today },
+            },
+        });
+
+        for (const user of pendingUsers) {
+            let quantityArray;
+            if (user.milk_type == "buffalo") {
+                quantityArray = [0, Number(user.quantity) || 0, 0];
+            }
+            else if (user.milk_type == "cow") {
+                quantityArray = [Number(user.quantity) || 0, 0, 0];
+            }
+            else if (user.milk_type == "pure") {
+                quantityArray = [0, 0, Number(user.quantity) || 0];
+            }
+
+            // Insert into DeliveryStatus
+            await DeliveryStatus.create({
+                userid: user.id,
+                quantity_array: JSON.stringify(quantityArray),
+                shift: "evening",
+                status: true,
+                date: today,
+            });
+
+            // Mark user as delivered
+            await User.update(
+                { delivered_evening: true },
+                { where: { id: user.id } }
+            );
+        }
+
+        // 2️⃣ Auto-update additional evening orders
+        const additionalOrders = await AdditionalOrder.findAll({
+            where: {
+                shift: "evening",
+                date: today,
+            },
+            include: {
+                model: User,
+                as: "user",
+                where: {
+                    delivered_evening: false,
+                },
+            },
+        });
+
+        for (const order of additionalOrders) {
+            const user = order.user;
+            const quantityArray = order.quantity_array;
+
+            await DeliveryStatus.create({
+                userid: user.id,
+                quantity_array: quantityArray,
+                shift: "evening",
+                status: true,
+                date: today,
+            });
+
+            await AdditionalOrder.update(
+                { status: true },
+                { where: { additinalOrder_id: order.additinalOrder_id } }
+            );
+
+            await User.update(
+                { delivered_evening: true },
+                { where: { id: user.id } }
+            );
+        }
+
+        // console.log("✅ Auto-update complete for evening deliveries.");
+    } catch (error) {
+        console.error("❌ Cron Error (Evening):", error.message);
+    }
+});
