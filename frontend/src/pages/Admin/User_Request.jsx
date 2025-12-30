@@ -50,10 +50,12 @@ function User_Request() {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log("Pending requests response:", response.data); // Debug log
       const updatedRecords = response.data.users.map((record) => ({
         ...record,
         status: "pending",
       }));
+      console.log("Updated records count:", updatedRecords.length); // Debug log
       if (updatedRecords.length > 0) {
         setDairyName(
           updatedRecords.find((record) => record.dairy_name)?.dairy_name || ""
@@ -62,12 +64,18 @@ function User_Request() {
       setRecords(updatedRecords);
     } catch (error) {
       console.error("Error fetching user requests:", error);
+      toast.error(error.response?.data?.message || "Failed to fetch pending requests");
     }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Sync filteredRecords with records whenever records change
+  useEffect(() => {
+    setFilteredRecords(records);
+  }, [records]);
 
   const handleCancel = () => {
     setShowRemoveModal(false);
@@ -313,6 +321,12 @@ function User_Request() {
             </div>
           </div>
 
+          {filteredRecords.length === 0 && (
+            <div className="alert alert-info mt-3" role="alert">
+              No pending user requests found. New registrations will appear here for approval.
+            </div>
+          )}
+          
           <DataTable
             columns={columns}
             data={filteredRecords}
@@ -321,6 +335,11 @@ function User_Request() {
             fixedHeader
             pagination
             responsive
+            noDataComponent={
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                No pending requests to display
+              </div>
+            }
           />
 
           {/* Horizontal column navigation (based on screen size) */}

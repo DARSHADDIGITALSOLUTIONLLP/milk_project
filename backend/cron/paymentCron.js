@@ -165,9 +165,8 @@ const AdditionalOrder = require('../models/additinalOrder'); // Adjust path as n
 // });
 
 // 3. reset_delivery_status
-// 1. Activate vacation mode – 11:30 PM
-// cron.schedule('30 23 * * *', async ()
-cron.schedule('30 23 * * *', async () => {
+// 1. Activate vacation mode – 11:50 PM (moved to avoid conflict with evening delivery)
+cron.schedule('50 23 * * *', async () => {
     const today = new Date().toISOString().slice(0, 10);
     try {
         const vacations = await Vacation.findAll({ where: { vacation_start: today } });
@@ -186,28 +185,27 @@ cron.schedule('30 23 * * *', async () => {
             await user.save();
         }
 
-        console.log(`[CRON] ✅ Vacation mode activated at 11:30 PM`);
+        console.log(`[CRON] ✅ Vacation mode activated at 11:50 PM`);
     } catch (err) {
         console.error(`[CRON] ❌ Error activating vacation mode:`, err.message);
     }
 });
 
-// 2. Reset delivery flags – 11:45 PM
-// cron.schedule('45 23 * * *', async () => {
-cron.schedule('45 23 * * *', async () => {
+// 2. Reset delivery flags – 11:55 PM (moved after vacation activation)
+cron.schedule('55 23 * * *', async () => {
     try {
         await User.update(
             { delivered_morning: false, delivered_evening: false },
             { where: {} }
         );
-        console.log(`[CRON] ✅ Delivery flags reset at 11:45 PM`);
+        console.log(`[CRON] ✅ Delivery flags reset at 11:55 PM`);
     } catch (err) {
         console.error(`[CRON] ❌ Error resetting delivery flags:`, err.message);
     }
 });
 
-// 3. Reset vacation mode – 12:00 AM
-cron.schedule('0 23 * * *', async () => {
+// 3. Reset vacation mode – 11:59 PM (just before midnight)
+cron.schedule('59 23 * * *', async () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const targetDate = yesterday.toISOString().slice(0, 10);
@@ -256,14 +254,15 @@ cron.schedule("01 14 * * *", async () => {
         });
 
         for (const user of pendingUsers) {
+            // NOTE: quantity_array format is [pure, cow, buffalo]
             if (user.milk_type == "buffalo") {
-                quantityArray = [0, Number(user.quantity) || 0, 0];
+                quantityArray = [0, 0, Number(user.quantity) || 0];
             }
             else if (user.milk_type == "cow") {
-                quantityArray = [Number(user.quantity) || 0, 0, 0];
+                quantityArray = [0, Number(user.quantity) || 0, 0];
             }
             else if (user.milk_type == "pure") {
-                quantityArray = [0, 0, Number(user.quantity) || 0];
+                quantityArray = [Number(user.quantity) || 0, 0, 0];
             }
 
             // Insert into DeliveryStatus
@@ -327,7 +326,7 @@ cron.schedule("01 14 * * *", async () => {
     }
 });
 
-// ⏰ Schedule: Runs daily at 11:30 PM IST for evening deliveries
+// ⏰ Schedule: Runs daily at 11:30 PM IST - Auto-update evening deliveries
 cron.schedule("30 23 * * *", async () => {
     try {
         const now = moment().tz("Asia/Kolkata");
@@ -347,14 +346,15 @@ cron.schedule("30 23 * * *", async () => {
 
         for (const user of pendingUsers) {
             let quantityArray;
+            // NOTE: quantity_array format is [pure, cow, buffalo]
             if (user.milk_type == "buffalo") {
-                quantityArray = [0, Number(user.quantity) || 0, 0];
+                quantityArray = [0, 0, Number(user.quantity) || 0];
             }
             else if (user.milk_type == "cow") {
-                quantityArray = [Number(user.quantity) || 0, 0, 0];
+                quantityArray = [0, Number(user.quantity) || 0, 0];
             }
             else if (user.milk_type == "pure") {
-                quantityArray = [0, 0, Number(user.quantity) || 0];
+                quantityArray = [Number(user.quantity) || 0, 0, 0];
             }
 
             // Insert into DeliveryStatus
@@ -413,6 +413,6 @@ cron.schedule("30 23 * * *", async () => {
 
         // console.log("✅ Auto-update complete for evening deliveries.");
     } catch (error) {
-        console.error("❌ Cron Error (Evening):", error.message);
+        console.error("❌ Evening Cron Error:", error.message);
     }
 });

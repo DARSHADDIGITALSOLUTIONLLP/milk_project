@@ -42,11 +42,17 @@ module.exports.getUserDeliveredOrders = async (req, res) => {
 
     // Transform quantity_array into separate fields
     const transformedOrders = deliveredOrders.map((order) => {
-      // Parse quantity_array if it's a string, otherwise use as-is
-      const quantities =
-        typeof order.quantity_array === "string"
-          ? JSON.parse(order.quantity_array)
-          : order.quantity_array;
+      // Parse quantity_array - handle double-stringified JSON
+      let quantities;
+      if (typeof order.quantity_array === "string") {
+        const firstParse = JSON.parse(order.quantity_array);
+        // If still a string after first parse, parse again (double-stringified)
+        quantities = typeof firstParse === "string" 
+          ? JSON.parse(firstParse)
+          : firstParse;
+      } else {
+        quantities = order.quantity_array;
+      }
 
       // NOTE: quantity_array format is [pure, cow, buffalo]
       return {
@@ -113,11 +119,18 @@ module.exports.UpdateDeliveryStatus = async (req, res) => {
             return res.status(400).json({ message: "Evening delivery is already marked as delivered." });
         }
 
+        // Ensure all values are valid numbers (not undefined/null/NaN)
         const cowQuantity = Number(cow_milk) || 0;
         const buffaloQuantity = Number(buffalo_milk) || 0;
         const pureQuantity = Number(pure_milk) || 0;
+        
         // NOTE: quantity_array format is [pure, cow, buffalo]
-        const quantityArray = [pureQuantity, cowQuantity, buffaloQuantity];
+        // Ensure array contains only valid numbers
+        const quantityArray = [
+            Number(pureQuantity) || 0,
+            Number(cowQuantity) || 0,
+            Number(buffaloQuantity) || 0
+        ];
 
         let updateField = {};
         if (shift.toLowerCase() === "morning") {
@@ -227,14 +240,11 @@ module.exports.morningPendingOrders = async (req, res) => {
 
 
 
-        // 3️⃣ Check if both are empty
-        if (morningOrders.length === 0 && additionalMorningOrders.length === 0) {
-            return res.status(404).json({ message: "No morning orders found for today" });
-        }
-
-        // 4️⃣ Send combined result
+        // 3️⃣ Send combined result (even if empty)
         res.json({
-            message: "Today's morning shift orders fetched successfully",
+            message: morningOrders.length === 0 && additionalMorningOrders.length === 0 
+                ? "No morning orders found for today" 
+                : "Today's morning shift orders fetched successfully",
             regular_orders: morningOrders,
             additional_orders: additionalMorningOrders,
         });
@@ -295,14 +305,11 @@ module.exports.eveningPendingOrders = async (req, res) => {
 
 
 
-        // 3️⃣ If both are empty
-        if (eveningOrders.length === 0 && additionalEveningOrders.length === 0) {
-            return res.status(404).json({ message: "No evening orders found for today" });
-        }
-
-        // 4️⃣ Send combined response
+        // 3️⃣ Send combined response (even if empty)
         res.json({
-            message: "Today's evening shift orders fetched successfully",
+            message: eveningOrders.length === 0 && additionalEveningOrders.length === 0 
+                ? "No evening orders found for today" 
+                : "Today's evening shift orders fetched successfully",
             regular_orders: eveningOrders,
             additional_orders: additionalEveningOrders,
         });

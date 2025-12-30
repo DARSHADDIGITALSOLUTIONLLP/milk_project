@@ -1531,22 +1531,21 @@ module.exports.getLastMonthTotalPayments = async (req, res) => {
         .json({ message: "No users found under this dairy." });
     }
 
-    // 🔹 Get last month (for pending)
-    const lastMonth = moment()
+    // 🔹 Get current month (for pending) - changed from last month
+    const currentMonth = moment()
       .tz("Asia/Kolkata")
-      .subtract(1, "months")
       .format("YYYY-MM");
 
-    const lastMonthRecords = await PaymentDetails.findAll({
+    const currentMonthRecords = await PaymentDetails.findAll({
       where: {
         userid: { [Op.in]: userIds },
-        month_year: lastMonth,
+        month_year: currentMonth,
       },
       attributes: ["pending_payment"],
     });
 
-    // 🔹 Calculate total outstanding (from last month only)
-    let totalOutstandingPayment = lastMonthRecords.reduce(
+    // 🔹 Calculate total outstanding (from current month)
+    let totalOutstandingPayment = currentMonthRecords.reduce(
       (sum, record) => sum + (Number(record.pending_payment) || 0),
       0
     );
@@ -1595,7 +1594,7 @@ module.exports.getLastMonthTotalPayments = async (req, res) => {
     // ✅ Final Response
     return res.status(200).json({
       message:
-        "Last month's outstanding and last 3 months received payment calculated.",
+        "Current month's outstanding and last 3 months received payment calculated.",
       totalOutstandingPayment,
       totalReceivedPayment,
       totalPayment,
@@ -3545,6 +3544,224 @@ module.exports.getDeliveryBoyMonthlyReport = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching delivery boy monthly report:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ NEW: Get customer dairy info (for dairy card)
+module.exports.getCustomerDairyInfo = async (req, res) => {
+  try {
+    const { id } = req.params; // customer/user id
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: No dairy association found." });
+    }
+
+    // Ensure the requested user belongs to the same dairy
+    const user = await User.findOne({ where: { id, dairy_name } });
+
+    if (!user) {
+      return res.status(403).json({
+        message: "Unauthorized: This user does not belong to your dairy.",
+      });
+    }
+
+    // Get admin info for dairy logo
+    const admin = await Admin.findOne({ where: { dairy_name } });
+
+    res.status(200).json({
+      dairy_name: dairy_name,
+      dairy_logo: admin?.qr_image || null,
+      admin_name: admin?.name || "Admin",
+    });
+  } catch (error) {
+    console.error("Error fetching customer dairy info:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ NEW: Get customer delivered orders (for dairy card)
+module.exports.getCustomerDeliveredOrders = async (req, res) => {
+  try {
+    const { id } = req.params; // customer/user id
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: No dairy association found." });
+    }
+
+    // Ensure the requested user belongs to the same dairy
+    const user = await User.findOne({ where: { id, dairy_name } });
+
+    if (!user) {
+      return res.status(403).json({
+        message: "Unauthorized: This user does not belong to your dairy.",
+      });
+    }
+
+    const deliveredOrders = await DeliveryStatus.findAll({
+      where: { userid: id },
+      attributes: ["delivery_id", "shift", "quantity_array", "date", "status"],
+      order: [["date", "DESC"]],
+    });
+
+    // Return 200 with empty array if no orders
+    if (!deliveredOrders || deliveredOrders.length === 0) {
+      return res.status(200).json({
+        message: "Delivered orders fetched successfully.",
+        orders: [],
+      });
+    }
+
+    // Transform quantity_array into separate fields
+    const transformedOrders = deliveredOrders.map((order) => {
+      // Parse quantity_array - handle double-stringified JSON
+      let quantities;
+      if (typeof order.quantity_array === "string") {
+        const firstParse = JSON.parse(order.quantity_array);
+        // If still a string after first parse, parse again (double-stringified)
+        quantities = typeof firstParse === "string" 
+          ? JSON.parse(firstParse)
+          : firstParse;
+      } else {
+        quantities = order.quantity_array;
+      }
+
+      // NOTE: quantity_array format is [pure, cow, buffalo]
+      return {
+        delivery_id: order.delivery_id,
+        shift: order.shift,
+        pure_quantity: quantities[0] || 0,
+        cow_quantity: quantities[1] || 0,
+        buffalo_quantity: quantities[2] || 0,
+        date: order.date,
+        order_date: order.date, // alias for frontend compatibility
+        status: order.status,
+      };
+    });
+
+    res.status(200).json({
+      message: "Delivered orders fetched successfully.",
+      orders: transformedOrders,
+    });
+  } catch (error) {
+    console.error("Error fetching customer delivered orders:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ NEW: Get customer payment summary (for dairy card)
+module.exports.getCustomerPaymentSummary = async (req, res) => {
+  try {
+    const { id } = req.params; // customer/user id
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: No dairy association found." });
+    }
+
+    // Ensure the requested user belongs to the same dairy
+    const user = await User.findOne({ where: { id, dairy_name } });
+
+    if (!user) {
+      return res.status(403).json({
+        message: "Unauthorized: This user does not belong to your dairy.",
+      });
+    }
+
+    // Get payment history
+    const paymentHistory = await PaymentDetails.findAll({
+      where: { userid: id },
+      attributes: [
+        "payment_id",
+        "start_date",
+        "month_year",
+        "payment",
+        "delivery_charges",
+        "received_payment",
+        "pending_payment",
+      ],
+      order: [["month_year", "DESC"]],
+    });
+
+    // Transform to match frontend expectations
+    const transformedHistory = paymentHistory.map((payment) => ({
+      payment_id: payment.payment_id,
+      start_date: payment.start_date,
+      month_year: payment.month_year,
+      payment: payment.payment || 0, // milk payment
+      received_payment: payment.received_payment || 0,
+      pending_payment: payment.pending_payment || 0,
+      delivery_charges: payment.delivery_charges || 0,
+      advancePayment: user.advance_payment || 0,
+      status: payment.pending_payment === 0, // Calculate status based on pending payment
+    }));
+
+    res.status(200).json({
+      message: "Payment summary fetched successfully.",
+      paymentHistory: transformedHistory,
+    });
+  } catch (error) {
+    console.error("Error fetching customer payment summary:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ NEW: Get customer rates (for dairy card)
+module.exports.getCustomerRates = async (req, res) => {
+  try {
+    const { id } = req.params; // customer/user id
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: No dairy association found." });
+    }
+
+    // Ensure the requested user belongs to the same dairy
+    const user = await User.findOne({ where: { id, dairy_name } });
+
+    if (!user) {
+      return res.status(403).json({
+        message: "Unauthorized: This user does not belong to your dairy.",
+      });
+    }
+
+    // Get admin to fetch rates
+    const admin = await Admin.findOne({ where: { dairy_name } });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found for this dairy." });
+    }
+
+    // Determine rate based on milk type
+    let rate = 0;
+    const milkType = user.milk_type?.toLowerCase();
+    
+    if (milkType === "cow") {
+      rate = admin.cow_rate || 0;
+    } else if (milkType === "buffalo") {
+      rate = admin.buffalo_rate || 0;
+    } else if (milkType === "pure") {
+      rate = admin.pure_rate || 0;
+    }
+
+    res.status(200).json({
+      message: "Rates fetched successfully.",
+      rate: rate,
+      quantity: user.quantity || 0,
+      milk_type: user.milk_type || "",
+    });
+  } catch (error) {
+    console.error("Error fetching customer rates:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

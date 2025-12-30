@@ -72,6 +72,7 @@ module.exports.registeredUser = async (req, res) => {
       milk_type,
       quantity,
       shift,
+      request: false, // ✅ Explicitly set to false for pending approval
       vacation_mode_morning,
       vacation_mode_evening,
     });
@@ -410,10 +411,17 @@ module.exports.getDeliveredOrder = async (req, res) => {
 
     // 🔹 Transform quantity_array into separate fields
     const transformedOrders = deliveredOrders.map((order) => {
-      // Parse quantity_array if it's a string, otherwise use as-is
-      const quantities = typeof order.quantity_array === 'string' 
-        ? JSON.parse(order.quantity_array) 
-        : order.quantity_array;
+      // Parse quantity_array - handle double-stringified JSON
+      let quantities;
+      if (typeof order.quantity_array === 'string') {
+        const firstParse = JSON.parse(order.quantity_array);
+        // If still a string after first parse, parse again (double-stringified)
+        quantities = typeof firstParse === 'string' 
+          ? JSON.parse(firstParse)
+          : firstParse;
+      } else {
+        quantities = order.quantity_array;
+      }
 
       // quantity_array format: [pure, cow, buffalo]
       return {
@@ -715,9 +723,13 @@ module.exports.getUserPaymentSummary = async (req, res) => {
     for (const delivery of currentMonthDeliveries) {
       let quantities;
       
-      // Parse quantity_array if it's a string, otherwise use as-is
+      // Parse quantity_array - handle double-stringified JSON
       if (typeof delivery.quantity_array === 'string') {
-        quantities = JSON.parse(delivery.quantity_array);
+        const firstParse = JSON.parse(delivery.quantity_array);
+        // If still a string after first parse, parse again (double-stringified)
+        quantities = typeof firstParse === 'string' 
+          ? JSON.parse(firstParse)
+          : firstParse;
       } else if (Array.isArray(delivery.quantity_array)) {
         quantities = delivery.quantity_array;
       } else {
