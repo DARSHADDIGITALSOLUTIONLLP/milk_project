@@ -834,7 +834,6 @@ function Farmer_List() {
                 const newStatus =
                   selectedRecord.status === "Active" ? false : true;
                 confirmStatusChange(newStatus);
-                confirmStatusChange(newStatus);
               }}
             >
               Confirm

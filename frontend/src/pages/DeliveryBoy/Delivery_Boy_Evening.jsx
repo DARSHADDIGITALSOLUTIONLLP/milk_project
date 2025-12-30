@@ -90,13 +90,30 @@ function Delivery_Boy_Evening() {
 
         const allCustomers = [...regularOrders, ...additionalOrders];
         setCustomers(allCustomers);
+        
+        // Show info message if no orders
+        if (allCustomers.length === 0) {
+          toast.info("No evening orders for today");
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
+        if (error.response) {
+          console.error("Response status:", error.response.status);
+          console.error("Response data:", error.response.data);
+          if (error.response.status === 401) {
+            toast.error("Unauthorized. Please login again.");
+            setTimeout(() => navigate("/delivery-boy-login"), 2000);
+          } else {
+            toast.error(error.response.data?.message || "Failed to fetch evening orders");
+          }
+        } else {
+          toast.error("Cannot connect to server. Please check if backend is running.");
+        }
       }
     };
 
     getData();
-  }, []);
+  }, [navigate]);
 
   const handleIncrement = () => {
     setCustomers((prevCustomers) =>

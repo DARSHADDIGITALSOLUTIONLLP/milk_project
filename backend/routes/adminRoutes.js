@@ -404,4 +404,33 @@ router.get(
   adminController.getDeliveryBoyMonthlyReport
 );
 
+// ✅ NEW: Customer dairy card API endpoints
+router.get(
+  "/customer/:id/dairy-info",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getCustomerDairyInfo
+);
+
+router.get(
+  "/customer/:id/delivered-orders",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getCustomerDeliveredOrders
+);
+
+router.get(
+  "/customer/:id/payment-summary",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getCustomerPaymentSummary
+);
+
+router.get(
+  "/customer/:id/rates",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getCustomerRates
+);
+
 module.exports = router;
