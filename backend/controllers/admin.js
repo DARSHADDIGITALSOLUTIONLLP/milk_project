@@ -157,7 +157,7 @@ module.exports.paymentVerification = async (req, res) => {
 
     Userdata.dairy_name = capitalizeEachWord(Userdata.dairy_name);
     Userdata.payment_amount = Userdata.amount;
-    Userdata.res_date = new Date().toISOString().split("T")[0];
+    Userdata.res_date = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
     let end_date;
     switch (Userdata.periods) {
       case "monthly":
@@ -600,11 +600,10 @@ module.exports.addNewUser = async (req, res) => {
     });
 
     // ✅ Set start_date one day after registration
-    let startDate = moment()
-      .tz("Asia/Kolkata")
+    let startDate = moment.tz("Asia/Kolkata")
       .add(1, "days")
       .format("YYYY-MM-DD");
-    let yearMonth = moment(startDate).format("YYYY-MM"); // Extract YYYY-MM from start_date
+    let yearMonth = moment.tz(startDate, "Asia/Kolkata").format("YYYY-MM"); // Extract YYYY-MM from start_date
 
     // ✅ Update user with start_date
     await newUser.update({ start_date: startDate });
@@ -1714,7 +1713,7 @@ module.exports.getAllMorningOrders = async (req, res) => {
     }
 
     // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split("T")[0];
+    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     // Fetch users with morning shift orders for today under this admin's dairy
     const morningOrders = await User.findAll({
@@ -1762,7 +1761,7 @@ module.exports.getAllEveningOrders = async (req, res) => {
     }
 
     // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split("T")[0];
+    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
     // Fetch users with vacation_mode_morning = true under this admin's dairy
     const usersOnVacation = await User.findAll({
       where: {
@@ -1801,7 +1800,7 @@ module.exports.getTodaysMorningOrder = async (req, res) => {
         .json({ message: "Unauthorized: No dairy association found" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     // 1️⃣ Regular users with morning/both shift (excluding vacation)
     const morningOrders = await User.findAll({
@@ -1866,7 +1865,7 @@ module.exports.getTodaysEveningOrder = async (req, res) => {
         .json({ message: "Unauthorized: No dairy association found" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     // 1️⃣ Regular evening orders
     const eveningOrders = await User.findAll({
@@ -1929,7 +1928,7 @@ module.exports.getTodaysAdditional = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized: No dairy association found" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     const additionalOrders = await AdditionalOrder.findAll({
       where: {
@@ -2920,7 +2919,7 @@ module.exports.updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     const order = await DeliveryStatus.findOne({
       where: {

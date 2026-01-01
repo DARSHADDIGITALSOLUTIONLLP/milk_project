@@ -197,10 +197,8 @@ module.exports.morningPendingOrders = async (req, res) => {
             return res.status(403).json({ message: "Unauthorized: No dairy association found" });
         }
 
-        // Get today's date and time in Indian Standard Time (IST) in YYYY-MM-DD HH:MM:SS format
-        const now = new Date();
-        const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC to IST
-        const today = new Date().toISOString().split("T")[0];
+        // Get today's date in Indian Standard Time (IST) in YYYY-MM-DD format
+        const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
         // console.log("IST Date & Time:", today); // Debugging log
 
@@ -264,9 +262,7 @@ module.exports.eveningPendingOrders = async (req, res) => {
         }
 
         // Get today's date in Indian Standard Time (IST) in YYYY-MM-DD format
-        const now = new Date();
-        const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC to IST
-        const today = new Date().toISOString().split("T")[0];
+        const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
 
         // console.log("IST Date:", today); // Debugging log
 
@@ -342,7 +338,7 @@ module.exports.updateRequest = async (req, res) => {
         user.request = request;
 
         // Set start_date to tomorrow's date whenever request status is updated
-        user.start_date = moment().tz("Asia/Kolkata").add(1, "days").format("YYYY-MM-DD");
+        user.start_date = moment.tz("Asia/Kolkata").add(1, "days").format("YYYY-MM-DD");
 
         await user.save();
 

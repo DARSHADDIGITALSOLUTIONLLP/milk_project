@@ -2,6 +2,7 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db.js");
 const bcrypt = require("bcrypt");
 const Admin = require("./Admin.js");
+const moment = require("moment-timezone");
 
 const User = sequelize.define(
     "User",
@@ -82,11 +83,11 @@ const User = sequelize.define(
         start_date: {
             type: DataTypes.DATEONLY,
             allowNull: false,
-            defaultValue: new Date().toISOString().split("T")[0], // ✅ Sets today's date
+            defaultValue: () => moment.tz("Asia/Kolkata").format("YYYY-MM-DD"), // ✅ Sets today's date in IST
             validate: {
                 isValidStartDate(value) {
-                    const today = new Date().toISOString().split("T")[0];
-                    const inputDate = new Date(value).toISOString().split("T")[0];
+                    const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
+                    const inputDate = moment.tz(value, "Asia/Kolkata").format("YYYY-MM-DD");
                     if (inputDate < today) {
                         throw new Error("Start date must be today or later.");
                     }
