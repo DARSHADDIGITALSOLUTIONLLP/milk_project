@@ -400,35 +400,64 @@ module.exports.addRate = async (req, res) => {
 
     // Create an object with only valid non-negative numbers to update
     const updateFields = {};
-    if (cow_rate !== undefined) {
-      if (isNaN(cow_rate) || cow_rate < 0) {
-        return res
-          .status(400)
-          .json({ message: "Cow rate must be a valid non-negative number." });
+    
+    // Helper function to parse and validate numeric values
+    const parseRate = (value, fieldName) => {
+      if (value === undefined || value === null || value === "") {
+        return null;
       }
-      updateFields.cow_rate = cow_rate;
-    }
-    if (buffalo_rate !== undefined) {
-      if (isNaN(buffalo_rate) || buffalo_rate < 0) {
-        return res.status(400).json({
-          message: "Buffalo rate must be a valid non-negative number.",
-        });
+      // Convert to number (handles both string and number inputs)
+      const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
+      
+      // Check if it's a valid number
+      if (isNaN(numValue) || !isFinite(numValue)) {
+        throw new Error(`${fieldName} must be a valid number.`);
       }
-      updateFields.buffalo_rate = buffalo_rate;
-    }
-    if (pure_rate !== undefined) {
-      if (isNaN(pure_rate) || pure_rate < 0) {
-        return res
-          .status(400)
-          .json({ message: "Pure rate must be a valid non-negative number." });
+      
+      // Check if it's non-negative
+      if (numValue < 0) {
+        throw new Error(`${fieldName} must be a non-negative number.`);
       }
-      updateFields.pure_rate = pure_rate;
-    }
-    if (delivery_charges === "" || delivery_charges === null) {
-      delivery_charges = 0;
-    }
+      
+      // Round to 2 decimal places to match DECIMAL(10,2) if that's what the DB uses
+      return Math.round(numValue * 100) / 100;
+    };
 
-    updateFields.delivery_charges = delivery_charges;
+    // Parse and validate each rate
+    if (cow_rate !== undefined && cow_rate !== null && cow_rate !== "") {
+      try {
+        updateFields.cow_rate = parseRate(cow_rate, "Cow rate");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    }
+    
+    if (buffalo_rate !== undefined && buffalo_rate !== null && buffalo_rate !== "") {
+      try {
+        updateFields.buffalo_rate = parseRate(buffalo_rate, "Buffalo rate");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    }
+    
+    if (pure_rate !== undefined && pure_rate !== null && pure_rate !== "") {
+      try {
+        updateFields.pure_rate = parseRate(pure_rate, "Pure rate");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    }
+    
+    // Handle delivery_charges
+    if (delivery_charges === "" || delivery_charges === null || delivery_charges === undefined) {
+      updateFields.delivery_charges = 0;
+    } else {
+      try {
+        updateFields.delivery_charges = parseRate(delivery_charges, "Delivery charges");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    }
 
     // If no valid updates are provided, return an error
     if (Object.keys(updateFields).length === 0) {
@@ -436,6 +465,9 @@ module.exports.addRate = async (req, res) => {
         .status(400)
         .json({ message: "No valid rate provided for update." });
     }
+
+    // Log the values being updated for debugging
+    console.log("Updating rates:", updateFields);
 
     // Update only the provided fields
     await admin.update(updateFields);
@@ -446,6 +478,11 @@ module.exports.addRate = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating rates:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     res
       .status(500)
       .json({ message: "Internal server error", error: error.message });
@@ -2819,33 +2856,54 @@ module.exports.add_Farmer_Rate = async (req, res) => {
       return res.status(404).json({ message: "Admin not found" });
     }
 
+    // Helper function to parse and validate numeric values
+    const parseRate = (value, fieldName) => {
+      if (value === undefined || value === null || value === "") {
+        return null;
+      }
+      // Convert to number (handles both string and number inputs)
+      const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
+      
+      // Check if it's a valid number
+      if (isNaN(numValue) || !isFinite(numValue)) {
+        throw new Error(`${fieldName} must be a valid number.`);
+      }
+      
+      // Check if it's non-negative
+      if (numValue < 0) {
+        throw new Error(`${fieldName} must be a non-negative number.`);
+      }
+      
+      // Round to 2 decimal places to match DECIMAL(10,2) if that's what the DB uses
+      return Math.round(numValue * 100) / 100;
+    };
+
     // Create an object with only valid non-negative numbers to update
     const updateFields = {};
-    if (farmer_cow_rate !== undefined) {
-      if (isNaN(farmer_cow_rate) || farmer_cow_rate < 0) {
-        return res
-          .status(400)
-          .json({ message: "Cow rate must be a valid non-negative number." });
+    
+    if (farmer_cow_rate !== undefined && farmer_cow_rate !== null && farmer_cow_rate !== "") {
+      try {
+        updateFields.farmer_cow_rate = parseRate(farmer_cow_rate, "Farmer cow rate");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
       }
-      updateFields.farmer_cow_rate = farmer_cow_rate;
     }
-    if (farmer_buffalo_rate !== undefined) {
-      if (isNaN(farmer_buffalo_rate) || farmer_buffalo_rate < 0) {
-        return res.status(400).json({
-          message: "Buffalo rate must be a valid non-negative number.",
-        });
+    
+    if (farmer_buffalo_rate !== undefined && farmer_buffalo_rate !== null && farmer_buffalo_rate !== "") {
+      try {
+        updateFields.farmer_buffalo_rate = parseRate(farmer_buffalo_rate, "Farmer buffalo rate");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
       }
-      updateFields.farmer_buffalo_rate = farmer_buffalo_rate;
     }
-    if (farmer_pure_rate !== undefined) {
-      if (isNaN(farmer_pure_rate) || farmer_pure_rate < 0) {
-        return res
-          .status(400)
-          .json({ message: "Pure rate must be a valid non-negative number." });
+    
+    if (farmer_pure_rate !== undefined && farmer_pure_rate !== null && farmer_pure_rate !== "") {
+      try {
+        updateFields.farmer_pure_rate = parseRate(farmer_pure_rate, "Farmer pure rate");
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
       }
-      updateFields.farmer_pure_rate = farmer_pure_rate;
     }
-
 
     // If no valid updates are provided, return an error
     if (Object.keys(updateFields).length === 0) {
@@ -2853,6 +2911,9 @@ module.exports.add_Farmer_Rate = async (req, res) => {
         .status(400)
         .json({ message: "No valid rate provided for update." });
     }
+
+    // Log the values being updated for debugging
+    console.log("Updating farmer rates:", updateFields);
 
     // Update only the provided fields
     await admin.update(updateFields);
@@ -3574,7 +3635,8 @@ module.exports.getCustomerDairyInfo = async (req, res) => {
     res.status(200).json({
       dairy_name: dairy_name,
       dairy_logo: admin?.qr_image || null,
-      admin_name: admin?.name || "Admin",
+      admin_name: user.name || "Customer", // Return customer name, not admin name
+      customer_name: user.name || "Customer", // Also include customer_name for clarity
     });
   } catch (error) {
     console.error("Error fetching customer dairy info:", error);

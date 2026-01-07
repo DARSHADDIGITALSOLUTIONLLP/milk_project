@@ -8,6 +8,15 @@ const PaymentDetails = require("../models/payment_details");
 const Vacation = require('../models/vacations'); // Adjust path as needed
 const AdditionalOrder = require('../models/additinalOrder'); // Adjust path as needed
 
+// Lock mechanism to prevent concurrent cron execution
+const cronLocks = {
+    morning: false,
+    evening: false,
+    reset: false,
+    vacationActivate: false,
+    vacationReset: false,
+};
+
 // function parseJSONtoArray(jsonString) {
 //     try {
 //         let array = JSON.parse(jsonString);
@@ -167,82 +176,136 @@ const AdditionalOrder = require('../models/additinalOrder'); // Adjust path as n
 // 3. reset_delivery_status
 // 1. Activate vacation mode – 11:50 PM (moved to avoid conflict with evening delivery)
 cron.schedule('50 23 * * *', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const now = moment().tz("Asia/Kolkata");
+    const today = now.format("YYYY-MM-DD");
+    const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
+    
+    console.log(`[CRON] 🏖️  Vacation Activation started at ${timestamp} IST`);
+    
     try {
         const vacations = await Vacation.findAll({ where: { vacation_start: today } });
+        console.log(`[CRON] Found ${vacations.length} vacations starting today`);
+
+        let successCount = 0;
+        let errorCount = 0;
 
         for (const vac of vacations) {
-            const user = await User.findByPk(vac.user_id);
-            if (!user) continue;
+            try {
+                const user = await User.findByPk(vac.user_id);
+                if (!user) {
+                    console.log(`[CRON] ⚠️  User ${vac.user_id} not found for vacation ${vac.vacation_id}`);
+                    errorCount++;
+                    continue;
+                }
 
-            if (vac.shift === 'morning' || vac.shift === 'both') {
-                user.vacation_mode_morning = true;
-            }
-            if (vac.shift === 'evening' || vac.shift === 'both') {
-                user.vacation_mode_evening = true;
-            }
+                if (vac.shift === 'morning' || vac.shift === 'both') {
+                    user.vacation_mode_morning = true;
+                }
+                if (vac.shift === 'evening' || vac.shift === 'both') {
+                    user.vacation_mode_evening = true;
+                }
 
-            await user.save();
+                await user.save();
+                successCount++;
+                console.log(`[CRON] ✅ Activated vacation mode for user ${user.id} (${user.name}): ${vac.shift}`);
+            } catch (userError) {
+                errorCount++;
+                console.error(`[CRON] ❌ Error activating vacation for user ${vac.user_id}:`, userError.message);
+            }
         }
 
-        console.log(`[CRON] ✅ Vacation mode activated at 11:50 PM`);
+        console.log(`[CRON] 🏖️  Vacation Activation completed: ${successCount} successful, ${errorCount} errors`);
     } catch (err) {
         console.error(`[CRON] ❌ Error activating vacation mode:`, err.message);
+        console.error(err.stack);
     }
 });
 
-// 2. Reset delivery flags – 11:55 PM (moved after vacation activation)
-cron.schedule('55 23 * * *', async () => {
+// 2. Reset delivery flags – 11:45 PM
+cron.schedule('45 23 * * *', async () => {
+    const now = moment().tz("Asia/Kolkata");
+    const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
+    
+    console.log(`[CRON] 🔄 Delivery Flags Reset started at ${timestamp} IST`);
+    
     try {
-        await User.update(
+        const result = await User.update(
             { delivered_morning: false, delivered_evening: false },
             { where: {} }
         );
-        console.log(`[CRON] ✅ Delivery flags reset at 11:55 PM`);
+        console.log(`[CRON] ✅ Delivery flags reset for ${result[0]} users at 11:45 PM`);
     } catch (err) {
         console.error(`[CRON] ❌ Error resetting delivery flags:`, err.message);
+        console.error(err.stack);
     }
 });
 
 // 3. Reset vacation mode – 11:59 PM (just before midnight)
 cron.schedule('59 23 * * *', async () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const targetDate = yesterday.toISOString().slice(0, 10);
+    const now = moment().tz("Asia/Kolkata");
+    const yesterday = now.clone().subtract(1, 'days');
+    const targetDate = yesterday.format("YYYY-MM-DD");
+    const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
+    
+    console.log(`[CRON] 🏖️  Vacation Reset started at ${timestamp} IST (checking vacations ending on ${targetDate})`);
 
     try {
         const vacations = await Vacation.findAll({ where: { vacation_end: targetDate } });
+        console.log(`[CRON] Found ${vacations.length} vacations ending yesterday`);
+
+        let successCount = 0;
+        let errorCount = 0;
 
         for (const vac of vacations) {
-            const user = await User.findByPk(vac.user_id);
-            if (!user) continue;
+            try {
+                const user = await User.findByPk(vac.user_id);
+                if (!user) {
+                    console.log(`[CRON] ⚠️  User ${vac.user_id} not found for vacation ${vac.vacation_id}`);
+                    errorCount++;
+                    continue;
+                }
 
-            if (vac.shift === 'morning' || vac.shift === 'both') {
-                user.vacation_mode_morning = false;
-            }
-            if (vac.shift === 'evening' || vac.shift === 'both') {
-                user.vacation_mode_evening = false;
-            }
+                if (vac.shift === 'morning' || vac.shift === 'both') {
+                    user.vacation_mode_morning = false;
+                }
+                if (vac.shift === 'evening' || vac.shift === 'both') {
+                    user.vacation_mode_evening = false;
+                }
 
-            await user.save();
+                await user.save();
+                successCount++;
+                console.log(`[CRON] ✅ Reset vacation mode for user ${user.id} (${user.name}): ${vac.shift}`);
+            } catch (userError) {
+                errorCount++;
+                console.error(`[CRON] ❌ Error resetting vacation for user ${vac.user_id}:`, userError.message);
+            }
         }
 
-        console.log(`[CRON] ✅ Vacation mode reset at 12:00 AM`);
+        console.log(`[CRON] 🏖️  Vacation Reset completed: ${successCount} successful, ${errorCount} errors`);
     } catch (err) {
         console.error(`[CRON] ❌ Error resetting vacation mode:`, err.message);
+        console.error(err.stack);
     }
 });
 
 // module.exports = calculateMonthlyPayments;
 
-// ⏰ Schedule: Runs daily at 2:00 PM IST (8:30 AM UTC)
+// ⏰ Schedule: Runs daily at 2:01 PM IST
 cron.schedule("01 14 * * *", async () => {
+    // Prevent concurrent execution
+    if (cronLocks.morning) {
+        console.log(`[CRON] ⚠️  Morning cron is already running, skipping this execution`);
+        return;
+    }
+
+    cronLocks.morning = true;
+    const now = moment().tz("Asia/Kolkata");
+    const today = now.format("YYYY-MM-DD");
+    const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
+    
+    console.log(`[CRON] 🌅 Morning Auto-Delivery started at ${timestamp} IST`);
+
     try {
-        const now = moment().tz("Asia/Kolkata");
-        const today = now.format("YYYY-MM-DD");
-
-        // console.log("⏳ 2 PM Cron: Auto-updating pending morning deliveries...");
-
         // 1️⃣ Fetch users who haven't been delivered in the morning
         const pendingUsers = await User.findAll({
             where: {
@@ -253,32 +316,95 @@ cron.schedule("01 14 * * *", async () => {
             },
         });
 
+        console.log(`[CRON] Found ${pendingUsers.length} pending morning users`);
+
+        let successCount = 0;
+        let errorCount = 0;
+
         for (const user of pendingUsers) {
-            // NOTE: quantity_array format is [pure, cow, buffalo]
-            if (user.milk_type == "buffalo") {
-                quantityArray = [0, 0, Number(user.quantity) || 0];
-            }
-            else if (user.milk_type == "cow") {
-                quantityArray = [0, Number(user.quantity) || 0, 0];
-            }
-            else if (user.milk_type == "pure") {
-                quantityArray = [Number(user.quantity) || 0, 0, 0];
-            }
+            try {
+                // Check if delivery already exists (prevent duplicates)
+                const existingDelivery = await DeliveryStatus.findOne({
+                    where: {
+                        userid: user.id,
+                        shift: "morning",
+                        date: today,
+                    },
+                });
 
-            // Insert into DeliveryStatus
-            await DeliveryStatus.create({
-                userid: user.id,
-                quantity_array: JSON.stringify(quantityArray),
-                shift: "morning",
-                status: true,
-                date: today,
-            });
+                if (existingDelivery) {
+                    console.log(`[CRON] ⚠️  Delivery already exists for user ${user.id} (${user.name}), skipping`);
+                    // Update flag if delivery exists but flag is false
+                    await User.update(
+                        { delivered_morning: true },
+                        { where: { id: user.id } }
+                    );
+                    continue;
+                }
 
-            // Mark user as delivered
-            await User.update(
-                { delivered_morning: true },
-                { where: { id: user.id } }
-            );
+                // Validate user data
+                if (!user.milk_type || !user.quantity || Number(user.quantity) <= 0) {
+                    console.log(`[CRON] ⚠️  Invalid user data for user ${user.id} (${user.name}): milk_type=${user.milk_type}, quantity=${user.quantity}`);
+                    errorCount++;
+                    continue;
+                }
+
+                // NOTE: quantity_array format is [pure, cow, buffalo]
+                let quantityArray;
+                if (user.milk_type == "buffalo") {
+                    quantityArray = [0, 0, Number(user.quantity) || 0];
+                }
+                else if (user.milk_type == "cow") {
+                    quantityArray = [0, Number(user.quantity) || 0, 0];
+                }
+                else if (user.milk_type == "pure") {
+                    quantityArray = [Number(user.quantity) || 0, 0, 0];
+                }
+                else {
+                    console.log(`[CRON] ⚠️  Unknown milk_type for user ${user.id} (${user.name}): ${user.milk_type}`);
+                    errorCount++;
+                    continue;
+                }
+
+                // Validate quantity array
+                if (!Array.isArray(quantityArray) || quantityArray.length !== 3) {
+                    console.log(`[CRON] ⚠️  Invalid quantity array for user ${user.id} (${user.name})`);
+                    errorCount++;
+                    continue;
+                }
+
+                // Use transaction to ensure data consistency
+                const sequelize = User.sequelize;
+                const transaction = await sequelize.transaction();
+
+                try {
+                    // Insert into DeliveryStatus
+                    await DeliveryStatus.create({
+                        userid: user.id,
+                        quantity_array: JSON.stringify(quantityArray),
+                        shift: "morning",
+                        status: true,
+                        date: today,
+                    }, { transaction });
+
+                    // Mark user as delivered
+                    await User.update(
+                        { delivered_morning: true },
+                        { where: { id: user.id }, transaction }
+                    );
+
+                    await transaction.commit();
+                    successCount++;
+                    console.log(`[CRON] ✅ Auto-delivered morning milk for user ${user.id} (${user.name}): ${user.quantity}L ${user.milk_type}`);
+                } catch (transactionError) {
+                    await transaction.rollback();
+                    throw transactionError;
+                }
+            } catch (userError) {
+                errorCount++;
+                console.error(`[CRON] ❌ Error processing user ${user.id} (${user.name}):`, userError.message);
+                // Continue with next user instead of stopping
+            }
         }
 
         // 2️⃣ Auto-update additional morning orders
@@ -296,44 +422,100 @@ cron.schedule("01 14 * * *", async () => {
             },
         });
 
+        console.log(`[CRON] Found ${additionalOrders.length} additional morning orders`);
+
         for (const order of additionalOrders) {
-            const user = order.user;
-            const quantityArray = order.quantity_array;
+            try {
+                const user = order.user;
+                if (!user) {
+                    console.log(`[CRON] ⚠️  Additional order ${order.additinalOrder_id} has no user, skipping`);
+                    continue;
+                }
 
+                // Check if delivery already exists
+                const existingDelivery = await DeliveryStatus.findOne({
+                    where: {
+                        userid: user.id,
+                        shift: "morning",
+                        date: today,
+                    },
+                });
 
-            await DeliveryStatus.create({
-                userid: user.id,
-                quantity_array: quantityArray,
-                shift: "morning",
-                status: true,
-                date: today,
-            });
+                if (existingDelivery) {
+                    console.log(`[CRON] ⚠️  Delivery already exists for additional order ${order.additinalOrder_id}, skipping`);
+                    await AdditionalOrder.update(
+                        { status: true },
+                        { where: { additinalOrder_id: order.additinalOrder_id } }
+                    );
+                    continue;
+                }
 
-            await AdditionalOrder.update(
-                { status: true },
-                { where: { additinalOrder_id: order.additinalOrder_id } }
-            );
+                const quantityArray = order.quantity_array;
+                if (!quantityArray || !Array.isArray(quantityArray)) {
+                    console.log(`[CRON] ⚠️  Invalid quantity_array for additional order ${order.additinalOrder_id}`);
+                    continue;
+                }
 
-            await User.update(
-                { delivered_morning: true },
-                { where: { id: user.id } }
-            );
+                const sequelize = User.sequelize;
+                const transaction = await sequelize.transaction();
+
+                try {
+                    await DeliveryStatus.create({
+                        userid: user.id,
+                        quantity_array: Array.isArray(quantityArray) ? JSON.stringify(quantityArray) : quantityArray,
+                        shift: "morning",
+                        status: true,
+                        date: today,
+                    }, { transaction });
+
+                    await AdditionalOrder.update(
+                        { status: true },
+                        { where: { additinalOrder_id: order.additinalOrder_id }, transaction }
+                    );
+
+                    await User.update(
+                        { delivered_morning: true },
+                        { where: { id: user.id }, transaction }
+                    );
+
+                    await transaction.commit();
+                    successCount++;
+                    console.log(`[CRON] ✅ Processed additional morning order ${order.additinalOrder_id} for user ${user.id}`);
+                } catch (transactionError) {
+                    await transaction.rollback();
+                    throw transactionError;
+                }
+            } catch (orderError) {
+                errorCount++;
+                console.error(`[CRON] ❌ Error processing additional order ${order.additinalOrder_id}:`, orderError.message);
+            }
         }
 
-        // console.log("✅ Auto-update complete for morning deliveries.");
+        console.log(`[CRON] 🌅 Morning Auto-Delivery completed: ${successCount} successful, ${errorCount} errors`);
     } catch (error) {
-        console.error("❌ Cron Error:", error.message);
+        console.error(`[CRON] ❌ Morning Cron Error:`, error.message);
+        console.error(error.stack);
+    } finally {
+        cronLocks.morning = false;
     }
 });
 
 // ⏰ Schedule: Runs daily at 11:30 PM IST - Auto-update evening deliveries
 cron.schedule("30 23 * * *", async () => {
+    // Prevent concurrent execution
+    if (cronLocks.evening) {
+        console.log(`[CRON] ⚠️  Evening cron is already running, skipping this execution`);
+        return;
+    }
+
+    cronLocks.evening = true;
+    const now = moment().tz("Asia/Kolkata");
+    const today = now.format("YYYY-MM-DD");
+    const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
+    
+    console.log(`[CRON] 🌆 Evening Auto-Delivery started at ${timestamp} IST`);
+
     try {
-        const now = moment().tz("Asia/Kolkata");
-        const today = now.format("YYYY-MM-DD");
-
-        // console.log("⏳ 11:30 PM Cron: Auto-updating pending evening deliveries...");
-
         // 1️⃣ Fetch users who haven't been delivered in the evening
         const pendingUsers = await User.findAll({
             where: {
@@ -344,33 +526,95 @@ cron.schedule("30 23 * * *", async () => {
             },
         });
 
+        console.log(`[CRON] Found ${pendingUsers.length} pending evening users`);
+
+        let successCount = 0;
+        let errorCount = 0;
+
         for (const user of pendingUsers) {
-            let quantityArray;
-            // NOTE: quantity_array format is [pure, cow, buffalo]
-            if (user.milk_type == "buffalo") {
-                quantityArray = [0, 0, Number(user.quantity) || 0];
-            }
-            else if (user.milk_type == "cow") {
-                quantityArray = [0, Number(user.quantity) || 0, 0];
-            }
-            else if (user.milk_type == "pure") {
-                quantityArray = [Number(user.quantity) || 0, 0, 0];
-            }
+            try {
+                // Check if delivery already exists (prevent duplicates)
+                const existingDelivery = await DeliveryStatus.findOne({
+                    where: {
+                        userid: user.id,
+                        shift: "evening",
+                        date: today,
+                    },
+                });
 
-            // Insert into DeliveryStatus
-            await DeliveryStatus.create({
-                userid: user.id,
-                quantity_array: JSON.stringify(quantityArray),
-                shift: "evening",
-                status: true,
-                date: today,
-            });
+                if (existingDelivery) {
+                    console.log(`[CRON] ⚠️  Delivery already exists for user ${user.id} (${user.name}), skipping`);
+                    // Update flag if delivery exists but flag is false
+                    await User.update(
+                        { delivered_evening: true },
+                        { where: { id: user.id } }
+                    );
+                    continue;
+                }
 
-            // Mark user as delivered
-            await User.update(
-                { delivered_evening: true },
-                { where: { id: user.id } }
-            );
+                // Validate user data
+                if (!user.milk_type || !user.quantity || Number(user.quantity) <= 0) {
+                    console.log(`[CRON] ⚠️  Invalid user data for user ${user.id} (${user.name}): milk_type=${user.milk_type}, quantity=${user.quantity}`);
+                    errorCount++;
+                    continue;
+                }
+
+                let quantityArray;
+                // NOTE: quantity_array format is [pure, cow, buffalo]
+                if (user.milk_type == "buffalo") {
+                    quantityArray = [0, 0, Number(user.quantity) || 0];
+                }
+                else if (user.milk_type == "cow") {
+                    quantityArray = [0, Number(user.quantity) || 0, 0];
+                }
+                else if (user.milk_type == "pure") {
+                    quantityArray = [Number(user.quantity) || 0, 0, 0];
+                }
+                else {
+                    console.log(`[CRON] ⚠️  Unknown milk_type for user ${user.id} (${user.name}): ${user.milk_type}`);
+                    errorCount++;
+                    continue;
+                }
+
+                // Validate quantity array
+                if (!Array.isArray(quantityArray) || quantityArray.length !== 3) {
+                    console.log(`[CRON] ⚠️  Invalid quantity array for user ${user.id} (${user.name})`);
+                    errorCount++;
+                    continue;
+                }
+
+                // Use transaction to ensure data consistency
+                const sequelize = User.sequelize;
+                const transaction = await sequelize.transaction();
+
+                try {
+                    // Insert into DeliveryStatus
+                    await DeliveryStatus.create({
+                        userid: user.id,
+                        quantity_array: JSON.stringify(quantityArray),
+                        shift: "evening",
+                        status: true,
+                        date: today,
+                    }, { transaction });
+
+                    // Mark user as delivered
+                    await User.update(
+                        { delivered_evening: true },
+                        { where: { id: user.id }, transaction }
+                    );
+
+                    await transaction.commit();
+                    successCount++;
+                    console.log(`[CRON] ✅ Auto-delivered evening milk for user ${user.id} (${user.name}): ${user.quantity}L ${user.milk_type}`);
+                } catch (transactionError) {
+                    await transaction.rollback();
+                    throw transactionError;
+                }
+            } catch (userError) {
+                errorCount++;
+                console.error(`[CRON] ❌ Error processing user ${user.id} (${user.name}):`, userError.message);
+                // Continue with next user instead of stopping
+            }
         }
 
         // 2️⃣ Auto-update additional evening orders
@@ -388,31 +632,80 @@ cron.schedule("30 23 * * *", async () => {
             },
         });
 
+        console.log(`[CRON] Found ${additionalOrders.length} additional evening orders`);
+
         for (const order of additionalOrders) {
-            const user = order.user;
-            const quantityArray = order.quantity_array;
+            try {
+                const user = order.user;
+                if (!user) {
+                    console.log(`[CRON] ⚠️  Additional order ${order.additinalOrder_id} has no user, skipping`);
+                    continue;
+                }
 
-            await DeliveryStatus.create({
-                userid: user.id,
-                quantity_array: quantityArray,
-                shift: "evening",
-                status: true,
-                date: today,
-            });
+                // Check if delivery already exists
+                const existingDelivery = await DeliveryStatus.findOne({
+                    where: {
+                        userid: user.id,
+                        shift: "evening",
+                        date: today,
+                    },
+                });
 
-            await AdditionalOrder.update(
-                { status: true },
-                { where: { additinalOrder_id: order.additinalOrder_id } }
-            );
+                if (existingDelivery) {
+                    console.log(`[CRON] ⚠️  Delivery already exists for additional order ${order.additinalOrder_id}, skipping`);
+                    await AdditionalOrder.update(
+                        { status: true },
+                        { where: { additinalOrder_id: order.additinalOrder_id } }
+                    );
+                    continue;
+                }
 
-            await User.update(
-                { delivered_evening: true },
-                { where: { id: user.id } }
-            );
+                const quantityArray = order.quantity_array;
+                if (!quantityArray || !Array.isArray(quantityArray)) {
+                    console.log(`[CRON] ⚠️  Invalid quantity_array for additional order ${order.additinalOrder_id}`);
+                    continue;
+                }
+
+                const sequelize = User.sequelize;
+                const transaction = await sequelize.transaction();
+
+                try {
+                    await DeliveryStatus.create({
+                        userid: user.id,
+                        quantity_array: Array.isArray(quantityArray) ? JSON.stringify(quantityArray) : quantityArray,
+                        shift: "evening",
+                        status: true,
+                        date: today,
+                    }, { transaction });
+
+                    await AdditionalOrder.update(
+                        { status: true },
+                        { where: { additinalOrder_id: order.additinalOrder_id }, transaction }
+                    );
+
+                    await User.update(
+                        { delivered_evening: true },
+                        { where: { id: user.id }, transaction }
+                    );
+
+                    await transaction.commit();
+                    successCount++;
+                    console.log(`[CRON] ✅ Processed additional evening order ${order.additinalOrder_id} for user ${user.id}`);
+                } catch (transactionError) {
+                    await transaction.rollback();
+                    throw transactionError;
+                }
+            } catch (orderError) {
+                errorCount++;
+                console.error(`[CRON] ❌ Error processing additional order ${order.additinalOrder_id}:`, orderError.message);
+            }
         }
 
-        // console.log("✅ Auto-update complete for evening deliveries.");
+        console.log(`[CRON] 🌆 Evening Auto-Delivery completed: ${successCount} successful, ${errorCount} errors`);
     } catch (error) {
-        console.error("❌ Evening Cron Error:", error.message);
+        console.error(`[CRON] ❌ Evening Cron Error:`, error.message);
+        console.error(error.stack);
+    } finally {
+        cronLocks.evening = false;
     }
 });

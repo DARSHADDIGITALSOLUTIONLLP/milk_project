@@ -250,12 +250,18 @@ function Customer_Morning() {
 
   // Update payment details when month changes
   useEffect(() => {
-    if (dairyCardData.paymentHistory.length > 0 && showDairyCardModal) {
+    if (showDairyCardModal) {
       const selectedMonth = activeMonth.getMonth() + 1;
       const selectedYear = activeMonth.getFullYear();
       const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
 
-      const entry = dairyCardData.paymentHistory.find((p) => p.month_year === monthStr);
+      // Try to find entry for current month
+      let entry = dairyCardData.paymentHistory.find((p) => p.month_year === monthStr);
+
+      // If no entry for current month, use the most recent entry
+      if (!entry && dairyCardData.paymentHistory.length > 0) {
+        entry = dairyCardData.paymentHistory[0]; // Most recent (already sorted DESC)
+      }
 
       if (entry) {
         const endDate = new Date(selectedYear, selectedMonth, 0);
@@ -270,7 +276,17 @@ function Customer_Morning() {
           received_payment: entry.received_payment || 0,
         });
       } else {
-        setCurrentPaymentDetails({});
+        // Initialize with default values if no payment history exists
+        setCurrentPaymentDetails({
+          start_date: "",
+          end_date: "",
+          payment: 0,
+          totalbalancepayment: 0,
+          delivery_charges: 0,
+          advance_payment: selectedCustomerForView?.advance_payment || 0,
+          status: "false",
+          received_payment: 0,
+        });
       }
     }
   }, [activeMonth, dairyCardData.paymentHistory, showDairyCardModal, selectedCustomerForView]);
