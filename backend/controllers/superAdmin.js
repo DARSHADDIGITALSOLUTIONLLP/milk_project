@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const moment = require("moment-timezone");
 const SuperAdmin = require("../models/SuperAdmin");
 const Admin = require("../models/Admin.js");
 const User = require("../models/User.js");
@@ -162,19 +163,24 @@ module.exports.login = async (req, res) => {
 
         // Check if corresponding Admin (with same dairy_name) has status=true
         const admin = await Admin.findOne({ where: { dairy_name: user.dairy_name } });
-        // Check end_date against today's date
-        const today = new Date();
-        const endDate = new Date(admin.end_date);
-        if (today > endDate) {
-          return res.status(403).json({
-            message: "Login not allowed. Your access period has expired.",
-          });
-        }
+        
+        // Check if admin exists first
         if (!admin || !admin.request) {
           return res.status(403).json({
             message:
               "Login not allowed. Associated Admin's status is not approved.",
           });
+        }
+        
+        // Check end_date against today's date using IST timezone
+        if (admin.end_date) {
+          const today = moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
+          const endDate = moment.tz(admin.end_date, "Asia/Kolkata").format("YYYY-MM-DD");
+          if (today > endDate) {
+            return res.status(403).json({
+              message: "Login not allowed. Your access period has expired.",
+            });
+          }
         }
       }
     }
