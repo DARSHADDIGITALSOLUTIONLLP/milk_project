@@ -417,11 +417,13 @@ cron.schedule("01 14 * * *", async () => {
 
                 if (existingDelivery) {
                     console.log(`[CRON] ⚠️  Delivery already exists for user ${user.id} (${user.name}), skipping`);
-                    // Update flag if delivery exists but flag is false
-                    await User.update(
-                        { delivered_morning: true },
-                        { where: { id: user.id } }
-                    );
+                    // Only mark delivered if status is true; keep false if Not Present
+                    if (existingDelivery.status === true) {
+                        await User.update(
+                            { delivered_morning: true },
+                            { where: { id: user.id } }
+                        );
+                    }
                     continue;
                 }
 
@@ -627,11 +629,13 @@ cron.schedule("30 23 * * *", async () => {
 
                 if (existingDelivery) {
                     console.log(`[CRON] ⚠️  Delivery already exists for user ${user.id} (${user.name}), skipping`);
-                    // Update flag if delivery exists but flag is false
-                    await User.update(
-                        { delivered_evening: true },
-                { where: { id: user.id } }
-            );
+                    // Only mark delivered if status is true; keep false if Not Present
+                    if (existingDelivery.status === true) {
+                        await User.update(
+                            { delivered_evening: true },
+                            { where: { id: user.id } }
+                        );
+                    }
                     continue;
         }
 
