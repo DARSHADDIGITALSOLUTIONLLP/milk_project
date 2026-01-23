@@ -132,16 +132,7 @@ module.exports.UpdateDeliveryStatus = async (req, res) => {
             Number(buffaloQuantity) || 0
         ];
 
-        let updateField = {};
-        if (shift.toLowerCase() === "morning") {
-            updateField = { delivered_morning: true };
-        } else {
-            updateField = { delivered_evening: true };
-        }
-
-
-
-        // Insert into DeliveryStatus table
+        // Insert into DeliveryStatus table first
         await DeliveryStatus.create({
             userid: id,
             quantity_array: JSON.stringify(quantityArray),
@@ -149,6 +140,19 @@ module.exports.UpdateDeliveryStatus = async (req, res) => {
             status: delivery_status,
             date: now.format("YYYY-MM-DD"),
         });
+
+        // Only mark as delivered if delivery_status is true (Delivered), not if false (Not Present)
+        let updateField = {};
+        if (delivery_status === true) {
+            // Only set delivered to true if status is true (Delivered)
+            if (shift.toLowerCase() === "morning") {
+                updateField = { delivered_morning: true };
+            } else {
+                updateField = { delivered_evening: true };
+            }
+        }
+        // If delivery_status is false (Not Present), don't update delivered_morning/delivered_evening
+        // This allows the order to remain in the pending list
 
         // ✅ Check and update today's additional order if exists
         const todayDate = now.format("YYYY-MM-DD");
@@ -209,6 +213,9 @@ module.exports.morningPendingOrders = async (req, res) => {
                 request: true,
                 vacation_mode_morning: false,
                 delivered_morning: false,
+                shift: {
+                    [Op.or]: ["morning", "both"],
+                },
                 start_date: { [Op.lte]: today }, // Extract only the date for comparison
             },
             attributes: { exclude: ["password_hash"] },
@@ -273,6 +280,9 @@ module.exports.eveningPendingOrders = async (req, res) => {
                 request: true,
                 vacation_mode_evening: false,
                 delivered_evening: false,
+                shift: {
+                    [Op.or]: ["evening", "both"],
+                },
                 start_date: { [Op.lte]: today }, // Compare only date
             },
             attributes: { exclude: ["password_hash"] },

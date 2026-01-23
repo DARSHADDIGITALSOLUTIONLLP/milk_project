@@ -1,0 +1,42 @@
+.admin-notification-modal .modal-body {
+  padding: 20px;
+}
+
+.admin-notification-modal .alert {
+  border-left: 4px solid #0dcaf0;
+}
+
+.admin-notification-modal textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Shared styles for modal and full-page manage screen */
+.admin-notification-modal .form-check {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-notification-modal .form-check-input {
+  width: 2.5rem;
+  height: 1.4rem;
+  cursor: pointer;
+  margin-left: 0 !important;  /* override Bootstrap negative margin that pushes it outside */
+  margin-right: 10px;         /* space between switch and label */
+}
+
+.admin-notification-modal .form-check-label {
+  cursor: pointer;
+  margin-left: 0;
+  flex: 1;
+}
+
+/* Extra top padding on manage page so content is clearly below fixed header */
+.admin-notification-modal.main-content {
+  padding-top: 120px;
+}

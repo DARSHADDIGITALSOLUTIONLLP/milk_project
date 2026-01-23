@@ -356,6 +356,37 @@ router.put(
   adminController.add_Farmer_Rate
 );
 
+// Customer Notification Management (Admin)
+router.put(
+  "/update-customer-notification",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.updateCustomerNotification
+);
+
+router.get(
+  "/get-customer-notification",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getCustomerNotification
+);
+
+// Get pending vacation notifications
+router.get(
+  "/pending-vacation-notifications",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getPendingVacationNotifications
+);
+
+// Acknowledge vacation notifications
+router.post(
+  "/acknowledge-vacation-notifications",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.acknowledgeVacationNotifications
+);
+
 //Get Api to get rates for farmer
 router.get(
   "/get_farmer_Milkrate",

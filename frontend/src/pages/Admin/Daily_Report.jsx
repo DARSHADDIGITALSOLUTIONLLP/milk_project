@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Container, Spinner } from "react-bootstrap";
+import { Container, Spinner, Button } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import WindowHeader from "../../window_partial/window_header";
 import axios from "axios";
@@ -7,6 +7,9 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Daily_Report.css";
 import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
+import jsPDF from "jspdf";
+// Import autoTable plugin - this extends jsPDF prototype
+import "jspdf-autotable";
 
 function Daily_Report() {
   const [reportData, setReportData] = useState({
@@ -24,8 +27,11 @@ function Daily_Report() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const todayStr = new Date().toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(todayStr);
+  // Initialize with first and last day of current month for better default view
+  const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+  const currentMonthEnd = todayStr;
+  const [startDate, setStartDate] = useState(currentMonthStart);
+  const [endDate, setEndDate] = useState(currentMonthEnd);
   const [monthlyReportData, setMonthlyReportData] = useState([]);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
   const [deliveryBoyInfo, setDeliveryBoyInfo] = useState(null);
@@ -87,6 +93,25 @@ function Daily_Report() {
       fetchDailyReport(); // Refresh cards when month/year changes
     }
   }, [selectedDeliveryBoy, selectedMonth, selectedYear]);
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    if (selectedDeliveryBoy && startDate && endDate) {
+      // Extract month and year from startDate for API call
+      const startDateObj = new Date(startDate);
+      const year = startDateObj.getFullYear();
+      const month = startDateObj.getMonth() + 1;
+      
+      // Update selectedYear and selectedMonth if they changed
+      if (year !== selectedYear || month !== selectedMonth) {
+        setSelectedYear(year);
+        setSelectedMonth(month);
+      } else {
+        // If month/year didn't change, manually trigger fetch
+        fetchDeliveryBoyMonthlyReport();
+      }
+    }
+  }, [startDate, endDate]);
 
   const fetchDailyReport = async () => {
     try {
@@ -357,6 +382,202 @@ function Daily_Report() {
     resetKey: safeColumnPage,
   });
 
+  // PDF Export Function
+  const exportToPDF = () => {
+    try {
+      // Validate data
+      if (!filteredMonthlyReportData || filteredMonthlyReportData.length === 0) {
+        toast.error('No data available to export. Please select a delivery boy and date range.');
+        return;
+      }
+
+      // Create jsPDF instance (autoTable is loaded via side-effect import at top)
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Generate PDF content
+      generatePDF(doc);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      console.error('Error details:', error.message, error.stack);
+      toast.error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  // Helper function to generate PDF content
+  const generatePDF = (doc) => {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Header
+      doc.setFontSize(20);
+      doc.setFont(undefined, 'bold');
+      doc.text('Daily Report', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+
+      // Date Range
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'normal');
+      const dateRangeText = startDate && endDate
+        ? `Date Range: ${new Date(startDate).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })} to ${new Date(endDate).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}`
+        : `Month: ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}`;
+      doc.text(dateRangeText, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+
+      // Summary Cards Section
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('Summary', 14, yPosition);
+      yPosition += 8;
+
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      const summaryData = [
+        ['Total Milk', `${(reportData.overall_total_milk || 0).toFixed(2)} ltr`],
+        ['Given to Delivery', `${(reportData.total_milk_given_to_delivery_boy || 0).toFixed(2)} ltr`],
+        ['Milk Delivered', `${(reportData.total_milk_delivered || 0).toFixed(2)} ltr`],
+        ['Remaining Milk', `${(reportData.remaining_milk || 0).toFixed(2)} ltr`],
+      ];
+
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Metric', 'Value']],
+        body: summaryData,
+        theme: 'striped',
+        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 10 },
+        margin: { left: 14, right: 14 },
+      });
+
+      yPosition = (doc.lastAutoTable?.finalY || yPosition) + 15;
+
+      // Delivery Boy Info
+      if (deliveryBoyInfo) {
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Delivery Boy: ${deliveryBoyInfo.name} (${deliveryBoyInfo.email})`, 14, yPosition);
+        yPosition += 10;
+      }
+
+      // Table Data
+      if (filteredMonthlyReportData.length > 0) {
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Delivery Boy Monthly Report', 14, yPosition);
+        yPosition += 8;
+
+        // Prepare table data
+        const tableData = filteredMonthlyReportData.map((row, index) => {
+          let dateStr = 'N/A';
+          try {
+            if (row.date) {
+              const dateObj = new Date(row.date);
+              if (!isNaN(dateObj.getTime())) {
+                dateStr = dateObj.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('Error parsing date:', row.date, e);
+          }
+          
+          return [
+            index + 1,
+            dateStr,
+            parseFloat(row.pure_given || 0).toFixed(2),
+            parseFloat(row.cow_given || 0).toFixed(2),
+            parseFloat(row.buffalo_given || 0).toFixed(2),
+            parseFloat(row.milk_given || 0).toFixed(2),
+            parseFloat(row.pure_delivered || 0).toFixed(2),
+            parseFloat(row.cow_delivered || 0).toFixed(2),
+            parseFloat(row.buffalo_delivered || 0).toFixed(2),
+            parseFloat(row.milk_delivered || 0).toFixed(2),
+            parseFloat(row.pure_remaining || 0).toFixed(2),
+            parseFloat(row.cow_remaining || 0).toFixed(2),
+            parseFloat(row.buffalo_remaining || 0).toFixed(2),
+            parseFloat(row.remaining_milk || 0).toFixed(2),
+          ];
+        });
+
+        doc.autoTable({
+          startY: yPosition,
+          head: [[
+            'Sr No.',
+            'Date',
+            'Pure Given (ltr)',
+            'Cow Given (ltr)',
+            'Buffalo Given (ltr)',
+            'Total Given (ltr)',
+            'Pure Delivered (ltr)',
+            'Cow Delivered (ltr)',
+            'Buffalo Delivered (ltr)',
+            'Total Delivered (ltr)',
+            'Pure Remaining (ltr)',
+            'Cow Remaining (ltr)',
+            'Buffalo Remaining (ltr)',
+            'Total Remaining (ltr)',
+          ]],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 2 },
+          margin: { left: 14, right: 14 },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 30 },
+          },
+        });
+      } else {
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('No data available for the selected date range.', 14, yPosition);
+      }
+
+      // Footer
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(
+          `Page ${i} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+        doc.text(
+          `Generated on: ${new Date().toLocaleString("en-US")}`,
+          pageWidth / 2,
+          pageHeight - 5,
+          { align: 'center' }
+        );
+      }
+
+      // Generate filename (sanitize date strings)
+      const sanitizeDate = (dateStr) => dateStr ? dateStr.replace(/-/g, '_') : 'all';
+      const filename = `Daily_Report_${sanitizeDate(startDate)}_to_${sanitizeDate(endDate)}_${Date.now()}.pdf`;
+      
+      doc.save(filename);
+      toast.success('PDF exported successfully!');
+  };
+
   return (
     <div>
       <WindowHeader dashboardText="Daily Report" />
@@ -379,16 +600,32 @@ function Daily_Report() {
           theme="light"
         />
 
-        <div className="daily-report-header">
-          <h2 className="page-title">Daily Report</h2>
-          <p className="report-date">
-            Date:{" "}
-            {today.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+        <div className="daily-report-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h2 className="page-title">Daily Report</h2>
+            <p className="report-date">
+              Date:{" "}
+              {today.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+          <Button
+            variant="success"
+            onClick={exportToPDF}
+            style={{
+              backgroundColor: "#28a745",
+              borderColor: "#28a745",
+              padding: "8px 20px",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+            disabled={loading || monthlyLoading || filteredMonthlyReportData.length === 0}
+          >
+            📄 Export PDF
+          </Button>
         </div>
 
         {loading && (

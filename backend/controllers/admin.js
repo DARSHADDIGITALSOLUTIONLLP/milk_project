@@ -12,6 +12,7 @@ const AdditionalOrder = require("../models/additinalOrder");
 const Farmer = require("../models/Farmer");
 const DailyFarmerOrder = require("../models/DailyFarmerOrder");
 const FarmerPayment = require("../models/FarmerPayment");
+const Vacation = require("../models/vacations");
 
 const { Op, fn, col, Sequelize } = require("sequelize");
 const { sequelize } = require("../models"); // adjust the path as needed
@@ -1518,8 +1519,20 @@ module.exports.getAdminUsersLastMonthPayments = async (req, res) => {
     // 🔹 Merge users with payment info and total received of last 3 months
     const usersWithStatus = paymentRecords.map((payment) => {
       const user = users.find((u) => u.id === payment.userid);
+      
+      // Convert qr_image Buffer to proper format for frontend
+      let qr_image_data = null;
+      if (user.qr_image && Buffer.isBuffer(user.qr_image)) {
+        // Convert Buffer to base64 string for easier frontend handling
+        qr_image_data = {
+          type: 'Buffer',
+          data: Array.from(user.qr_image)
+        };
+      }
+      
       return {
         ...user.dataValues,
+        qr_image: qr_image_data, // Replace with properly formatted data
         payment: payment.payment,
         pending_payment: payment.pending_payment,
         month_year: payment.month_year,
@@ -2843,6 +2856,87 @@ module.exports.updateFCMToken = async (req, res) => {
   }
 };
 
+// Update Customer Notification (Admin)
+module.exports.updateCustomerNotification = async (req, res) => {
+  try {
+    const { customer_notification, customer_notification_active } = req.body;
+    const { dairy_name } = req.user; // Get admin's dairy name from token
+
+    // Validate input
+    if (customer_notification_active !== undefined && typeof customer_notification_active !== 'boolean') {
+      return res.status(400).json({ 
+        message: "customer_notification_active must be a boolean (true or false)." 
+      });
+    }
+
+    // Find the admin
+    const admin = await Admin.findOne({ where: { dairy_name } });
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    // Prepare update object
+    const updateData = {};
+    if (customer_notification !== undefined) {
+      updateData.customer_notification = customer_notification || null;
+    }
+    if (customer_notification_active !== undefined) {
+      updateData.customer_notification_active = customer_notification_active;
+    }
+    if (customer_notification !== undefined || customer_notification_active !== undefined) {
+      updateData.customer_notification_updated_at = new Date();
+    }
+
+    // Update admin
+    await admin.update(updateData);
+
+    res.status(200).json({
+      message: "Customer notification updated successfully.",
+      notification: {
+        message: admin.customer_notification,
+        active: admin.customer_notification_active,
+        updated_at: admin.customer_notification_updated_at
+      }
+    });
+  } catch (error) {
+    console.error("Error updating customer notification:", error);
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Get Customer Notification (Admin - to view current notification)
+module.exports.getCustomerNotification = async (req, res) => {
+  try {
+    const { dairy_name } = req.user; // Get admin's dairy name from token
+
+    const admin = await Admin.findOne({ 
+      where: { dairy_name },
+      attributes: ['customer_notification', 'customer_notification_active', 'customer_notification_updated_at']
+    });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    res.status(200).json({
+      notification: {
+        message: admin.customer_notification || "",
+        active: admin.customer_notification_active || false,
+        updated_at: admin.customer_notification_updated_at || null
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching customer notification:", error);
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports.add_Farmer_Rate = async (req, res) => {
   try {
     const { farmer_cow_rate, farmer_buffalo_rate, farmer_pure_rate } = req.body;
@@ -3824,5 +3918,117 @@ module.exports.getCustomerRates = async (req, res) => {
   } catch (error) {
     console.error("Error fetching customer rates:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Get pending vacation notifications for admin
+module.exports.getPendingVacationNotifications = async (req, res) => {
+  try {
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res.status(403).json({ message: "Unauthorized: Dairy name missing." });
+    }
+
+    // Get all users under this admin's dairy
+    const dairyUsers = await User.findAll({
+      where: { dairy_name },
+      attributes: ["id"],
+    });
+
+    const userIds = dairyUsers.map(user => user.id);
+
+    if (userIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No customers found.",
+        vacations: [],
+      });
+    }
+
+    // Get all pending vacation notifications (not yet acknowledged by admin)
+    const pendingVacations = await Vacation.findAll({
+      where: {
+        user_id: { [Op.in]: userIds },
+        admin_notified: false,
+      },
+      include: [
+        {
+          model: User,
+          as: "User",
+          attributes: ["id", "name", "email", "contact", "shift"],
+        },
+      ],
+      order: [["vacation_start", "ASC"]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending vacations fetched successfully.",
+      vacations: pendingVacations,
+      count: pendingVacations.length,
+    });
+  } catch (error) {
+    console.error("Error fetching pending vacations:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Mark vacation notifications as acknowledged by admin
+module.exports.acknowledgeVacationNotifications = async (req, res) => {
+  try {
+    const { vacation_ids } = req.body; // Array of vacation IDs to acknowledge
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res.status(403).json({ message: "Unauthorized: Dairy name missing." });
+    }
+
+    if (!vacation_ids || !Array.isArray(vacation_ids) || vacation_ids.length === 0) {
+      return res.status(400).json({ message: "Vacation IDs are required." });
+    }
+
+    // Verify that these vacations belong to this admin's dairy
+    const vacations = await Vacation.findAll({
+      where: { id: { [Op.in]: vacation_ids } },
+      include: [
+        {
+          model: User,
+          as: "User",
+          where: { dairy_name },
+          attributes: ["id"],
+        },
+      ],
+    });
+
+    if (vacations.length === 0) {
+      return res.status(404).json({ message: "No matching vacations found." });
+    }
+
+    // Mark as notified
+    await Vacation.update(
+      {
+        admin_notified: true,
+        admin_notified_at: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss"),
+      },
+      {
+        where: { id: { [Op.in]: vacation_ids } },
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Vacation notifications acknowledged successfully.",
+      acknowledged_count: vacations.length,
+    });
+  } catch (error) {
+    console.error("Error acknowledging vacation notifications:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };

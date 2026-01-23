@@ -9,6 +9,10 @@ import "react-toastify/dist/ReactToastify.css";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { Link } from "react-router-dom";
+import { generateToken, messaging } from "../../notifications/firebase";
+import { onMessage } from "firebase/messaging";
+import FestivalGreeting from "../../components/FestivalGreeting";
+import CustomerNotificationPopup from "../../components/CustomerNotificationPopup";
 
 function User_Dashboard() {
   const [payShow, setpayShow] = useState(false);
@@ -416,6 +420,67 @@ function User_Dashboard() {
     fetchPaymentSummary();
   }, []);
 
+  // Register FCM Token and Listen for Notifications
+  useEffect(() => {
+    const registerFCMToken = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        // Generate FCM token
+        const fcm_token = await generateToken();
+        if (!fcm_token) {
+          console.log("FCM token not generated. User may have denied notification permission.");
+          return;
+        }
+
+        // Register FCM token with backend
+        try {
+          await axios.put(
+            "/api/user/update_fcm_token",
+            { fcm_token: fcm_token },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          console.log("FCM token registered successfully for customer");
+        } catch (error) {
+          console.error("Error updating FCM token:", error);
+        }
+
+        // Listen for incoming messages (foreground notifications)
+        onMessage(messaging, (payload) => {
+          console.log("Message received:", payload);
+          
+          // Show notification toast
+          if (payload.notification) {
+            toast.info(payload.notification.body, {
+              position: "top-center",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+          }
+
+          // Handle festival greeting notifications
+          if (payload.data && payload.data.type === "festival_greeting") {
+            // The FestivalGreeting component will handle displaying the banner
+            // Force a re-render by updating state if needed
+            console.log("Festival greeting received:", payload.data.festival_name);
+          }
+        });
+      } catch (error) {
+        console.error("Error in FCM setup:", error);
+      }
+    };
+
+    registerFCMToken();
+  }, []);
+
   useEffect(() => {
     const selectedMonth = activeMonth.getMonth() + 1;
     const selectedYear = activeMonth.getFullYear();
@@ -496,11 +561,11 @@ function User_Dashboard() {
 
         setDaysRemaining(calculatedDaysRemaining);
 
-        if (calculatedDaysRemaining > 0 && calculatedDaysRemaining <= 7) {
-          setError(
-            `Your subscription for this month is expiring soon (within ${calculatedDaysRemaining} days).`
-          );
-        }
+        // NOTE:
+        // We intentionally do NOT show the
+        // \"Your subscription is expiring soon\" warning anymore.
+        // As per requirement, only pending payment and expired warnings
+        // should be shown on the user dashboard.
 
         // ✅ Get current month-year string (e.g., "2025-04")
         const currentMonthYear = `${today.getFullYear()}-${String(
@@ -550,6 +615,8 @@ function User_Dashboard() {
   return (
     <>
       <Userheader ref={userHeaderRef}></Userheader>
+      {/* Customer Notification Popup - Shows admin's notification on login */}
+      <CustomerNotificationPopup />
       <ToastContainer
         stacked
         position="top-center"
@@ -566,6 +633,12 @@ function User_Dashboard() {
       />
       <Container fluid>
         <Container>
+          {/* Festival Greeting Banner */}
+          <Row className="mt-3">
+            <Col>
+              <FestivalGreeting />
+            </Col>
+          </Row>
           <Row className="mt-3 mb-3">
             <Col lg={6} md={12} className="mt-2">
               <div className="milk-card-container">

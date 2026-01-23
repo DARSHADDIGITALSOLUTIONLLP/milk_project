@@ -21,6 +21,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { forwardRef, useImperativeHandle } from "react";
+import GoogleTranslateV2 from "../../components/GoogleTranslateV2";
 
 const Userheader = forwardRef((prop, ref) => {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
@@ -333,13 +334,20 @@ const Userheader = forwardRef((prop, ref) => {
               </div>
 
               <Nav
-                className="ml-auto nav-dropdown d-none d-lg-block"
+                className="ml-auto nav-dropdown d-none d-lg-flex"
                 style={{
                   position: "relative",
                   align: "end",
                   marginRight: "50px",
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "nowrap",
+                  gap: "15px",
                 }}
               >
+                {/* Google Translate Widget */}
+                <GoogleTranslateV2 />
+                
                 <NavDropdown
                   title={
                     <span

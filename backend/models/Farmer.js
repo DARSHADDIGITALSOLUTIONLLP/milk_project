@@ -69,7 +69,6 @@ const Farmer = sequelize.define(
             type: DataTypes.DATEONLY,
             allowNull: true,
         },
-
         created_at: {
             type: DataTypes.DATE,
             allowNull: false,

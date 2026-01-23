@@ -11,6 +11,7 @@ import Dairy_List from "../pages/SuperAdmin/Dairy_List";
 import User_Dashboard from "../pages/User/User_Dashboard";
 import AddItem from "../pages/User/AddItem";
 import Admin_Dashboard from "../pages/Admin/Admin_Dashboard";
+import Manage_Customer_Notification from "../pages/Admin/Manage_Customer_Notification";
 import User_Request from "../pages/Admin/User_Request";
 import Admin_Customer_List from "../pages/Admin/Admin_Customer_List";
 import Additional_Orders from "../pages/Admin/Additional_Orders";
@@ -186,6 +187,15 @@ function AllRoutes() {
       <Route
         path="/admin-dashboard"
         element={<UserRoleRoute role="admin" component={<Admin_Dashboard />} />}
+      />
+      <Route
+        path="/manage-customer-notification"
+        element={
+          <UserRoleRoute
+            role="admin"
+            component={<Manage_Customer_Notification />}
+          />
+        }
       />
       <Route
         path="/admin-customer-list"

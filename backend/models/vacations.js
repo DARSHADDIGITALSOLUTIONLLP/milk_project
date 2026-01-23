@@ -34,9 +34,33 @@ const Vacation = sequelize.define("Vacation", {
             isIn: [["morning", "evening", "both"]], // Ensures only valid values
         },
     },
+    admin_notified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Whether the admin has been notified and acknowledged this vacation",
+    },
+    admin_notified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Whether the admin has been notified and acknowledged this vacation",
+    },
+    admin_notified_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
+        comment: "Timestamp when admin acknowledged the vacation notification",
+    },
 }, {
     timestamps: false,
     tableName: "vacations",
+});
+
+// Define association with alias for eager loading
+Vacation.belongsTo(User, {
+    foreignKey: "user_id",
+    as: "User",
 });
 
 module.exports = Vacation;

@@ -1,0 +1,279 @@
+/* Google Translate Wrapper */
+.google-translate-wrapper {
+  position: relative;
+  z-index: 1055; /* Higher than navbar (1050) to ensure dropdown is visible */
+  display: inline-flex; /* Changed from inline-block to inline-flex for better alignment */
+  align-items: center; /* Vertical alignment */
+  margin-right: 15px; /* Space between translate and user dropdown */
+  vertical-align: middle; /* Ensure proper alignment with user dropdown */
+}
+
+/* Hide default Google Translate widget */
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+/* Dropdown Container */
+.translate-dropdown {
+  position: relative !important; /* Ensure dropdown is positioned relative to this */
+  display: inline-flex !important; /* Changed to inline-flex */
+  align-items: center !important; /* Vertical alignment */
+  vertical-align: middle !important;
+}
+
+/* Custom Dropdown Toggle Button */
+.translate-dropdown .translate-toggle {
+  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  border: none;
+  color: white;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(255, 172, 48, 0.3);
+  transition: all 0.3s ease;
+  font-size: 14px;
+  min-width: 140px;
+  justify-content: center;
+  vertical-align: middle; /* Ensure alignment with adjacent elements */
+}
+
+.translate-dropdown .translate-toggle:hover {
+  background: linear-gradient(135deg, #ff8c00 0%, #ffac30 100%);
+  box-shadow: 0 4px 12px rgba(255, 172, 48, 0.5);
+  transform: translateY(-1px);
+}
+
+.translate-dropdown .translate-toggle:focus,
+.translate-dropdown .translate-toggle:active {
+  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  border: none;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(255, 172, 48, 0.3) !important;
+}
+
+.translate-dropdown .translate-toggle::after {
+  margin-left: auto;
+}
+
+/* Globe Icon */
+.globe-icon {
+  font-size: 16px;
+  animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.translate-toggle:hover .globe-icon {
+  animation-duration: 1s;
+}
+
+/* Language Text */
+.language-text {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* Dropdown Menu */
+.translate-menu {
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  max-width: 280px;
+  min-width: 240px;
+  margin-top: 8px;
+  position: absolute !important; /* Force absolute positioning */
+  z-index: 1070 !important; /* Highest z-index to appear above navbar */
+  top: 100% !important; /* Position below the button */
+  left: 0 !important; /* Align to the left side of the button */
+  right: auto !important; /* Override any right positioning */
+  transform: none !important; /* Remove any transform */
+}
+
+/* Menu Header */
+.translate-menu-header {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px 12px 0 0;
+}
+
+.menu-globe-icon {
+  font-size: 18px;
+}
+
+/* Scrollable Menu Content */
+.translate-menu-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* Custom Scrollbar */
+.translate-menu-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.translate-menu-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.translate-menu-scroll::-webkit-scrollbar-thumb {
+  background: #ffac30;
+  border-radius: 10px;
+}
+
+.translate-menu-scroll::-webkit-scrollbar-thumb:hover {
+  background: #ff8c00;
+}
+
+/* Dropdown Items */
+.translate-item {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  color: #000000 !important; /* Force black text */
+}
+
+.translate-item:hover {
+  background-color: #fff8f0;
+  border-left-color: #ffac30;
+  color: #000000 !important; /* Force black text on hover */
+}
+
+.translate-item.active {
+  background-color: #fff3e0;
+  border-left-color: #ffac30;
+  font-weight: 600;
+  color: #000000 !important; /* Force black text when active */
+}
+
+/* Language Flag */
+.lang-flag {
+  font-size: 20px;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Language Name */
+.lang-name {
+  flex: 1;
+  font-size: 14px;
+  color: #000000 !important; /* Force black with !important */
+  opacity: 1 !important; /* Force full opacity */
+  font-weight: 500; /* Medium weight for better visibility */
+}
+
+.translate-item.active .lang-name {
+  color: #000000 !important; /* Force black */
+  font-weight: 700 !important; /* Bold for active state */
+  opacity: 1 !important; /* Force full opacity */
+}
+
+/* Override Bootstrap dropdown link styles */
+.translate-menu .dropdown-item {
+  color: #000000 !important;
+}
+
+.translate-menu .dropdown-item:hover,
+.translate-menu .dropdown-item:focus {
+  color: #000000 !important;
+}
+
+.translate-menu a,
+.translate-menu a:hover,
+.translate-menu a:focus {
+  color: #000000 !important;
+  text-decoration: none !important;
+}
+
+/* Check Icon */
+.check-icon {
+  color: #ffac30;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+/* Divider */
+.translate-menu .dropdown-divider {
+  margin: 0;
+  border-color: #e0e0e0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .translate-dropdown .translate-toggle {
+    min-width: 120px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .language-text {
+    font-size: 13px;
+  }
+
+  .globe-icon {
+    font-size: 14px;
+  }
+
+  .translate-menu {
+    max-width: 240px;
+    min-width: 200px;
+  }
+
+  .translate-menu-scroll {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 480px) {
+  .translate-dropdown .translate-toggle {
+    min-width: 100px;
+    padding: 6px 10px;
+  }
+
+  .language-text {
+    display: none;
+  }
+
+  .globe-icon {
+    margin: 0 auto;
+  }
+}
+
+/* Fix for Google Translate top bar */
+.skiptranslate {
+  display: none !important;
+}
+
+body > .skiptranslate {
+  display: none !important;
+}
+
+.goog-te-banner-frame {
+  display: none !important;
+}

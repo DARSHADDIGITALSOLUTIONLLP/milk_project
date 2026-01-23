@@ -1,0 +1,52 @@
+.admin-vacation-notification-popup .vacation-notification-header {
+  background-color: #ffac30;
+  color: white;
+  border-bottom: 2px solid #e89b22;
+}
+
+.admin-vacation-notification-popup .vacation-notification-header .modal-title {
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.admin-vacation-notification-popup .vacation-notification-content {
+  padding: 10px 0;
+}
+
+.admin-vacation-notification-popup table {
+  margin-bottom: 0;
+}
+
+.admin-vacation-notification-popup table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.admin-vacation-notification-popup table td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.admin-vacation-notification-popup .vacation-acknowledge-btn {
+  background-color: #ffac30;
+  border-color: #ffac30;
+  font-weight: 600;
+  padding: 10px 30px;
+}
+
+.admin-vacation-notification-popup .vacation-acknowledge-btn:hover {
+  background-color: #e89b22;
+  border-color: #e89b22;
+}
+
+.admin-vacation-notification-popup .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.admin-vacation-notification-popup .badge {
+  font-size: 0.85rem;
+  padding: 5px 10px;
+}

@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const app = express();
 require("dotenv").config();
 require("./cron/paymentCron");
+require("./cron/festivalGreetings"); // Festival greetings cron job
 
 // const { syncModels } = require("./models/index.js");
 // syncModels();

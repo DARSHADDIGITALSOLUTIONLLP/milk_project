@@ -3,6 +3,10 @@ const DailyFarmerOrder = require("../models/DailyFarmerOrder");
 const Farmer = require("../models/Farmer");
 const moment = require("moment-timezone");
 const FarmerPayment = require("../models/FarmerPayment");
+const Admin = require("../models/Admin");
+
+// For file upload (QR image)
+let qr_image = null;
 
 
 module.exports.getFarmerTodaysOrder = async (req, res) => {
@@ -204,6 +208,92 @@ module.exports.getFarmerPaymentHistory = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching farmer payment summary:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+};
+
+// Update Farmer Payment Details (UPI / Bank / QR)
+module.exports.updatePaymentDetails = async (req, res) => {
+    try {
+        const farmerId = req.user.id;
+        if (!farmerId) {
+            return res.status(401).json({ message: "Unauthorized access." });
+        }
+
+        const { upi_address, bank_name, branch_name, account_number, ifsc_code } =
+            req.body;
+
+        if (req.file) {
+            qr_image = req.file.buffer;
+        }
+
+        if (
+            !upi_address ||
+            !bank_name ||
+            !branch_name ||
+            !account_number ||
+            !ifsc_code
+        ) {
+            return res.status(400).json({ message: "Required information missing" });
+        }
+
+        const farmer = await Farmer.findByPk(farmerId);
+        if (!farmer) {
+            return res.status(404).json({ message: "Farmer not found." });
+        }
+
+        farmer.qr_image = qr_image || farmer.qr_image;
+        farmer.upi_address = upi_address || farmer.upi_address;
+        farmer.bank_name = bank_name || farmer.bank_name;
+        farmer.branch_name = branch_name || farmer.branch_name;
+        farmer.account_number = account_number || farmer.account_number;
+        farmer.ifsc_code = ifsc_code || farmer.ifsc_code;
+
+        await farmer.save({ validate: false });
+
+        return res.status(200).json({
+            message: "Farmer payment details updated successfully.",
+        });
+    } catch (error) {
+        console.error("Error updating farmer payment details:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+};
+
+// Get Farmer Payment Details (for showing in UI)
+module.exports.getPaymentDetails = async (req, res) => {
+    try {
+        const farmerId = req.user.id;
+        if (!farmerId) {
+            return res.status(401).json({ message: "Unauthorized access." });
+        }
+
+        const farmer = await Farmer.findByPk(farmerId);
+        if (!farmer) {
+            return res.status(404).json({ message: "Farmer not found." });
+        }
+
+        let qrImageBase64 = null;
+        if (farmer.qr_image) {
+            qrImageBase64 = farmer.qr_image.toString("base64");
+        }
+
+        return res.status(200).json({
+            upi_address: farmer.upi_address || null,
+            bank_name: farmer.bank_name || null,
+            branch_name: farmer.branch_name || null,
+            account_number: farmer.account_number || null,
+            ifsc_code: farmer.ifsc_code || null,
+            qr_image: qrImageBase64,
+        });
+    } catch (error) {
+        console.error("Error fetching farmer payment details:", error);
         return res.status(500).json({
             message: "Internal server error",
             error: error.message,

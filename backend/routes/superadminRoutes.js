@@ -46,4 +46,7 @@ router.post("/send_recovery_email", superAdminController.sendemailOtp);
 
 router.post('/resetPass', superAdminController.resetPass);
 
+// Test Festival Greetings (for testing purposes - SuperAdmin only)
+router.post('/test-festival-greetings', authenticateUser, authorizeRole(["super_admin"]), superAdminController.testFestivalGreetings);
+
 module.exports = router;

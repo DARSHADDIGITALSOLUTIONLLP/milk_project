@@ -1,13 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  Container,
-  Nav,
-  Navbar,
-  NavDropdown,
-  Modal,
-  Button,
-  Image,
-} from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -21,9 +13,10 @@ import "./Farmer_Header.css";
 import logo from "/mauli_logo.png";
 import "./Farmer.css";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
+import GoogleTranslateV2 from "../../components/GoogleTranslateV2";
 
 function WindowHeader({ dashboardText }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -67,10 +60,6 @@ function WindowHeader({ dashboardText }) {
   const handleClose = () => {
     Cookies.remove("Mauli-Dairy", { path: "/" });
     navigate("/");
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
   };
 
   const handleLogout = () => {
@@ -170,8 +159,11 @@ function WindowHeader({ dashboardText }) {
             </div>
             <Nav
               className="ml-auto"
-              style={{ position: "relative", left: "5px" }}
+              style={{ position: "relative", left: "5px", display: "flex", alignItems: "center", gap: "15px" }}
             >
+              {/* Google Translate Widget */}
+              <GoogleTranslateV2 />
+              
               <NavDropdown
                 title={
                   <span style={{ color: "white" }}>
@@ -201,6 +193,7 @@ function WindowHeader({ dashboardText }) {
           </div>
         </Container>
       </Navbar>
+
     </div>
   );
 }

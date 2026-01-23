@@ -48,6 +48,29 @@
   /* padding: 10px 0; */
 }
 
+/* Fix Google Translate dropdown visibility on user dashboard */
+.navbar-dark .nav-dropdown {
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important; /* Ensure vertical alignment */
+  flex-direction: row !important; /* Keep items in a row */
+}
+
+.navbar-dark {
+  overflow: visible !important;
+}
+
+.navbar-dark .container-fluid {
+  overflow: visible !important;
+}
+
+/* Ensure Google Translate aligns with user dropdown */
+.nav-dropdown .google-translate-wrapper {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: center !important;
+}
+
 /* Responsive fixes for mobile nav height and spacing */
 @media (max-width: 576px) {
   .navbar {

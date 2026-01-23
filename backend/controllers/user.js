@@ -538,26 +538,57 @@ module.exports.updatePaymentDetails = async (req, res) => {
     // Extract user ID from JWT token
     const userId = req.user.id;
 
-    let qr_image = null;
-    if (req.file) {
-      qr_image = req.file.buffer; // Store image as buffer
+    console.log(`[Payment Upload] User ID: ${userId} attempting to upload payment proof`);
+
+    // Check if file was uploaded
+    if (!req.file) {
+      console.log(`[Payment Upload] No file received for user ${userId}`);
+      return res.status(400).json({ 
+        message: "No file uploaded. Please select a payment proof image." 
+      });
+    }
+
+    // Log file details
+    console.log(`[Payment Upload] File details:`, {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      sizeKB: (req.file.size / 1024).toFixed(2) + ' KB'
+    });
+
+    const qr_image = req.file.buffer; // Store image as buffer
+
+    // Validate image size (just to be safe)
+    if (req.file.size > 5 * 1024 * 1024) {
+      console.log(`[Payment Upload] File too large: ${(req.file.size / 1024 / 1024).toFixed(2)} MB`);
+      return res.status(400).json({ 
+        message: "File size too large. Maximum size is 5MB." 
+      });
     }
 
     const user = await User.findByPk(userId);
     if (!user) {
+      console.log(`[Payment Upload] User not found: ${userId}`);
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.qr_image = qr_image || user.qr_image;
+    // Update user's payment proof
+    user.qr_image = qr_image;
 
     await user.save({ validate: false });
 
-    res
-      .status(200)
-      .json({ message: "Payment details updated successfully", user });
+    console.log(`[Payment Upload] ✅ Successfully uploaded payment proof for user ${userId} (${user.name})`);
+    console.log(`[Payment Upload] Image size saved: ${(qr_image.length / 1024).toFixed(2)} KB`);
+
+    res.status(200).json({ 
+      message: "Payment proof uploaded successfully! Admin will verify it soon.",
+      success: true,
+      imageSize: (qr_image.length / 1024).toFixed(2) + ' KB'
+    });
   } catch (error) {
+    console.error(`[Payment Upload] Error:`, error);
     res.status(500).json({
-      message: "Error updating payment details",
+      message: "Error uploading payment proof. Please try again.",
       error: error.message,
     });
   }
@@ -1012,5 +1043,98 @@ module.exports.getDairyInfo = async (req, res) => {
   } catch (error) {
     console.error("Error fetching dairy info:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// Update FCM Token for User (Customer)
+module.exports.updateFCMToken = async (req, res) => {
+  try {
+    const userId = req.user.id; // Get user ID from authenticated token
+    const { fcm_token } = req.body; // New FCM token from the client
+
+    // Validate input
+    if (!fcm_token || typeof fcm_token !== 'string' || fcm_token.trim().length === 0) {
+      return res.status(400).json({ message: "FCM token is required and must be a non-empty string." });
+    }
+
+    // Find the user
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Update FCM token (support multiple tokens comma-separated)
+    const trimmedToken = fcm_token.trim();
+    
+    // If user already has tokens, append new one (avoid duplicates)
+    if (user.fcm_token) {
+      const existingTokens = user.fcm_token.split(",").map(t => t.trim());
+      if (!existingTokens.includes(trimmedToken)) {
+        user.fcm_token = user.fcm_token + "," + trimmedToken;
+      } else {
+        // Token already exists, no need to update
+        return res.status(200).json({ message: "FCM token already registered." });
+      }
+    } else {
+      user.fcm_token = trimmedToken;
+    }
+
+    await user.save();
+
+    res.status(200).json({ 
+      message: "FCM token updated successfully.",
+      hasToken: true 
+    });
+  } catch (error) {
+    console.error("Error updating FCM token:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// Get Customer Notification (for customers to see admin's notification)
+module.exports.getCustomerNotification = async (req, res) => {
+  try {
+    const userId = req.user.id; // Get user ID from authenticated token
+
+    // Find the user to get their dairy_name
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Find the admin (dairy owner) for this customer's dairy
+    const admin = await Admin.findOne({ 
+      where: { dairy_name: user.dairy_name },
+      attributes: ['customer_notification', 'customer_notification_active', 'customer_notification_updated_at']
+    });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Dairy not found." });
+    }
+
+    // Only return notification if it's active
+    if (!admin.customer_notification_active || !admin.customer_notification) {
+      return res.status(200).json({
+        notification: {
+          message: null,
+          active: false,
+          updated_at: null
+        }
+      });
+    }
+
+    res.status(200).json({
+      notification: {
+        message: admin.customer_notification,
+        active: admin.customer_notification_active,
+        updated_at: admin.customer_notification_updated_at
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching customer notification:", error);
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

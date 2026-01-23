@@ -135,4 +135,20 @@ router.post(
   userController.additinal_order
 );
 
+// Update FCM Token for notifications
+router.put(
+  "/update_fcm_token",
+  authenticateUser,
+  authorizeRole(["user"]),
+  userController.updateFCMToken
+);
+
+// Get Customer Notification (from admin/dairy owner)
+router.get(
+  "/get-customer-notification",
+  authenticateUser,
+  authorizeRole(["user"]),
+  userController.getCustomerNotification
+);
+
 module.exports = router;

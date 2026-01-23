@@ -25,6 +25,7 @@ import { ToastContainer, toast, Bounce } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
+import GoogleTranslateV2 from "../components/GoogleTranslateV2";
 
 function WindowHeader({ dashboardText }) {
   const location = useLocation();
@@ -692,6 +693,14 @@ function WindowHeader({ dashboardText }) {
             </NavLink>
           </li>
           <li>
+            <NavLink
+              to="/manage-customer-notification"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+            >
+              Manage Customer Notification
+            </NavLink>
+          </li>
+          <li>
             <a
               href="#"
               className="sidebar-link"
@@ -926,8 +935,11 @@ function WindowHeader({ dashboardText }) {
             </div>
             <Nav
               className="ml-auto"
-              style={{ position: "relative", left: "5px" }}
+              style={{ position: "relative", left: "5px", display: "flex", alignItems: "center", gap: "15px" }}
             >
+              {/* Google Translate Widget */}
+              <GoogleTranslateV2 />
+              
               <NavDropdown
                 title={
                   <span style={{ color: "white" }}>

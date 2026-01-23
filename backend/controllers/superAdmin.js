@@ -547,3 +547,103 @@ module.exports.sendemailOtp = async (req, res) => {
     .catch((error) => res.status(500).send(error.message));
 };
 
+// Test Festival Greetings (for testing purposes)
+module.exports.testFestivalGreetings = async (req, res) => {
+  try {
+    const { testDate } = req.body; // Optional: YYYY-MM-DD format, if not provided uses today
+    
+    // Import festival greetings function
+    const { checkAndSendFestivalGreetings } = require("../cron/festivalGreetings");
+    const { getFestivalForDate } = require("../utils/festivals");
+    const moment = require("moment-timezone");
+    
+    // Use provided date or today
+    const dateToTest = testDate || moment.tz("Asia/Kolkata").format("YYYY-MM-DD");
+    
+    // Check if there's a festival on this date
+    const festival = getFestivalForDate(dateToTest);
+    
+    if (!festival) {
+      return res.status(200).json({
+        message: `No festival found for date: ${dateToTest}`,
+        testDate: dateToTest,
+        festival: null,
+        suggestion: "Try testing with 2026-01-26 for Republic Day"
+      });
+    }
+    
+    // Temporarily override the date check in the function
+    // We'll call the function directly which will use today, so we need to modify the logic
+    const originalCheck = require("../cron/festivalGreetings").checkAndSendFestivalGreetings;
+    
+    // Create a modified version that uses the test date
+    const User = require("../models/User");
+    const admin = require("../utils/firebase");
+    const { sendFestivalGreeting } = require("../cron/festivalGreetings");
+    
+    console.log(`[TEST] Testing festival greetings for ${festival.name} on ${dateToTest}`);
+    
+    // Fetch all active CUSTOMERS ONLY (User model = customers, not admins)
+    const activeUsers = await User.findAll({
+      where: {
+        request: true, // Only approved customers
+      },
+      attributes: ['id', 'name', 'email', 'fcm_token'],
+    });
+    
+    console.log(`[TEST] Found ${activeUsers.length} active customers`);
+    
+    let successCount = 0;
+    let failureCount = 0;
+    let skippedCount = 0;
+    const results = [];
+    
+    // Send greetings to all active users
+    for (const user of activeUsers) {
+      const result = await sendFestivalGreeting(user, festival);
+      
+      results.push({
+        userId: user.id,
+        userName: user.name,
+        email: user.email,
+        result: result.success ? 'success' : (result.reason || 'failed'),
+        successCount: result.successCount || 0,
+        failureCount: result.failureCount || 0
+      });
+      
+      if (result.success) {
+        successCount++;
+      } else if (result.reason === "no_token" || result.reason === "no_valid_tokens") {
+        skippedCount++;
+      } else {
+        failureCount++;
+      }
+    }
+    
+    res.status(200).json({
+      message: `Festival greetings test completed for ${festival.name}`,
+      testDate: dateToTest,
+      festival: {
+        name: festival.name,
+        date: festival.date,
+        greeting: festival.greeting
+      },
+      statistics: {
+        totalCustomers: activeUsers.length,
+        successful: successCount,
+        failed: failureCount,
+        skipped: skippedCount
+      },
+      results: results.slice(0, 10), // Show first 10 results
+      note: skippedCount > 0 ? `${skippedCount} customers don't have FCM tokens registered. They need to register their tokens first.` : null
+    });
+    
+  } catch (error) {
+    console.error("Error testing festival greetings:", error);
+    res.status(500).json({
+      message: "Error testing festival greetings",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};

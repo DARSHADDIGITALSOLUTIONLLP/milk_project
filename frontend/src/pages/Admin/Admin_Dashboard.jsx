@@ -12,6 +12,7 @@ import { ToastContainer, toast } from "react-toastify";
 import { onMessage } from "firebase/messaging";
 import { generateToken, messaging } from "../../notifications/firebase";
 import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
+import AdminVacationNotificationPopup from "../../components/AdminVacationNotificationPopup";
 
 function Admin_Dashboard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -720,6 +721,8 @@ function Admin_Dashboard() {
   return (
     <div>
       <WindowHeader dashboardText="Admin Dashboard" />
+      {/* Vacation Notification Popup - Shows when customers apply for vacation */}
+      <AdminVacationNotificationPopup />
       <div
         style={{
           marginTop: isSmallScreen ? "40px" : "0px",
@@ -962,6 +965,8 @@ function Admin_Dashboard() {
               </Container>
             </Modal.Body>
           </Modal>
+
+          {/* Customer Notification Management Modal */}
         </Container>
       </div>
     </div>

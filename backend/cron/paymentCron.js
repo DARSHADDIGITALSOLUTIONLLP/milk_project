@@ -191,21 +191,21 @@ cron.schedule('50 23 * * *', async () => {
 
         for (const vac of vacations) {
             try {
-                const user = await User.findByPk(vac.user_id);
+            const user = await User.findByPk(vac.user_id);
                 if (!user) {
                     console.log(`[CRON] ⚠️  User ${vac.user_id} not found for vacation ${vac.vacation_id}`);
                     errorCount++;
                     continue;
                 }
 
-                if (vac.shift === 'morning' || vac.shift === 'both') {
-                    user.vacation_mode_morning = true;
-                }
-                if (vac.shift === 'evening' || vac.shift === 'both') {
-                    user.vacation_mode_evening = true;
-                }
+            if (vac.shift === 'morning' || vac.shift === 'both') {
+                user.vacation_mode_morning = true;
+            }
+            if (vac.shift === 'evening' || vac.shift === 'both') {
+                user.vacation_mode_evening = true;
+            }
 
-                await user.save();
+            await user.save();
                 successCount++;
                 console.log(`[CRON] ✅ Activated vacation mode for user ${user.id} (${user.name}): ${vac.shift}`);
             } catch (userError) {
@@ -224,16 +224,99 @@ cron.schedule('50 23 * * *', async () => {
 // 2. Reset delivery flags – 11:45 PM
 cron.schedule('45 23 * * *', async () => {
     const now = moment().tz("Asia/Kolkata");
+    const today = now.format("YYYY-MM-DD");
     const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
     
     console.log(`[CRON] 🔄 Delivery Flags Reset started at ${timestamp} IST`);
     
     try {
+        // Step 1: Get all users who should have deliveries today
+        // (approved users, not on vacation, with start_date <= today)
+        const eligibleUsers = await User.findAll({
+            where: {
+                request: true,
+                start_date: { [Op.lte]: today },
+            },
+            attributes: ['id', 'name', 'shift', 'vacation_mode_morning', 'vacation_mode_evening', 'delivered_morning', 'delivered_evening'],
+        });
+
+        // Step 2: Get all delivery status records for today
+        const todayDeliveryStatus = await DeliveryStatus.findAll({
+            where: {
+                date: today,
+            },
+            attributes: ['userid', 'shift', 'status'],
+        });
+
+        // Create a map of users who have delivery status records
+        const usersWithStatus = new Set();
+        const notPresentUsers = new Set(); // Track "Not Present" users
+
+        todayDeliveryStatus.forEach(delivery => {
+            const key = `${delivery.userid}_${delivery.shift}`;
+            usersWithStatus.add(key);
+            if (delivery.status === false) {
+                // "Not Present" - keep as false (don't auto-deliver)
+                notPresentUsers.add(key);
+            }
+        });
+
+        // Step 3: Find users with NO delivery status record (not marked as anything)
+        // These should be auto-marked as delivered
+        let morningAutoDelivered = 0;
+        let eveningAutoDelivered = 0;
+        let notPresentKeptAsFalse = 0;
+
+        for (const user of eligibleUsers) {
+            // Check morning shift
+            if ((user.shift === 'morning' || user.shift === 'both') && !user.vacation_mode_morning) {
+                const morningKey = `${user.id}_morning`;
+                
+                if (notPresentUsers.has(morningKey)) {
+                    // "Not Present" - keep as false (don't change)
+                    notPresentKeptAsFalse++;
+                    console.log(`[CRON] ⚠️  User ${user.id} (${user.name}) - Morning: "Not Present", keeping delivered_morning: false`);
+                } else if (!usersWithStatus.has(morningKey)) {
+                    // No delivery status record - auto-mark as delivered
+                    await User.update(
+                        { delivered_morning: true },
+                        { where: { id: user.id } }
+                    );
+                    morningAutoDelivered++;
+                    console.log(`[CRON] ✅ User ${user.id} (${user.name}) - Morning: No status record, auto-marked as delivered`);
+                }
+            }
+
+            // Check evening shift
+            if ((user.shift === 'evening' || user.shift === 'both') && !user.vacation_mode_evening) {
+                const eveningKey = `${user.id}_evening`;
+                
+                if (notPresentUsers.has(eveningKey)) {
+                    // "Not Present" - keep as false (don't change)
+                    notPresentKeptAsFalse++;
+                    console.log(`[CRON] ⚠️  User ${user.id} (${user.name}) - Evening: "Not Present", keeping delivered_evening: false`);
+                } else if (!usersWithStatus.has(eveningKey)) {
+                    // No delivery status record - auto-mark as delivered
+                    await User.update(
+                        { delivered_evening: true },
+                        { where: { id: user.id } }
+                    );
+                    eveningAutoDelivered++;
+                    console.log(`[CRON] ✅ User ${user.id} (${user.name}) - Evening: No status record, auto-marked as delivered`);
+                }
+            }
+        }
+
+        console.log(`[CRON] 📊 Summary:`);
+        console.log(`   ✅ Auto-delivered (no status): ${morningAutoDelivered} morning, ${eveningAutoDelivered} evening`);
+        console.log(`   ⚠️  Kept as false (Not Present): ${notPresentKeptAsFalse} records`);
+
+        // Step 4: Reset all delivery flags to false for the next day
         const result = await User.update(
             { delivered_morning: false, delivered_evening: false },
             { where: {} }
         );
-        console.log(`[CRON] ✅ Delivery flags reset for ${result[0]} users at 11:45 PM`);
+        console.log(`[CRON] ✅ Delivery flags reset for ${result[0]} users at 11:45 PM (ready for next day)`);
     } catch (err) {
         console.error(`[CRON] ❌ Error resetting delivery flags:`, err.message);
         console.error(err.stack);
@@ -258,21 +341,21 @@ cron.schedule('59 23 * * *', async () => {
 
         for (const vac of vacations) {
             try {
-                const user = await User.findByPk(vac.user_id);
+            const user = await User.findByPk(vac.user_id);
                 if (!user) {
                     console.log(`[CRON] ⚠️  User ${vac.user_id} not found for vacation ${vac.vacation_id}`);
                     errorCount++;
                     continue;
                 }
 
-                if (vac.shift === 'morning' || vac.shift === 'both') {
-                    user.vacation_mode_morning = false;
-                }
-                if (vac.shift === 'evening' || vac.shift === 'both') {
-                    user.vacation_mode_evening = false;
-                }
+            if (vac.shift === 'morning' || vac.shift === 'both') {
+                user.vacation_mode_morning = false;
+            }
+            if (vac.shift === 'evening' || vac.shift === 'both') {
+                user.vacation_mode_evening = false;
+            }
 
-                await user.save();
+            await user.save();
                 successCount++;
                 console.log(`[CRON] ✅ Reset vacation mode for user ${user.id} (${user.name}): ${vac.shift}`);
             } catch (userError) {
@@ -299,10 +382,10 @@ cron.schedule("01 14 * * *", async () => {
     }
 
     cronLocks.morning = true;
-    const now = moment().tz("Asia/Kolkata");
-    const today = now.format("YYYY-MM-DD");
+        const now = moment().tz("Asia/Kolkata");
+        const today = now.format("YYYY-MM-DD");
     const timestamp = now.format("YYYY-MM-DD HH:mm:ss");
-    
+
     console.log(`[CRON] 🌅 Morning Auto-Delivery started at ${timestamp} IST`);
 
     try {
@@ -351,15 +434,15 @@ cron.schedule("01 14 * * *", async () => {
 
                 // NOTE: quantity_array format is [pure, cow, buffalo]
                 let quantityArray;
-                if (user.milk_type == "buffalo") {
+            if (user.milk_type == "buffalo") {
                     quantityArray = [0, 0, Number(user.quantity) || 0];
                 }
                 else if (user.milk_type == "cow") {
-                    quantityArray = [0, Number(user.quantity) || 0, 0];
-                }
+                quantityArray = [0, Number(user.quantity) || 0, 0];
+            }
                 else if (user.milk_type == "pure") {
-                    quantityArray = [Number(user.quantity) || 0, 0, 0];
-                }
+                quantityArray = [Number(user.quantity) || 0, 0, 0];
+            }
                 else {
                     console.log(`[CRON] ⚠️  Unknown milk_type for user ${user.id} (${user.name}): ${user.milk_type}`);
                     errorCount++;
@@ -378,20 +461,20 @@ cron.schedule("01 14 * * *", async () => {
                 const transaction = await sequelize.transaction();
 
                 try {
-                    // Insert into DeliveryStatus
-                    await DeliveryStatus.create({
-                        userid: user.id,
-                        quantity_array: JSON.stringify(quantityArray),
-                        shift: "morning",
-                        status: true,
-                        date: today,
+            // Insert into DeliveryStatus
+            await DeliveryStatus.create({
+                userid: user.id,
+                quantity_array: JSON.stringify(quantityArray),
+                shift: "morning",
+                status: true,
+                date: today,
                     }, { transaction });
 
-                    // Mark user as delivered
-                    await User.update(
-                        { delivered_morning: true },
+            // Mark user as delivered
+            await User.update(
+                { delivered_morning: true },
                         { where: { id: user.id }, transaction }
-                    );
+            );
 
                     await transaction.commit();
                     successCount++;
@@ -426,7 +509,7 @@ cron.schedule("01 14 * * *", async () => {
 
         for (const order of additionalOrders) {
             try {
-                const user = order.user;
+            const user = order.user;
                 if (!user) {
                     console.log(`[CRON] ⚠️  Additional order ${order.additinalOrder_id} has no user, skipping`);
                     continue;
@@ -450,7 +533,7 @@ cron.schedule("01 14 * * *", async () => {
                     continue;
                 }
 
-                const quantityArray = order.quantity_array;
+            const quantityArray = order.quantity_array;
                 if (!quantityArray || !Array.isArray(quantityArray)) {
                     console.log(`[CRON] ⚠️  Invalid quantity_array for additional order ${order.additinalOrder_id}`);
                     continue;
@@ -460,21 +543,21 @@ cron.schedule("01 14 * * *", async () => {
                 const transaction = await sequelize.transaction();
 
                 try {
-                    await DeliveryStatus.create({
-                        userid: user.id,
+            await DeliveryStatus.create({
+                userid: user.id,
                         quantity_array: Array.isArray(quantityArray) ? JSON.stringify(quantityArray) : quantityArray,
-                        shift: "morning",
-                        status: true,
-                        date: today,
+                shift: "morning",
+                status: true,
+                date: today,
                     }, { transaction });
 
-                    await AdditionalOrder.update(
-                        { status: true },
+            await AdditionalOrder.update(
+                { status: true },
                         { where: { additinalOrder_id: order.additinalOrder_id }, transaction }
-                    );
+            );
 
-                    await User.update(
-                        { delivered_morning: true },
+            await User.update(
+                { delivered_morning: true },
                         { where: { id: user.id }, transaction }
                     );
 
@@ -547,10 +630,10 @@ cron.schedule("30 23 * * *", async () => {
                     // Update flag if delivery exists but flag is false
                     await User.update(
                         { delivered_evening: true },
-                        { where: { id: user.id } }
-                    );
+                { where: { id: user.id } }
+            );
                     continue;
-                }
+        }
 
                 // Validate user data
                 if (!user.milk_type || !user.quantity || Number(user.quantity) <= 0) {

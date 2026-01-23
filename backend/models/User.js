@@ -149,6 +149,12 @@ const User = sequelize.define(
             defaultValue: null,
             comment: "Custom delivery sequence for evening shift (lower number = earlier delivery)",
         },
+        fcm_token: {
+            type: DataTypes.STRING(500),
+            allowNull: true,
+            defaultValue: null,
+            comment: "Firebase Cloud Messaging token for push notifications",
+        },
         created_at: {
             type: DataTypes.DATE,
             allowNull: false,

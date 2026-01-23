@@ -145,6 +145,25 @@ const Admin = sequelize.define("Admin", {
         allowNull: false,
         defaultValue: true, // By default, the status is true
     },
+    // Customer notification fields
+    customer_notification: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: null,
+        comment: "Custom notification message for customers (e.g., rate changes, important announcements)",
+    },
+    customer_notification_active: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Whether the customer notification is active and should be shown to customers",
+    },
+    customer_notification_updated_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
+        comment: "Timestamp when notification was last updated",
+    },
 }, {
     timestamps: false,
     tableName: "admin_registration",
