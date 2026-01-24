@@ -15,11 +15,14 @@ const GoogleTranslateV2 = () => {
     { code: "mr", name: "मराठी (Marathi)", flag: "🇮🇳" },
   ];
 
-  // Helper function to set Google Translate cookie
-  const setCookie = (name, value, days) => {
-    const expires = days ? `; expires=${new Date(Date.now() + days * 864e5).toUTCString()}` : "";
-    document.cookie = `${name}=${value}${expires}; path=/`;
-    console.log(`🍪 Cookie set: ${name}=${value}`);
+  // Helper function to set Google Translate cookie (optionally with domain)
+  const setCookie = (name, value, days, domain) => {
+    const expires = days
+      ? `; expires=${new Date(Date.now() + days * 864e5).toUTCString()}`
+      : "";
+    const domainPart = domain ? `; domain=${domain}` : "";
+    document.cookie = `${name}=${value}${expires}; path=/${domainPart}`;
+    console.log(`🍪 Cookie set: ${name}=${value}${domainPart || ""}`);
   };
 
   // Helper function to get cookie value
@@ -28,6 +31,23 @@ const GoogleTranslateV2 = () => {
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
     return null;
+  };
+
+  const setGoogTransCookie = (value, days = 1) => {
+    setCookie("googtrans", value, days);
+
+    const hostname = window.location.hostname;
+    const isLocalhost =
+      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0";
+    const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+
+    if (!isLocalhost && !isIp && hostname) {
+      setCookie("googtrans", value, days, `.${hostname}`);
+    }
+  };
+
+  const clearGoogTransCookie = () => {
+    setGoogTransCookie("", -1);
   };
 
   useEffect(() => {
@@ -56,17 +76,11 @@ const GoogleTranslateV2 = () => {
             setIsReady(true);
             
             // Restore saved language cookie (WITHOUT reloading - page is already loading)
-            const savedLanguage = localStorage.getItem("selectedLanguage");
-            if (savedLanguage && savedLanguage !== "en") {
-              console.log(`📖 Restoring saved language cookie: ${savedLanguage}`);
-              // Just set the cookie - Google Translate will pick it up automatically
-              if (savedLanguage === "en") {
-                setCookie("googtrans", "/en/en", 1);
-              } else {
-                setCookie("googtrans", `/en/${savedLanguage}`, 1);
-              }
-              // DON'T reload - we're already on a fresh page load!
-            }
+            const savedLanguage = localStorage.getItem("selectedLanguage") || "en";
+            console.log(`📖 Restoring saved language cookie: ${savedLanguage}`);
+            const cookieValue = savedLanguage === "en" ? "/en/en" : `/en/${savedLanguage}`;
+            setGoogTransCookie(cookieValue, 1);
+            // DON'T reload - we're already on a fresh page load!
           } else {
             console.warn("⚠️ Gadget not found, but marking as ready");
             setIsReady(true);
@@ -121,11 +135,11 @@ const GoogleTranslateV2 = () => {
     // Set Google Translate cookie
     if (langCode === "en") {
       // Clear translation
-      setCookie("googtrans", "", -1); // Delete cookie
-      setCookie("googtrans", "/en/en", 1);
+      clearGoogTransCookie();
+      setGoogTransCookie("/en/en", 1);
       console.log("🔄 Cleared translation (back to English)");
     } else {
-      setCookie("googtrans", `/en/${langCode}`, 1);
+      setGoogTransCookie(`/en/${langCode}`, 1);
       console.log(`✅ Set cookie: googtrans=/en/${langCode}`);
     }
 

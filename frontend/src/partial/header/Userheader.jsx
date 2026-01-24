@@ -334,7 +334,7 @@ const Userheader = forwardRef((prop, ref) => {
               </div>
 
               <Nav
-                className="ml-auto nav-dropdown d-none d-lg-flex"
+                className="ml-auto nav-dropdown d-flex"
                 style={{
                   position: "relative",
                   align: "end",
