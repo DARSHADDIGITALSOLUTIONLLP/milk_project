@@ -1069,9 +1069,23 @@ function Admin_Customer_List() {
                                 return total.cow + total.buffalo + total.pure;
                               };
                               
+                              const getStatus = (orders) => {
+                                if (!orders.length) return "none";
+                                return orders.some(
+                                  (order) =>
+                                    order.status === false ||
+                                    order.status === 0 ||
+                                    order.status === "false"
+                                )
+                                  ? "not_present"
+                                  : "present";
+                              };
+                              
                               return {
                                 morning: getMilkQty(morningOrders),
                                 evening: getMilkQty(eveningOrders),
+                                morningStatus: getStatus(morningOrders),
+                                eveningStatus: getStatus(eveningOrders),
                               };
                             };
 
@@ -1082,17 +1096,33 @@ function Admin_Customer_List() {
                               <tr key={i}>
                                 <td className="date-cell">{date1}</td>
                                 <td className="qty-cell">
-                                  {data1?.morning > 0 ? data1.morning : ""}
+                                  {data1?.morningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data1?.morning > 0
+                                    ? data1.morning
+                                    : ""}
                                 </td>
                                 <td className="qty-cell">
-                                  {data1?.evening > 0 ? data1.evening : ""}
+                                  {data1?.eveningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data1?.evening > 0
+                                    ? data1.evening
+                                    : ""}
                                 </td>
                                 <td className="date-cell">{date2 <= daysInMonth ? date2 : ""}</td>
                                 <td className="qty-cell">
-                                  {data2?.morning > 0 ? data2.morning : ""}
+                                  {data2?.morningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data2?.morning > 0
+                                    ? data2.morning
+                                    : ""}
                                 </td>
                                 <td className="qty-cell">
-                                  {data2?.evening > 0 ? data2.evening : ""}
+                                  {data2?.eveningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data2?.evening > 0
+                                    ? data2.evening
+                                    : ""}
                                 </td>
                               </tr>
                             );

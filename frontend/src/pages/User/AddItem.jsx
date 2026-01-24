@@ -43,8 +43,8 @@ const AddItem = () => {
   const handleOrder = async (event) => {
     event.preventDefault();
     const token = localStorage.getItem("token");
-    // Form the quantity array
-    const quantity = [cowquantity, buffaloquantity, purequantity];
+    // Form the quantity array in [pure, cow, buffalo] order
+    const quantity = [purequantity, cowquantity, buffaloquantity];
 
     if (!date || !shift ) {
       toast.error("Please select both date and shift.");

@@ -101,9 +101,9 @@ function Delivery_Boy_Morning() {
                 id: order.userid,
                 name: order.user?.name || "",
                 dairy_name: order.user?.dairy_name || "",
-                cow_milk: quantities[0] || 0,
-                buffalo_milk: quantities[1] || 0,
-                pure_milk: quantities[2] || 0,
+                pure_milk: quantities[0] || 0,
+                cow_milk: quantities[1] || 0,
+                buffalo_milk: quantities[2] || 0,
                 type: "additional",
                 date: order.date,
               };
@@ -113,9 +113,9 @@ function Delivery_Boy_Morning() {
                 id: order.userid,
                 name: order.user?.name || "",
                 dairy_name: order.user?.dairy_name || "",
+                pure_milk: 0,
                 cow_milk: 0,
                 buffalo_milk: 0,
-                pure_milk: 0,
                 type: "additional",
                 date: order.date,
               };

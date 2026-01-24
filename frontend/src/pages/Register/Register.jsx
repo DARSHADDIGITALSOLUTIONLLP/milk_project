@@ -31,24 +31,26 @@ function Register() {
   const navigate = useNavigate();
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPass, setConfirmPass] = useState("");
+  const [dairyLogo, setDairyLogo] = useState(null);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
 
   const VITE_ENCRYPTION_RAZORPAY_KEY = import.meta.env
     .VITE_ENCRYPTION_RAZORPAY_KEY;
 
-  // Helper function to calculate GST (18%)
-  const calculateGST = (amount) => {
-    return Math.round(amount * 0.18);
+  // Helper function to calculate GST with dynamic percentage
+  const calculateGST = (amount, gstPercentage = 18) => {
+    return Math.round(amount * (gstPercentage / 100));
   };
 
   // Helper function to calculate total (subtotal + GST)
-  const calculateTotal = (subtotal) => {
-    return subtotal + calculateGST(subtotal);
+  const calculateTotal = (subtotal, gstPercentage = 18) => {
+    return subtotal + calculateGST(subtotal, gstPercentage);
   };
 
   // Helper function to format price breakdown (Subtotal + GST = Total)
-  const formatPriceBreakdown = (subtotal) => {
-    const gst = calculateGST(subtotal);
-    const total = calculateTotal(subtotal);
+  const formatPriceBreakdown = (subtotal, showGst = true, gstPercentage = 18) => {
+    const gst = calculateGST(subtotal, gstPercentage);
+    const total = showGst ? calculateTotal(subtotal, gstPercentage) : subtotal;
     return {
       subtotal,
       gst,
@@ -58,9 +60,11 @@ function Register() {
           <div style={{ fontSize: "14px", color: "#666" }}>
             Subtotal: ₹{subtotal}
           </div>
-          <div style={{ fontSize: "14px", color: "#666" }}>
-            GST (18%): ₹{gst}
-          </div>
+          {showGst && (
+            <div style={{ fontSize: "14px", color: "#666" }}>
+              GST ({gstPercentage}%): ₹{gst}
+            </div>
+          )}
           <div style={{ fontSize: "18px", fontWeight: "bold", color: "#000", marginTop: "5px" }}>
             Total: ₹{total}
           </div>
@@ -107,6 +111,7 @@ function Register() {
   }, [activeForm]);
 
   useEffect(() => {
+    // Fetch dairy list
     axios
       .get("/api/admin/dairylist")
       .then((response) => {
@@ -115,6 +120,19 @@ function Register() {
       .catch((error) => {
         console.error("Error fetching dairy list:", error);
         toast.error("Failed to fetch dairy list.");
+      });
+    
+    // Fetch active subscription plans
+    axios
+      .get("/api/subscription-plans/active")
+      .then((response) => {
+        if (response.data.success) {
+          setSubscriptionPlans(response.data.plans);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching subscription plans:", error);
+        toast.error("Failed to fetch subscription plans.");
       });
   }, []);
 
@@ -235,11 +253,8 @@ function Register() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (
-      CustomerValues.password.length < 6 ||
-      CustomerValues.password.length > 10
-    ) {
-      toast.error("Password length must be between 6 and 10 characters.");
+    if (CustomerValues.password.length !== 4) {
+      toast.error("Password length must be exactly 4 characters.");
       return;
     }
 
@@ -406,9 +421,9 @@ function Register() {
           <Form.Control
             type={showPassword ? "text" : "password"}
             name="password"
-            maxLength="10"
+          maxLength="4"
             value={CustomerValues.password}
-            minLength="6"
+          minLength="4"
             placeholder="Please enter your Password"
             onChange={(e) =>
               setCustomerValues({ ...CustomerValues, password: e.target.value })
@@ -430,6 +445,8 @@ function Register() {
             name="confirmPassword"
             placeholder="Confirm your password"
             value={confirmPass}
+            maxLength="4"
+            minLength="4"
             onChange={(e) => setConfirmPass(e.target.value)}
             required
           />
@@ -649,8 +666,8 @@ function Register() {
         return;
       }
 
-      if (DairyValues.password.length < 6 || DairyValues.password.length > 10) {
-        toast.error("Password must be between 6 to 10 characters.");
+      if (DairyValues.password.length !== 4) {
+        toast.error("Password must be exactly 4 characters.");
         return;
       }
 
@@ -742,6 +759,14 @@ function Register() {
           required
         />
       </Form.Group>
+      <Form.Group className="mb-3" controlId="formDairyLogo">
+        <Form.Label>Dairy Logo</Form.Label>
+        <Form.Control
+          type="file"
+          accept="image/*"
+          onChange={(e) => setDairyLogo(e.target.files?.[0] || null)}
+        />
+      </Form.Group>
       <Form.Group className="mb-3" controlId="formPassword">
         <Form.Label>
           Create Password <span style={{ color: "red" }}>*</span>
@@ -750,8 +775,8 @@ function Register() {
           <Form.Control
             type={showPassword ? "text" : "password"}
             name="password"
-            maxLength="10"
-            minLength="6"
+            maxLength="4"
+            minLength="4"
             placeholder="Please enter your Password"
             value={DairyValues.password}
             onChange={(e) =>
@@ -764,6 +789,7 @@ function Register() {
           </span>
         </div>
       </Form.Group>
+      
       <Form.Group className="mb-3" controlId="formConfirmPassword">
         <Form.Label>
           Confirm Password <span style={{ color: "red" }}>*</span>
@@ -774,6 +800,8 @@ function Register() {
             name="confirmPassword"
             placeholder="Confirm your password"
             value={formValues.confirmPassword}
+            maxLength="4"
+            minLength="4"
             onChange={handleInputChange}
             required
           />
@@ -935,36 +963,10 @@ function Register() {
                         </Link>
                       </button>
                     </div>
-                    <Button
-                      className="toggle-btn mx-2"
-                      style={{
-                        width: "40%",
-                        color: "white",
-                        backgroundColor: "black",
-                      }}
-                      variant={
-                        activeForm === "customer" ? "info" : "outline-info"
-                      }
-                      onClick={() => handleFormToggle("customer")}
-                    >
-                      Customer
-                    </Button>
-                    <Button
-                      className="toggle-btn"
-                      style={{
-                        width: "40%",
-                        color: "white",
-                        backgroundColor: "black",
-                      }}
-                      variant={activeForm === "dairy" ? "info" : "outline-info"}
-                      onClick={() => handleFormToggle("dairy")}
-                    >
-                      Dairy
-                    </Button>
+                    {/* Toggle buttons removed; only dairy form is visible */}
                   </div>
-                  {activeForm === "customer"
-                    ? renderCustomerForm()
-                    : renderDairyForm()}
+                  {/* Customer registration form is disabled */}
+                  {renderDairyForm()}
                 </Col>
               </Row>
             </Container>
@@ -981,150 +983,88 @@ function Register() {
         <Modal.Body>
           <Container>
             <Row>
-              <Col xs={12} sm={6} md={6} lg={3} xl={3} className="mb-3">
-                <Card
-                  style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                  className="subscription_card"
-                >
-                  <Card.Body>
-                    <center>
-                      <Card.Title className="card_title">Basic</Card.Title>
-                    </center>
-                    <center>
-                      <h5 className="price mb-2">{formatPriceBreakdown(299).display}</h5>
-                    </center>
-                    <Card.Text>
-                      <div style={{ textAlign: "center" }}>
-                        <p>
-                          <p>(30 days)</p>
-                        </p>
-                      </div>
-                    </Card.Text>
-                    <center>
-                      <Button
-                        className="mt-4 pay_btn"
-                        style={{
-                          width: "100%",
-                          backgroundColor: "black",
-                          color: "white",
-                          border: "none",
+              {subscriptionPlans.length > 0 ? (
+                subscriptionPlans.map((plan) => {
+                  const priceDetails = formatPriceBreakdown(
+                    plan.plan_price,
+                    plan.show_gst,
+                    plan.gst_percentage
+                  );
+                  const planPeriod = plan.plan_validity_days === 30 ? "monthly" : 
+                                     plan.plan_validity_days === 90 ? "quarterly" :
+                                     plan.plan_validity_days === 180 ? "half-yearly" : "yearly";
+                  
+                  return (
+                    <Col key={plan.id} xs={12} sm={6} md={6} lg={3} xl={3} className="mb-3">
+                      <Card
+                        style={{ 
+                          boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px",
+                          position: "relative",
+                          height: "100%"
                         }}
-                        onClick={() => checkout(calculateTotal(299), "monthly")}
+                        className="subscription_card"
                       >
-                        Pay Now
-                      </Button>
-                    </center>
-                  </Card.Body>
-                </Card>
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3">
-                <Card
-                  style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                  className="subscription_card"
-                >
-                  <Card.Body>
-                    <center>
-                      <Card.Title className="card_title">Plus</Card.Title>
-                    </center>
-                    <center>
-                      <h5 className="price mb-2">{formatPriceBreakdown(499).display}</h5>
-                    </center>
-                    <Card.Text>
-                      <div style={{ textAlign: "center" }}>
-                        <p>
-                          <p>(90 days)</p>
-                        </p>
-                      </div>
-                    </Card.Text>
-                    <center>
-                      <Button
-                        className="mt-4 pay_btn"
-                        style={{
-                          width: "100%",
-                          backgroundColor: "black",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => checkout(calculateTotal(499), "quarterly")}
-                      >
-                        Pay Now
-                      </Button>
-                    </center>
-                  </Card.Body>
-                </Card>
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3">
-                <Card
-                  style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                  className="subscription_card"
-                >
-                  <Card.Body>
-                    <center>
-                      <Card.Title className="card_title">Gold</Card.Title>
-                    </center>
-                    <center>
-                      <h5 className="price mb-2">{formatPriceBreakdown(799).display}</h5>
-                    </center>
-                    <Card.Text>
-                      <div style={{ textAlign: "center" }}>
-                        <p>
-                          <p>(180 days)</p>
-                        </p>
-                      </div>
-                    </Card.Text>
-                    <center>
-                      <Button
-                        className="mt-4 pay_btn"
-                        style={{
-                          width: "100%",
-                          backgroundColor: "black",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => checkout(calculateTotal(799), "half-yearly")}
-                      >
-                        Pay Now
-                      </Button>
-                    </center>
-                  </Card.Body>
-                </Card>
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3">
-                <Card
-                  style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                  className="subscription_card"
-                >
-                  <Card.Body>
-                    <center>
-                      <Card.Title className="card_title">Platinum</Card.Title>
-                    </center>
-                    <center>
-                      <h5 className="price mb-2">{formatPriceBreakdown(1499).display}</h5>
-                    </center>
-                    <Card.Text>
-                      <div style={{ textAlign: "center" }}>
-                        <p>
-                          <p>(365 days)</p>
-                        </p>
-                      </div>
-                    </Card.Text>
-                    <center>
-                      <Button
-                        className="mt-4 pay_btn"
-                        style={{
-                          width: "100%",
-                          backgroundColor: "black",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => checkout(calculateTotal(1499), "yearly")}
-                      >
-                        Pay Now
-                      </Button>
-                    </center>
-                  </Card.Body>
-                </Card>
-              </Col>
+                        {plan.badge && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "10px",
+                              right: "10px",
+                              backgroundColor: "#FFA500",
+                              color: "white",
+                              padding: "5px 10px",
+                              borderRadius: "5px",
+                              fontSize: "12px",
+                              fontWeight: "bold",
+                              zIndex: 1
+                            }}
+                          >
+                            {plan.badge}
+                          </div>
+                        )}
+                        <Card.Body>
+                          <center>
+                            <Card.Title className="card_title">{plan.plan_name}</Card.Title>
+                          </center>
+                          <center>
+                            <h5 className="price mb-2">{priceDetails.display}</h5>
+                          </center>
+                          <Card.Text>
+                            <div style={{ textAlign: "center", marginBottom: "10px" }}>
+                              <p>({plan.plan_validity_days} days)</p>
+                            </div>
+                            {plan.plan_features && plan.plan_features.length > 0 && (
+                              <ul style={{ textAlign: "left", fontSize: "13px", paddingLeft: "20px" }}>
+                                {plan.plan_features.map((feature, idx) => (
+                                  <li key={idx}>{feature}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </Card.Text>
+                          <center>
+                            <Button
+                              className="mt-auto pay_btn"
+                              style={{
+                                width: "100%",
+                                backgroundColor: "black",
+                                color: "white",
+                                border: "none",
+                              }}
+                              onClick={() => checkout(priceDetails.total, planPeriod)}
+                            >
+                              Pay Now
+                            </Button>
+                          </center>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  );
+                })
+              ) : (
+                <Col xs={12} className="text-center">
+                  <p>Loading subscription plans...</p>
+                </Col>
+              )}
             </Row>
           </Container>
         </Modal.Body>

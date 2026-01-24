@@ -5,15 +5,17 @@ import {
   Container,
   Button,
   Modal,
-  ToastContainer,
   Form,
 } from "react-bootstrap";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import { encode } from "base64-arraybuffer";
-import { toast, Bounce } from "react-toastify";
+import { toast, Bounce, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../SuperAdmin/Dairy_List.css";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 function Farmer_Payment_History() {
   const [records, setRecords] = useState([]);
@@ -27,6 +29,7 @@ function Farmer_Payment_History() {
   const [selectedMilkTypes, setSelectedMilkTypes] = useState([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [paidAmount, setPaidAmount] = useState("");
 
   const Farmer_List = async () => {
     try {
@@ -79,14 +82,15 @@ function Farmer_Payment_History() {
     Farmer_List();
   }, []);
 
-  const confirmStatusChange = async (status) => {
+  const confirmStatusChange = async (status, paidAmountValue) => {
     const token = localStorage.getItem("token");
     try {
       // If payment has an ID, use it; otherwise use week dates
       const payload = selectedRecord.id 
-        ? { status }
+        ? { status, paid_amount: paidAmountValue }
         : {
             status,
+            paid_amount: paidAmountValue,
             farmer_id: selectedRecord.farmer_id,
             week_start_date: selectedRecord.week_start_date,
             week_end_date: selectedRecord.week_end_date,
@@ -117,6 +121,9 @@ function Farmer_Payment_History() {
 
   const handleStatusToggle = (record) => {
     setSelectedRecord(record);
+    // Set initial to 0 or pending amount (amount they need to pay)
+    const initialPaid = record.pending_amount ?? 0;
+    setPaidAmount(String(initialPaid));
     setShowConfirmation(true);
   };
 
@@ -176,15 +183,17 @@ function Farmer_Payment_History() {
         0
       );
 
-      // Calculate received_payment: Sum of total_amount from "Paid" records
-      const receivedPayment = records
-        .filter((r) => r.status === "Paid")
-        .reduce((sum, r) => sum + (parseFloat(r.total_amount) || 0), 0);
+      // Calculate received_payment: Sum of paid_amount across all records
+      const receivedPayment = records.reduce(
+        (sum, r) => sum + (parseFloat(r.paid_amount) || 0),
+        0
+      );
 
-      // Calculate total_pending_payment: Sum of total_amount from "Pending" records
-      const totalPendingPayment = records
-        .filter((r) => r.status === "Pending")
-        .reduce((sum, r) => sum + (parseFloat(r.total_amount) || 0), 0);
+      // Calculate total_pending_payment: Sum of pending_amount across all records
+      const totalPendingPayment = records.reduce(
+        (sum, r) => sum + (parseFloat(r.pending_amount) || 0),
+        0
+      );
 
       setTotalPayment({
         advance_payment: advancePayment,
@@ -259,7 +268,10 @@ function Farmer_Payment_History() {
     {
       id: "totalPayment",
       headerLabel: "Total Payment",
-      selector: (row) => `Rs ${row.total_amount}`,
+      selector: (row) => {
+        const total = row.total_amount ?? 0;
+        return `Rs ${total}`;
+      },
       sortable: true,
     },
   ];
@@ -320,18 +332,16 @@ function Farmer_Payment_History() {
         }}
       >
         <ToastContainer
-          stacked
           position="top-center"
           autoClose={5000}
           hideProgressBar={false}
           newestOnTop={false}
-          closeOnClick
+          closeOnClick={true}
           rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
+          pauseOnFocusLoss={true}
+          draggable={true}
+          pauseOnHover={true}
           theme="light"
-          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">
@@ -339,7 +349,90 @@ function Farmer_Payment_History() {
               <p>Today's Status: {dateTime.toLocaleString()} </p>
             </div>
             <div className="col-md-6 col-sm-12 pt-2">
-              <div className="text-end mb-3">
+              <div className="text-end mb-3 d-flex gap-2 justify-content-end">
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    try {
+                      if (!filteredRecords || filteredRecords.length === 0) {
+                        toast.error('No data available to export.');
+                        return;
+                      }
+                      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                      const pageWidth = doc.internal.pageSize.getWidth();
+                      const pageHeight = doc.internal.pageSize.getHeight();
+                      let yPosition = 20;
+                      doc.setFontSize(20);
+                      doc.setFont(undefined, 'bold');
+                      doc.text('Farmer Payment History', pageWidth / 2, yPosition, { align: 'center' });
+                      yPosition += 10;
+                      doc.setFontSize(12);
+                      doc.setFont(undefined, 'normal');
+                      doc.text(`Generated on: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, pageWidth / 2, yPosition, { align: 'center' });
+                      yPosition += 12;
+                      doc.setFontSize(14);
+                      doc.setFont(undefined, 'bold');
+                      doc.text('Payment Summary', 14, yPosition);
+                      yPosition += 8;
+                      doc.autoTable({
+                        startY: yPosition,
+                        head: [['Metric', 'Value']],
+                        body: [
+                          ['Advanced Payment', `Rs ${totalPayment.advance_payment || 0}`],
+                          ['Received Payment', `Rs ${totalPayment.received_payment || 0}`],
+                          ['Total Pending Payment', `Rs ${totalPayment.total_pending_payment || 0}`],
+                        ],
+                        theme: 'striped',
+                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        styles: { fontSize: 10 },
+                        margin: { left: 14, right: 14 },
+                      });
+                      yPosition = (doc.lastAutoTable?.finalY || yPosition) + 15;
+                      doc.setFontSize(14);
+                      doc.setFont(undefined, 'bold');
+                      doc.text('Farmer Payment Records', 14, yPosition);
+                      yPosition += 8;
+                      const tableData = filteredRecords.map((row, index) => [
+                        `000${index + 1}`,
+                        row.week_start_date || 'N/A',
+                        row.week_end_date || 'N/A',
+                        row.full_name || 'N/A',
+                        row.status === 'Paid' ? 'Paid' : 'Pending',
+                        parseFloat(row.total_pure_quantity || 0).toFixed(2),
+                        parseFloat(row.total_cow_quantity || 0).toFixed(2),
+                        parseFloat(row.total_buffalo_quantity || 0).toFixed(2),
+                        `Rs ${parseFloat(row.total_amount || 0).toFixed(2)}`,
+                        `Rs ${parseFloat(row.paid_amount || 0).toFixed(2)}`,
+                        `Rs ${parseFloat(row.pending_amount || 0).toFixed(2)}`,
+                      ]);
+                      doc.autoTable({
+                        startY: yPosition,
+                        head: [['Bill No.', 'Start Date', 'End Date', 'Farmer Name', 'Status', 'Pure (ltr)', 'Cow (ltr)', 'Buffalo (ltr)', 'Total Amount', 'Paid Amount', 'Pending Amount']],
+                        body: tableData,
+                        theme: 'striped',
+                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        margin: { left: 14, right: 14 },
+                        columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 20 }, 2: { cellWidth: 20 }, 3: { cellWidth: 30 }, 4: { cellWidth: 18 } },
+                      });
+                      const totalPages = doc.internal.getNumberOfPages();
+                      for (let i = 1; i <= totalPages; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                        doc.text(`Generated on: ${new Date().toLocaleString("en-US")}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+                      }
+                      doc.save(`Farmer_Payment_History_${Date.now()}.pdf`);
+                      toast.success('PDF exported successfully!');
+                    } catch (error) {
+                      console.error('Error exporting PDF:', error);
+                      toast.error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
+                    }
+                  }}
+                  className="me-2"
+                >
+                  Export PDF
+                </Button>
                 <input
                   type="text"
                   placeholder="Search"
@@ -469,8 +562,33 @@ function Farmer_Payment_History() {
               <p>
                 Week: {selectedRecord.week_start_date} to {selectedRecord.week_end_date}
                 <br />
-                Amount: Rs {selectedRecord.total_amount}
+                Total Amount: Rs {selectedRecord.total_amount}
+                <br />
+                Pending Amount: Rs {selectedRecord.pending_amount || 0}
               </p>
+            )}
+            {selectedRecord && (
+              <Form.Group className="mt-3" controlId="paymentAmount">
+                <Form.Label>Paid Amount (Amount to Pay Now)</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  placeholder="Enter amount to pay now"
+                />
+                <Form.Text className="text-muted">
+                  Current Pending: Rs {selectedRecord.pending_amount || 0}
+                  <br />
+                  After Payment Remaining: Rs{" "}
+                  {Math.max(
+                    (Number(selectedRecord.pending_amount) || 0) -
+                      (Number(paidAmount) || 0),
+                    0
+                  ).toFixed(2)}
+                </Form.Text>
+              </Form.Group>
             )}
           </Modal.Body>
           <Modal.Footer>
@@ -480,9 +598,12 @@ function Farmer_Payment_History() {
             <Button
               variant="primary"
               onClick={() => {
-                const newStatus =
-                  selectedRecord.status === "Paid" ? false : true;
-                confirmStatusChange(newStatus);
+                const pendingAmount = Number(selectedRecord?.pending_amount) || 0;
+                let paidValue = Number(paidAmount) || 0;
+                if (paidValue < 0) paidValue = 0;
+                if (paidValue > pendingAmount) paidValue = pendingAmount;
+                const newStatus = paidValue >= pendingAmount;
+                confirmStatusChange(newStatus, paidValue);
               }}
             >
               Confirm

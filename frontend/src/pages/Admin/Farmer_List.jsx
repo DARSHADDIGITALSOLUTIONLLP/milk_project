@@ -339,7 +339,7 @@ function Farmer_List() {
             </Form.Group>
 
             <Form.Group className="mt-2">
-              <Form.Label>Total Rate Per Liter</Form.Label>
+              <Form.Label>Total Amount</Form.Label>
               <Form.Control
                 type="text"
                 value={pure_milk.rate}
@@ -388,7 +388,7 @@ function Farmer_List() {
             </Form.Group>
 
             <Form.Group className="mt-2">
-              <Form.Label>Total Rate Per Liter</Form.Label>
+              <Form.Label>Total Amount</Form.Label>
               <Form.Control
                 type="text"
                 value={cow_milk.rate}
@@ -439,7 +439,7 @@ function Farmer_List() {
             </Form.Group>
 
             <Form.Group className="mt-2">
-              <Form.Label>Total Rate Per Liter</Form.Label>
+              <Form.Label>Total Amount</Form.Label>
               <Form.Control
                 type="text"
                 value={buffalo_milk.rate}

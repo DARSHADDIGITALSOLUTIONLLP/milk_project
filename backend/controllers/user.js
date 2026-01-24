@@ -743,6 +743,7 @@ module.exports.getUserPaymentSummary = async (req, res) => {
     const currentMonthDeliveries = await DeliveryStatus.findAll({
       where: {
         userid,
+        status: true,
         date: {
           [Op.between]: [startDate, endDate],
         },
@@ -815,18 +816,19 @@ module.exports.getUserPaymentSummary = async (req, res) => {
       });
     }
 
+    // Always include the current month after recalculation
     const currentPayment = await PaymentDetails.findOne({
-      where: {
-        userid,
-        month_year: currentMonthYear,
-        pending_payment: { [Op.gt]: 0 }, // ✅ only if payment pending
-      },
+      where: { userid, month_year: currentMonthYear },
     });
 
-    const allFiltered = [...filteredPayments];
+    // Avoid stale current-month entry from the initial fetch
+    const allFiltered = filteredPayments.filter(
+      (payment) => payment.month_year !== currentMonthYear
+    );
     if (currentPayment) {
       allFiltered.push(currentPayment);
     }
+
     // Inject status into each payment object
     const paymentHistoryWithStatus = allFiltered.map((payment) => ({
       ...payment.toJSON(), // ensures Sequelize model is converted to plain object
@@ -929,7 +931,7 @@ module.exports.additinal_order = async (req, res) => {
       date,
     });
 
-    const [cow_quantity, buffalo_quantity, pure_quantity] = JSON.parse(
+    const [pure_quantity, cow_quantity, buffalo_quantity] = JSON.parse(
       newOrder.quantity_array
     );
 

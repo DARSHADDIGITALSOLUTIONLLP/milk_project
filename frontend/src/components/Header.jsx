@@ -117,6 +117,14 @@ function Header({ dashboardText }) {
               Dairy List
             </NavLink>
           </li>
+          <li>
+            <NavLink
+              to="/manage-subscription-plans"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+            >
+              Manage Plans
+            </NavLink>
+          </li>
         </ul>
         <div className="sidebar-bottom">
           <a href="" style={{ color: "white" }} onClick={handleLogout}>

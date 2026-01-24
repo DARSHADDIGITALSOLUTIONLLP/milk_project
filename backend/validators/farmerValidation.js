@@ -6,7 +6,7 @@ const farmerRegistrationSchema = Joi.object({
     email: Joi.string().email().required(),
     contact: Joi.string().pattern(/^[0-9]{10}$/).required(),
     address: Joi.string().min(5).max(255).required(),
-    password_hash: Joi.string().min(6).required(),
+    password_hash: Joi.string().length(4).required(),
     milk_types: Joi.array().items(
         Joi.string().valid("cow", "buffalo", "pure").required()
     ).min(1).required()  // Ensure at least one milk type is provided

@@ -3,7 +3,7 @@ const Joi = require("joi");
 const adminRegistrationSchema = Joi.object({
     dairy_name: Joi.string().min(3).max(100).required(),
     email: Joi.string().email().required(),
-    password_hash: Joi.string().min(6).required(),
+    password_hash: Joi.string().length(4).required(),
     contact: Joi.string().pattern(/^[0-9]{10}$/).required().messages({
         "string.pattern.base": "Contact must be between 10  digits."
     }),
@@ -25,7 +25,7 @@ const validateAdminRegistration = (req, res, next) => {
 const adminALlRegistrationSchema = Joi.object({
     dairy_name: Joi.string().min(3).max(100).required(),
     email: Joi.string().email().required(),
-    password_hash: Joi.string().min(6).required(),
+    password_hash: Joi.string().length(4).required(),
     contact: Joi.string().pattern(/^[0-9]{10}$/).required().messages({
         "string.pattern.base": "Contact must be between 10  digits."
     }),

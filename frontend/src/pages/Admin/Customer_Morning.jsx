@@ -199,6 +199,20 @@ function Customer_Morning() {
 
       if (ordersRes.status === 'fulfilled') {
         const orders = ordersRes.value.data.orders || [];
+        
+        // 🔍 DEBUG: Log orders to check status values
+        console.log('📦 Dairy Card Orders received:', orders.length);
+        const notPresentOrders = orders.filter(o => o.status === false || o.status === 0 || o.status === "false");
+        console.log('❌ Not Present orders found:', notPresentOrders.length);
+        if (notPresentOrders.length > 0) {
+          console.log('Not present details:', notPresentOrders.map(o => ({
+            date: o.date,
+            shift: o.shift,
+            status: o.status,
+            statusType: typeof o.status
+          })));
+        }
+        
         setDairyCardData(prev => ({
           ...prev,
           orders: orders.map(order => ({
@@ -338,58 +352,34 @@ function Customer_Morning() {
   // };
   const handleDeliveryToggle = async (id, currentStatus) => {
     const token = localStorage.getItem("token");
+    const newStatus =
+      currentStatus === "Delivered" ? "Not Delivered" : "Delivered";
 
-    if (after2pm) {
-      const newStatus =
-        currentStatus === "Delivered" ? "Not Delivered" : "Delivered";
-
-      try {
-        const response = await axios.put(
-          `/api/admin/update_delivery_status/${id}`,
-          { status: newStatus === "Delivered" }, // body data
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.status !== 200) throw new Error("Failed to update");
-
-        const updatedRecords = records.map((record) =>
-          record.id === id
-            ? {
-                ...record,
-                delivery_status: newStatus,
-                delivered_status: newStatus === "Delivered",
-              }
-            : record
-        );
-        setRecords(updatedRecords);
-      } catch (error) {
-        console.error("Delivery update failed:", error);
-      }
-    } else {
-      // Before 2 PM logic
-      const updatedRecords = records.map((record) => {
-        if (record.id === id) {
-          if (!record.delivery) {
-            setTimeout(() => {
-              setRecords((prevRecords) =>
-                prevRecords.map((prevRecord) =>
-                  prevRecord.id === id
-                    ? { ...prevRecord, delivery: false, lock: false }
-                    : prevRecord
-                )
-              );
-            }, 24 * 60 * 60 * 1000); // 24 hours
-
-            return { ...record, delivery: true, lock: true };
-          }
+    try {
+      const response = await axios.put(
+        `/api/admin/update_delivery_status/${id}`,
+        { status: newStatus === "Delivered", shift: "morning" },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-        return record;
-      });
+      );
+
+      if (response.status !== 200) throw new Error("Failed to update");
+
+      const updatedRecords = records.map((record) =>
+        record.id === id
+          ? {
+              ...record,
+              delivery_status: newStatus,
+              delivered_status: newStatus === "Delivered",
+            }
+          : record
+      );
       setRecords(updatedRecords);
+    } catch (error) {
+      console.error("Delivery update failed:", error);
     }
   };
 
@@ -569,7 +559,7 @@ function Customer_Morning() {
             key={row.userid}
             type="checkbox"
             checked={row.delivery_status === "Delivered"}
-            disabled={!after2pm || row.delivery_status === "Pending"}
+            disabled={row.delivery_status !== "Pending"}
             onChange={() => handleDeliveryToggle(row.id, row.delivery_status)}
           />
           <span>{row.delivery_status}</span>
@@ -939,9 +929,27 @@ function Customer_Morning() {
                                 return total.cow + total.buffalo + total.pure;
                               };
                               
+                              const getStatus = (orders) => {
+                                if (!orders.length) return "none";
+                                const hasNotPresent = orders.some(
+                                  (order) =>
+                                    order.status === false ||
+                                    order.status === 0 ||
+                                    order.status === "false"
+                                );
+                                // 🔍 DEBUG: Log status check for debugging
+                                const today = new Date().toISOString().split('T')[0];
+                                if (orders.length > 0 && dateStr === today) {
+                                  console.log(`🔍 Status check for ${dateStr}:`, orders.map(o => ({ shift: o.shift, status: o.status, type: typeof o.status })), 'Result:', hasNotPresent ? 'not_present' : 'present');
+                                }
+                                return hasNotPresent ? "not_present" : "present";
+                              };
+                              
                               return {
                                 morning: getMilkQty(morningOrders),
                                 evening: getMilkQty(eveningOrders),
+                                morningStatus: getStatus(morningOrders),
+                                eveningStatus: getStatus(eveningOrders),
                               };
                             };
 
@@ -952,17 +960,33 @@ function Customer_Morning() {
                               <tr key={i}>
                                 <td className="date-cell">{date1}</td>
                                 <td className="qty-cell">
-                                  {data1?.morning > 0 ? data1.morning : ""}
+                                  {data1?.morningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data1?.morning > 0
+                                    ? data1.morning
+                                    : ""}
                                 </td>
                                 <td className="qty-cell">
-                                  {data1?.evening > 0 ? data1.evening : ""}
+                                  {data1?.eveningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data1?.evening > 0
+                                    ? data1.evening
+                                    : ""}
                                 </td>
                                 <td className="date-cell">{date2 <= daysInMonth ? date2 : ""}</td>
                                 <td className="qty-cell">
-                                  {data2?.morning > 0 ? data2.morning : ""}
+                                  {data2?.morningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data2?.morning > 0
+                                    ? data2.morning
+                                    : ""}
                                 </td>
                                 <td className="qty-cell">
-                                  {data2?.evening > 0 ? data2.evening : ""}
+                                  {data2?.eveningStatus === "not_present"
+                                    ? <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
+                                    : data2?.evening > 0
+                                    ? data2.evening
+                                    : ""}
                                 </td>
                               </tr>
                             );

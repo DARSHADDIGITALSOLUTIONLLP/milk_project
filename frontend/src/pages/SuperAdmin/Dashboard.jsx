@@ -32,11 +32,17 @@ function Superadmin() {
             <Container>
               <Row>
                 <Col md="12">
-                  <p className='h4 text-center'>Welcome to our product</p>
+                  <p className='h4 text-center mb-4'>Superadmin Dashboard</p>
                   <div className='d-flex flex-column align-items-center'>
-                  <Link to="/dairy-registration" style={{textDecoration:'none'}}><CardComponent title='Super admin' color='#0361FE' /></Link>
-                  {/* <Link to="/admin-dashboard" style={{textDecoration:'none'}}> <CardComponent title='Admin' color='#EF6E0B' /></Link> */}
-                  {/* <Link to="/user-dashboard" style={{textDecoration:'none'}}> <CardComponent title='User' color='#DD0BEF' /></Link> */}
+                    <Link to="/dairy-registration" style={{textDecoration:'none'}}>
+                      <CardComponent title='Register Dairy' color='#0361FE' />
+                    </Link>
+                    <Link to="/dairy-list" style={{textDecoration:'none'}}>
+                      <CardComponent title='Dairy List' color='#EF6E0B' />
+                    </Link>
+                    <Link to="/manage-subscription-plans" style={{textDecoration:'none'}}>
+                      <CardComponent title='Manage Plans' color='#28a745' />
+                    </Link>
                   </div>
                 </Col>
               </Row>

@@ -771,6 +771,18 @@ function User_Dashboard() {
                             return total.cow + total.buffalo + total.pure;
                           };
                           
+                          const getStatus = (orders) => {
+                            if (!orders.length) return "none";
+                            return orders.some(
+                              (order) =>
+                                order.status === false ||
+                                order.status === 0 ||
+                                order.status === "false"
+                            )
+                              ? "not_present"
+                              : "present";
+                          };
+                          
                           // Check if date is vacant for morning shift
                           const morningVacant = vacationDays.some((vacation) => {
                             if (!vacation.start) return false;
@@ -815,7 +827,9 @@ function User_Dashboard() {
                             morning: getMilkQty(morningOrders),
                             evening: getMilkQty(eveningOrders),
                             morningVacant,
-                            eveningVacant
+                            eveningVacant,
+                            morningStatus: getStatus(morningOrders),
+                            eveningStatus: getStatus(eveningOrders),
                           };
                         };
 
@@ -828,6 +842,8 @@ function User_Dashboard() {
                             <td className="qty-cell">
                               {data1?.morningVacant ? (
                                 <span className="vacant-text">Vacation</span>
+                              ) : data1?.morningStatus === "not_present" ? (
+                                <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
                               ) : data1?.morning > 0 ? (
                                 data1.morning
                               ) : (
@@ -837,6 +853,8 @@ function User_Dashboard() {
                             <td className="qty-cell">
                               {data1?.eveningVacant ? (
                                 <span className="vacant-text">Vacation</span>
+                              ) : data1?.eveningStatus === "not_present" ? (
+                                <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
                               ) : data1?.evening > 0 ? (
                                 data1.evening
                               ) : (
@@ -847,6 +865,8 @@ function User_Dashboard() {
                             <td className="qty-cell">
                               {data2?.morningVacant ? (
                                 <span className="vacant-text">Vacation</span>
+                              ) : data2?.morningStatus === "not_present" ? (
+                                <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
                               ) : data2?.morning > 0 ? (
                                 data2.morning
                               ) : (
@@ -856,6 +876,8 @@ function User_Dashboard() {
                             <td className="qty-cell">
                               {data2?.eveningVacant ? (
                                 <span className="vacant-text">Vacation</span>
+                              ) : data2?.eveningStatus === "not_present" ? (
+                                <span style={{ color: "#dc3545", fontWeight: 700 }}>✖</span>
                               ) : data2?.evening > 0 ? (
                                 data2.evening
                               ) : (

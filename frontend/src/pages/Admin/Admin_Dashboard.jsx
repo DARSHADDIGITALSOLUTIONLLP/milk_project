@@ -20,21 +20,22 @@ function Admin_Dashboard() {
   const location = useLocation();
   const VITE_ENCRYPTION_RAZORPAY_KEY = import.meta.env
     .VITE_ENCRYPTION_RAZORPAY_KEY;
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
 
-  // Helper function to calculate GST (18%)
-  const calculateGST = (amount) => {
-    return Math.round(amount * 0.18);
+  // Helper function to calculate GST with dynamic percentage
+  const calculateGST = (amount, gstPercentage = 18) => {
+    return Math.round(amount * (gstPercentage / 100));
   };
 
   // Helper function to calculate total (subtotal + GST)
-  const calculateTotal = (subtotal) => {
-    return subtotal + calculateGST(subtotal);
+  const calculateTotal = (subtotal, gstPercentage = 18) => {
+    return subtotal + calculateGST(subtotal, gstPercentage);
   };
 
   // Helper function to format price breakdown (Subtotal + GST = Total)
-  const formatPriceBreakdown = (subtotal) => {
-    const gst = calculateGST(subtotal);
-    const total = calculateTotal(subtotal);
+  const formatPriceBreakdown = (subtotal, showGst = true, gstPercentage = 18) => {
+    const gst = calculateGST(subtotal, gstPercentage);
+    const total = showGst ? calculateTotal(subtotal, gstPercentage) : subtotal;
     return {
       subtotal,
       gst,
@@ -44,9 +45,11 @@ function Admin_Dashboard() {
           <div style={{ fontSize: "14px", color: "#666" }}>
             Subtotal: ₹{subtotal}
           </div>
-          <div style={{ fontSize: "14px", color: "#666" }}>
-            GST (18%): ₹{gst}
-          </div>
+          {showGst && (
+            <div style={{ fontSize: "14px", color: "#666" }}>
+              GST ({gstPercentage}%): ₹{gst}
+            </div>
+          )}
           <div style={{ fontSize: "18px", fontWeight: "bold", color: "#000", marginTop: "5px" }}>
             Total: ₹{total}
           </div>
@@ -88,6 +91,20 @@ function Admin_Dashboard() {
     fetchData(); 
   }, []); // Empty dependency array - run once on mount 
 
+  // Fetch subscription plans
+  useEffect(() => {
+    const fetchSubscriptionPlans = async () => {
+      try {
+        const response = await axios.get("/api/subscription-plans/active");
+        if (response.data.success) {
+          setSubscriptionPlans(response.data.plans);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription plans:", error);
+      }
+    };
+    fetchSubscriptionPlans();
+  }, []);
 
   const [formData, setFormData] = useState({
     payment_amount: "",
@@ -831,136 +848,88 @@ function Admin_Dashboard() {
             <Modal.Body>
               <Container>
                 <Row>
-                  <Col xs={12} sm={6} md={6} lg={3} xl={3} className="mb-3">
-                    <Card
-                      style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                      className="subscription_card"
-                    >
-                      <Card.Body>
-                        <center>
-                          <Card.Title className="card_title">Basic</Card.Title>
-                        </center>
-                        <center>
-                          <h5 className="price mb-2">{formatPriceBreakdown(299).display}</h5>
-                        </center>
-                        <Card.Text style={{ textAlign: "center" }}>
-                          (30 days)
-                        </Card.Text>
-                        <center>
-                          <Button
-                            className="mt-4 pay_btn"
-                            style={{
-                              width: "100%",
-                              backgroundColor: "black",
-                              color: "white",
-                              border: "none",
+                  {subscriptionPlans.length > 0 ? (
+                    subscriptionPlans.map((plan) => {
+                      const priceDetails = formatPriceBreakdown(
+                        plan.plan_price,
+                        plan.show_gst,
+                        plan.gst_percentage
+                      );
+                      const planPeriod = plan.plan_validity_days === 30 ? "monthly" : 
+                                         plan.plan_validity_days === 90 ? "quarterly" :
+                                         plan.plan_validity_days === 180 ? "half-yearly" : "yearly";
+                      
+                      return (
+                        <Col key={plan.id} xs={12} sm={6} md={6} lg={3} xl={3} className="mb-3">
+                          <Card
+                            style={{ 
+                              boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px",
+                              position: "relative",
+                              height: "100%"
                             }}
-                            onClick={() => checkout(calculateTotal(299), "monthly")}
+                            className="subscription_card"
                           >
-                            Pay Now
-                          </Button>
-                        </center>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3} className="mb-3">
-                    <Card
-                      style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                      className="subscription_card"
-                    >
-                      <Card.Body>
-                        <center>
-                          <Card.Title className="card_title">Plus</Card.Title>
-                        </center>
-                        <center>
-                          <h5 className="price mb-2">{formatPriceBreakdown(499).display}</h5>
-                        </center>
-                        <Card.Text style={{ textAlign: "center" }}>
-                          (90 days)
-                        </Card.Text>
-                        <center>
-                          <Button
-                            className="mt-4 pay_btn"
-                            style={{
-                              width: "100%",
-                              backgroundColor: "black",
-                              color: "white",
-                              border: "none",
-                            }}
-                            onClick={() => checkout(calculateTotal(499), "quarterly")}
-                          >
-                            Pay Now
-                          </Button>
-                        </center>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3} className="mb-3">
-                    <Card
-                      style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                      className="subscription_card"
-                    >
-                      <Card.Body>
-                        <center>
-                          <Card.Title className="card_title">Gold</Card.Title>
-                        </center>
-                        <center>
-                          <h5 className="price mb-2">{formatPriceBreakdown(799).display}</h5>
-                        </center>
-                        <Card.Text style={{ textAlign: "center" }}>
-                          (180 days)
-                        </Card.Text>
-                        <center>
-                          <Button
-                            className="mt-4 pay_btn"
-                            style={{
-                              width: "100%",
-                              backgroundColor: "black",
-                              color: "white",
-                              border: "none",
-                            }}
-                            onClick={() => checkout(calculateTotal(799), "half-yearly")}
-                          >
-                            Pay Now
-                          </Button>
-                        </center>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3} className="mb-3">
-                    <Card
-                      style={{ boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px" }}
-                      className="subscription_card"
-                    >
-                      <Card.Body>
-                        <center>
-                          <Card.Title className="card_title">
-                            Platinum
-                          </Card.Title>
-                        </center>
-                        <center>
-                          <h5 className="price mb-2">{formatPriceBreakdown(1499).display}</h5>
-                        </center>
-                        <Card.Text style={{ textAlign: "center" }}>
-                          (365 days)
-                        </Card.Text>
-                        <center>
-                          <Button
-                            className="mt-4 pay_btn"
-                            style={{
-                              width: "100%",
-                              backgroundColor: "black",
-                              color: "white",
-                              border: "none",
-                            }}
-                            onClick={() => checkout(calculateTotal(1499), "yearly")}
-                          >
-                            Pay Now
-                          </Button>
-                        </center>
-                      </Card.Body>
-                    </Card>
-                  </Col>
+                            {plan.badge && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "10px",
+                                  right: "10px",
+                                  backgroundColor: "#FFA500",
+                                  color: "white",
+                                  padding: "5px 10px",
+                                  borderRadius: "5px",
+                                  fontSize: "12px",
+                                  fontWeight: "bold",
+                                  zIndex: 1
+                                }}
+                              >
+                                {plan.badge}
+                              </div>
+                            )}
+                            <Card.Body>
+                              <center>
+                                <Card.Title className="card_title">{plan.plan_name}</Card.Title>
+                              </center>
+                              <center>
+                                <h5 className="price mb-2">{priceDetails.display}</h5>
+                              </center>
+                              <Card.Text>
+                                <div style={{ textAlign: "center", marginBottom: "10px" }}>
+                                  <p>({plan.plan_validity_days} days)</p>
+                                </div>
+                                {plan.plan_features && plan.plan_features.length > 0 && (
+                                  <ul style={{ textAlign: "left", fontSize: "13px", paddingLeft: "20px" }}>
+                                    {plan.plan_features.map((feature, idx) => (
+                                      <li key={idx}>{feature}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </Card.Text>
+                              <center>
+                                <Button
+                                  className="mt-auto pay_btn"
+                                  style={{
+                                    width: "100%",
+                                    backgroundColor: "black",
+                                    color: "white",
+                                    border: "none",
+                                  }}
+                                  onClick={() => checkout(priceDetails.total, planPeriod)}
+                                >
+                                  Pay Now
+                                </Button>
+                              </center>
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      );
+                    })
+                  ) : (
+                    <Col xs={12} className="text-center">
+                      <p>Loading subscription plans...</p>
+                    </Col>
+                  )}
                 </Row>
               </Container>
             </Modal.Body>

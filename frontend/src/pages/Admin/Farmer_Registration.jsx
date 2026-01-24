@@ -74,7 +74,7 @@ function Farmer_Registration() {
   const handleFarmerSubmit = async (e) => {
     e.preventDefault();
     if (
-      FarmerValues.password.length < 6 ||
+      FarmerValues.password.length < 4 ||
       FarmerValues.password.length > 10
     ) {
       toast.error("Password length must be between 6 and 10 characters.");
@@ -275,7 +275,7 @@ function Farmer_Registration() {
                       name="password"
                       maxLength="10"
                       value={FarmerValues.password}
-                      minLength="6"
+                      minLength="4"
                       placeholder="Please enter your Password"
                       onChange={(e) =>
                         setFarmerValues({

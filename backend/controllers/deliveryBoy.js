@@ -132,14 +132,30 @@ module.exports.UpdateDeliveryStatus = async (req, res) => {
             Number(buffaloQuantity) || 0
         ];
 
-        // Insert into DeliveryStatus table first
-        await DeliveryStatus.create({
-            userid: id,
-            quantity_array: JSON.stringify(quantityArray),
-            shift: shift.toLowerCase(),
-            status: delivery_status,
-            date: now.format("YYYY-MM-DD"),
+        // Upsert into DeliveryStatus to avoid duplicates
+        const todayDate = now.format("YYYY-MM-DD");
+        const existingStatus = await DeliveryStatus.findOne({
+            where: {
+                userid: id,
+                shift: shift.toLowerCase(),
+                date: todayDate,
+            },
         });
+
+        if (existingStatus) {
+            await existingStatus.update({
+                quantity_array: JSON.stringify(quantityArray),
+                status: delivery_status,
+            });
+        } else {
+            await DeliveryStatus.create({
+                userid: id,
+                quantity_array: JSON.stringify(quantityArray),
+                shift: shift.toLowerCase(),
+                status: delivery_status,
+                date: todayDate,
+            });
+        }
 
         // Only mark as delivered if delivery_status is true (Delivered), not if false (Not Present)
         let updateField = {};
@@ -155,7 +171,6 @@ module.exports.UpdateDeliveryStatus = async (req, res) => {
         // This allows the order to remain in the pending list
 
         // ✅ Check and update today's additional order if exists
-        const todayDate = now.format("YYYY-MM-DD");
 
 
         const additionalOrder = await AdditionalOrder.findOne({

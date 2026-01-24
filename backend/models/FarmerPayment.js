@@ -24,6 +24,16 @@ const FarmerPayment = sequelize.define(
             type: DataTypes.FLOAT,
             allowNull: false,
         },
+        paid_amount: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            defaultValue: 0,
+        },
+        pending_amount: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            defaultValue: 0,
+        },
         status: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

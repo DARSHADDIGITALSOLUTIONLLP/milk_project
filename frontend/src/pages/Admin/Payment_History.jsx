@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import WindowHeader from "../../window_partial/window_header";
-import { Container, Button, Modal, ToastContainer } from "react-bootstrap";
+import { Container, Button, Modal } from "react-bootstrap";
 import "./Payment_History.css";
 import DataTable from "react-data-table-component";
 import "../../window_partial/window.css";
 import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
 import { encode } from "base64-arraybuffer";
-import { toast } from "react-toastify";
-import { Bounce } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../SuperAdmin/Dairy_List.css";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 function Payment_History() {
   const [records, setRecords] = useState([]);
@@ -94,6 +96,10 @@ function Payment_History() {
             advance_payment: user.advance_payment
               ? `₹ ${user.advance_payment}/-`
               : "₹ 0/-",
+            // Store raw numeric values for PDF export
+            advance_payment_raw: user.advance_payment || 0,
+            received_payment_raw: user.received_payment || 0,
+            pending_payment_raw: user.pending_payment || 0,
           };
         });
   
@@ -358,18 +364,16 @@ function Payment_History() {
         }}
       >
         <ToastContainer
-          stacked
           position="top-center"
           autoClose={5000}
           hideProgressBar={false}
           newestOnTop={false}
-          closeOnClick
+          closeOnClick={true}
           rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
+          pauseOnFocusLoss={true}
+          draggable={true}
+          pauseOnHover={true}
           theme="light"
-          transition={Bounce}
         />
         <Container fluid className="main-content mt-5">
           <div className="row">
@@ -377,7 +381,89 @@ function Payment_History() {
               <p>Today's Status: {dateTime.toLocaleString()} </p>
             </div>
             <div className="col-md-6 col-sm-12 pt-2">
-              <div className="text-end mb-3">
+              <div className="text-end mb-3 d-flex gap-2 justify-content-end">
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    try {
+                      if (!filteredRecords || filteredRecords.length === 0) {
+                        toast.error('No data available to export.');
+                        return;
+                      }
+                      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                      const pageWidth = doc.internal.pageSize.getWidth();
+                      const pageHeight = doc.internal.pageSize.getHeight();
+                      let yPosition = 20;
+                      doc.setFontSize(20);
+                      doc.setFont(undefined, 'bold');
+                      doc.text('Customer Payment History', pageWidth / 2, yPosition, { align: 'center' });
+                      yPosition += 10;
+                      doc.setFontSize(12);
+                      doc.setFont(undefined, 'normal');
+                      doc.text(`Generated on: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, pageWidth / 2, yPosition, { align: 'center' });
+                      yPosition += 12;
+                      doc.setFontSize(14);
+                      doc.setFont(undefined, 'bold');
+                      doc.text('Payment Summary', 14, yPosition);
+                      yPosition += 8;
+                      doc.autoTable({
+                        startY: yPosition,
+                        head: [['Metric', 'Value']],
+                        body: [
+                          ['Advance Payment', `Rs ${totalPayment.advance_payment || 0}`],
+                          ['Outstanding Payment', `Rs ${totalPayment.outstanding_payment || 0}`],
+                          ['Received Payment', `Rs ${totalPayment.received_payment || 0}`],
+                          ['Balance Payment', `Rs ${totalPayment.balance_payment || 0}`],
+                        ],
+                        theme: 'striped',
+                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        styles: { fontSize: 10 },
+                        margin: { left: 14, right: 14 },
+                      });
+                      yPosition = (doc.lastAutoTable?.finalY || yPosition) + 15;
+                      doc.setFontSize(14);
+                      doc.setFont(undefined, 'bold');
+                      doc.text('Customer Payment Records', 14, yPosition);
+                      yPosition += 8;
+                      const tableData = filteredRecords.map((row, index) => [
+                        index + 1,
+                        row.name || 'N/A',
+                        row.address || 'N/A',
+                        row.shift || 'N/A',
+                        row.status || 'N/A',
+                        row.startDate || 'N/A',
+                        `Rs ${parseFloat(row.advance_payment_raw || 0).toFixed(2)}`,
+                        `Rs ${parseFloat(row.received_payment_raw || 0).toFixed(2)}`,
+                        `Rs ${parseFloat(row.pending_payment_raw || 0).toFixed(2)}`,
+                      ]);
+                      doc.autoTable({
+                        startY: yPosition,
+                        head: [['Sr No.', 'Name', 'Address', 'Shift', 'Status', 'Start Date', 'Advance Payment', 'Received Payment', 'Balance Payment']],
+                        body: tableData,
+                        theme: 'striped',
+                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        margin: { left: 14, right: 14 },
+                        columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
+                      });
+                      const totalPages = doc.internal.getNumberOfPages();
+                      for (let i = 1; i <= totalPages; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                        doc.text(`Generated on: ${new Date().toLocaleString("en-US")}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+                      }
+                      doc.save(`Customer_Payment_History_${Date.now()}.pdf`);
+                      toast.success('PDF exported successfully!');
+                    } catch (error) {
+                      console.error('Error exporting PDF:', error);
+                      toast.error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
+                    }
+                  }}
+                  className="me-2"
+                >
+                  Export PDF
+                </Button>
                 <input
                   type="text"
                   placeholder="Search"

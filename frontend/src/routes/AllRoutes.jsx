@@ -8,11 +8,11 @@ import Register from "../pages/Register/Register";
 import Dairy_Register from "../pages/SuperAdmin/Dairy_Register";
 import Dashboard from "../pages/SuperAdmin/Dashboard";
 import Dairy_List from "../pages/SuperAdmin/Dairy_List";
+import Manage_Subscription_Plans from "../pages/SuperAdmin/Manage_Subscription_Plans";
 import User_Dashboard from "../pages/User/User_Dashboard";
 import AddItem from "../pages/User/AddItem";
 import Admin_Dashboard from "../pages/Admin/Admin_Dashboard";
 import Manage_Customer_Notification from "../pages/Admin/Manage_Customer_Notification";
-import User_Request from "../pages/Admin/User_Request";
 import Admin_Customer_List from "../pages/Admin/Admin_Customer_List";
 import Additional_Orders from "../pages/Admin/Additional_Orders";
 import Customer_Morning from "../pages/Admin/Customer_Morning";
@@ -25,7 +25,6 @@ import Farmer_Order_History from "../pages/Admin/Farmer_Order_History";
 import Admin_Farmer_Payment_History from "../pages/Admin/Farmer_Payment_History";
 import Delivery_Boy_List from "../pages/Admin/Delivery_Boy_List";
 import Daily_Report from "../pages/Admin/Daily_Report";
-import Customer_Registration from "../pages/Admin/Customer_Registration";
 import Farmer_Registration from "../pages/Admin/Farmer_Registration";
 import Delivery_Boy_Registration from "../pages/Admin/Delivery_Boy_Registration";
 import Delivery_Boy_Login from "../pages/DeliveryBoy/Delivery_Boy_Login";
@@ -150,6 +149,12 @@ function AllRoutes() {
           <UserRoleRoute role="super_admin" component={<Dairy_List />} />
         }
       />
+      <Route
+        path="/manage-subscription-plans"
+        element={
+          <UserRoleRoute role="super_admin" component={<Manage_Subscription_Plans />} />
+        }
+      />
 
       {/* User Pages */}
       <Route
@@ -180,10 +185,6 @@ function AllRoutes() {
       />
 
       {/* Admin Pages */}
-      <Route
-        path="/user-request"
-        element={<UserRoleRoute role="admin" component={<User_Request />} />}
-      />
       <Route
         path="/admin-dashboard"
         element={<UserRoleRoute role="admin" component={<Admin_Dashboard />} />}
@@ -254,12 +255,6 @@ function AllRoutes() {
         path="/farmer-order-history"
         element={
           <UserRoleRoute role="admin" component={<Farmer_Order_History />} />
-        }
-      />
-      <Route
-        path="/customer-registration"
-        element={
-          <UserRoleRoute role="admin" component={<Customer_Registration />} />
         }
       />
       <Route

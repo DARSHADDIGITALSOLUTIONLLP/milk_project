@@ -3,7 +3,7 @@ const Joi = require("joi");
 const userRegistrationSchema = Joi.object({
     name: Joi.string().min(3).max(100).required(),
     email: Joi.string().email().required(),
-    password_hash: Joi.string().min(6).required(),
+    password_hash: Joi.string().length(4).required(),
     contact: Joi.string().pattern(/^[0-9]{10}$/).required(), // Ensures a 10-digit phone number
     address: Joi.string().min(5).max(255).required(),
     dairy_name: Joi.string().required(),

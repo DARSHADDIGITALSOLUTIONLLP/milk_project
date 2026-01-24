@@ -141,6 +141,7 @@ module.exports.getFarmerPaymentHistory = async (req, res) => {
             weekData.total_buffalo_quantity += buffaloQty;
             weekData.total_pure_quantity += pureQty;
 
+            // NOTE: *_rate already stores total amount (fat * qty * base rate)
             weekData.total_amount += (cowRate) + (buffaloRate) + (pureRate);
         }
 
@@ -160,13 +161,17 @@ module.exports.getFarmerPaymentHistory = async (req, res) => {
             });
 
             if (existing) {
+                const paidAmount = Number(existing.paid_amount) || 0;
+                const pendingAmount = Math.max(week.total_amount - paidAmount, 0);
                 await existing.update({
                     total_cow_quantity: week.total_cow_quantity,
                     total_buffalo_quantity: week.total_buffalo_quantity,
                     total_pure_quantity: week.total_pure_quantity,
                     total_amount: week.total_amount,
+                    pending_amount: parseFloat(pendingAmount.toFixed(2)),
+                    status: pendingAmount === 0,
                 });
-                week.status = existing.status;;
+                week.status = pendingAmount === 0;
             } else {
                 const newPayment = await FarmerPayment.create({
                     farmer_id: farmerId,
@@ -178,6 +183,8 @@ module.exports.getFarmerPaymentHistory = async (req, res) => {
                     total_buffalo_quantity: week.total_buffalo_quantity,
                     total_pure_quantity: week.total_pure_quantity,
                     total_amount: week.total_amount,
+                    paid_amount: 0,
+                    pending_amount: parseFloat(week.total_amount.toFixed(2)),
                     status: false,
                 });
                 week.status = newPayment.status;

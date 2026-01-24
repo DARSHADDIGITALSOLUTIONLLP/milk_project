@@ -287,10 +287,8 @@ function WindowHeader({ dashboardText }) {
     const path = location.pathname || "";
 
     const isRegistrationRoute =
-      path.startsWith("/customer-registration") ||
       path.startsWith("/farmer-registration") ||
-      path.startsWith("/delivery-boy-registration") ||
-      path.startsWith("/user-request");
+      path.startsWith("/delivery-boy-registration");
 
     const isCustomerRoute =
       path.startsWith("/customer-morning") ||
@@ -716,15 +714,6 @@ function WindowHeader({ dashboardText }) {
               <ul className="sub-menu">
                 <li>
                   <NavLink
-                    to="/customer-registration"
-                    className={({ isActive }) => (isActive ? "active" : "inactive")}
-                    onClick={() => handleSubMenuClick("customer")}
-                  >
-                    Customer Registration
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
                     to="/farmer-registration"
                     className={({ isActive }) => (isActive ? "active" : "inactive")}
                     onClick={() => handleSubMenuClick("farmer")}
@@ -739,15 +728,6 @@ function WindowHeader({ dashboardText }) {
                     onClick={() => handleSubMenuClick("deliveryBoy")}
                   >
                     Delivery Boy Registration
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/user-request"
-                    className={({ isActive }) => (isActive ? "active" : "inactive")}
-                    onClick={() => handleSubMenuClick("userRequest")}
-                  >
-                    User Request
                   </NavLink>
                 </li>
               </ul>
