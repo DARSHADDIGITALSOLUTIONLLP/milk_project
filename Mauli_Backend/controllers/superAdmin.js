@@ -98,7 +98,7 @@ module.exports.login = async (req, res) => {
         if (!user.request) {
           return res
             .status(403)
-            .json({ message: "Your request is currently pending. It may take up to 24 hours for approval. You will be able to log in once your request is approved. Please check back later." });
+            .json({ message: "Your request is currently pending. You will be able to log in once your request is approved by the admin." });
         }
 
         // Check if corresponding Admin (with same dairy_name) has status=true

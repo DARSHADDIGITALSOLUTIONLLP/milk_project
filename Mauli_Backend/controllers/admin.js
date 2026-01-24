@@ -594,10 +594,9 @@ module.exports.addNewUser = async (req, res) => {
       vacation_mode_evening,
     });
 
-    // ✅ Set start_date one day after registration
+    // ✅ Set start_date to today for immediate activation
     let startDate = moment()
       .tz("Asia/Kolkata")
-      .add(1, "days")
       .format("YYYY-MM-DD");
     let yearMonth = moment(startDate).format("YYYY-MM"); // Extract YYYY-MM from start_date
 
@@ -607,7 +606,7 @@ module.exports.addNewUser = async (req, res) => {
     // ✅ Create Payment Details with year_month field
     const new_Payment_Details = await PaymentDetails.create({
       userid: newUser.id,
-      start_date: startDate, // Set start date as one day after registration
+      start_date: startDate, // Set start date as today for immediate activation
       month_year: yearMonth, // Store the year and month in YYYY-MM format
     });
 
@@ -651,27 +650,37 @@ module.exports.updateRequest = async (req, res) => {
     // Update request status
     user.request = request;
 
-    // Set start_date to tomorrow's date whenever request status is updated
-    user.start_date = moment()
-      .tz("Asia/Kolkata")
-      .add(1, "days")
-      .format("YYYY-MM-DD");
-    await user.save();
-    let startDate = moment()
-      .tz("Asia/Kolkata")
-      .add(1, "days")
-      .format("YYYY-MM-DD");
-    let yearMonth = moment(startDate).format("YYYY-MM"); // Extract YYYY-MM from start_date
-    const new_Payment_Details = await PaymentDetails.create({
-      userid: user.id,
-      start_date: startDate, // ✅ Set start date as one day after registration
-      month_year: yearMonth,
-    });
+    let newPaymentDetails = null;
+    if (request === true) {
+      // Activate immediately on approval
+      const startDate = moment()
+        .tz("Asia/Kolkata")
+        .format("YYYY-MM-DD");
+      const yearMonth = moment(startDate).format("YYYY-MM");
+
+      user.start_date = startDate;
+      await user.save();
+
+      // Avoid duplicate payment detail rows for the same month
+      const existingPaymentDetails = await PaymentDetails.findOne({
+        where: { userid: user.id, month_year: yearMonth },
+      });
+
+      if (!existingPaymentDetails) {
+        newPaymentDetails = await PaymentDetails.create({
+          userid: user.id,
+          start_date: startDate,
+          month_year: yearMonth,
+        });
+      }
+    } else {
+      await user.save();
+    }
 
     res.json({
-      message: "Request status and start date updated successfully",
+      message: "Request status updated successfully",
       user,
-      new_Payment_Details,
+      new_Payment_Details: newPaymentDetails,
     });
   } catch (error) {
     console.error("Error updating request status:", error);
