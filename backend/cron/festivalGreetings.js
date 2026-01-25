@@ -3,11 +3,14 @@
  * Sends festival greeting notifications to CUSTOMERS ONLY (User model)
  * Does NOT send to Admin, SuperAdmin, or DeliveryBoy
  * Runs daily at 9:00 AM IST to send greetings for the day
+ * 
+ * Note: This now uses DATABASE for festivals instead of hardcoded file
  */
 
 const cron = require("node-cron");
 const moment = require("moment-timezone");
-const { getFestivalForDate } = require("../utils/festivals");
+const { getFestivalForDate } = require("../utils/festivals"); // Fallback
+const { getFestivalForToday } = require("../controllers/festival"); // Primary (Database)
 const User = require("../models/User");
 const admin = require("../utils/firebase");
 
@@ -92,8 +95,16 @@ async function checkAndSendFestivalGreetings() {
     console.log(`[FESTIVAL CRON] 🎉 Festival Greetings Check started at ${timestamp} IST`);
 
     try {
-        // Check if today is a festival
-        const festival = getFestivalForDate(today);
+        // Check if today is a festival (Database first, then fallback to file)
+        let festival = await getFestivalForToday();
+        
+        // Fallback to hardcoded festivals if not found in database
+        if (!festival) {
+            console.log(`[FESTIVAL CRON] ℹ️  No festival in database, checking hardcoded file...`);
+            festival = getFestivalForDate(today);
+        } else {
+            console.log(`[FESTIVAL CRON] ✅ Festival found in database`);
+        }
 
         if (!festival) {
             console.log(`[FESTIVAL CRON] ℹ️  No festival today (${today}), skipping greetings`);

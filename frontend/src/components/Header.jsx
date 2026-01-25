@@ -125,6 +125,14 @@ function Header({ dashboardText }) {
               Manage Plans
             </NavLink>
           </li>
+          <li>
+            <NavLink
+              to="/manage-festivals"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+            >
+              Manage Festivals
+            </NavLink>
+          </li>
         </ul>
         <div className="sidebar-bottom">
           <a href="" style={{ color: "white" }} onClick={handleLogout}>

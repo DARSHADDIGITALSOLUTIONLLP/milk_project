@@ -22,6 +22,8 @@ function Payment_History() {
   const [showPaymentDetailsModal, setShowPaymentDetailsModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [totalPayment, setTotalPayment] = useState({
     advance_payment: 0,
     outstanding_payment: 0,
@@ -85,6 +87,7 @@ function Payment_History() {
             status: user.status === true ? "Paid" : "Pending",
             address: user.address || "N/A",
             startDate: user.start_date ? formatDate(user.start_date) : "N/A",
+            start_date: user.start_date || null, // Store raw date for filtering
             shift: user.shift || "N/A",
             dairyName: user.dairy_name,
             amount: user.received_payment
@@ -201,23 +204,94 @@ function Payment_History() {
   }, []);
 
   const handleFilter = (event) => {
-    const value = event.target.value.toLowerCase();
-    const filteredData = records.filter((row) => {
-      return (
-        row.name.toLowerCase().includes(value) ||
-        row.address.toLowerCase().includes(value) ||
-        row.status.toLowerCase().includes(value)
-      );
-    });
+    const value = event.target.value;
     setSearchTerm(value);
-    setFilteredRecords(filteredData);
+  };
+
+  const clearDateFilter = () => {
+    setStartDate("");
+    setEndDate("");
   };
 
   const [filteredRecords, setFilteredRecords] = useState([]);
 
   useEffect(() => {
-    setFilteredRecords(records);
-  }, [records]);
+    let filteredData = [...records];
+
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredData = filteredData.filter((row) => {
+        return (
+          row.name?.toLowerCase().includes(searchLower) ||
+          row.address?.toLowerCase().includes(searchLower) ||
+          row.status?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Apply date range filter (filter by start_date)
+    if (startDate || endDate) {
+      filteredData = filteredData.filter((row) => {
+        // Use the raw start_date field
+        const recordStartDate = row.start_date;
+        
+        if (!recordStartDate) return false;
+
+        // Parse the date
+        const dateToCheck = new Date(recordStartDate);
+        
+        if (isNaN(dateToCheck.getTime())) return false;
+
+        // Set time to midnight for accurate comparison
+        dateToCheck.setHours(0, 0, 0, 0);
+        
+        const filterStartDate = startDate ? new Date(startDate) : null;
+        if (filterStartDate) filterStartDate.setHours(0, 0, 0, 0);
+        
+        const filterEndDate = endDate ? new Date(endDate) : null;
+        if (filterEndDate) filterEndDate.setHours(23, 59, 59, 999);
+
+        // Check if date falls within range
+        const afterStart = !filterStartDate || dateToCheck >= filterStartDate;
+        const beforeEnd = !filterEndDate || dateToCheck <= filterEndDate;
+
+        return afterStart && beforeEnd;
+      });
+    }
+
+    setFilteredRecords(filteredData);
+
+    // Calculate totals from filteredRecords
+    if (filteredData.length > 0) {
+      const advancePayment = filteredData.reduce(
+        (sum, r) => sum + (parseFloat(r.advance_payment_raw) || 0),
+        0
+      );
+      const receivedPayment = filteredData.reduce(
+        (sum, r) => sum + (parseFloat(r.received_payment_raw) || 0),
+        0
+      );
+      const pendingPayment = filteredData.reduce(
+        (sum, r) => sum + (parseFloat(r.pending_payment_raw) || 0),
+        0
+      );
+
+      setTotalPayment({
+        advance_payment: advancePayment,
+        outstanding_payment: pendingPayment,
+        received_payment: receivedPayment,
+        balance_payment: pendingPayment,
+      });
+    } else {
+      setTotalPayment({
+        advance_payment: 0,
+        outstanding_payment: 0,
+        received_payment: 0,
+        balance_payment: 0,
+      });
+    }
+  }, [records, searchTerm, startDate, endDate]);
 
   const allColumns = [
     {
@@ -379,91 +453,159 @@ function Payment_History() {
           <div className="row">
             <div className="col-md-6 col-sm-12 pt-4">
               <p>Today's Status: {dateTime.toLocaleString()} </p>
+              {(startDate || endDate) && (
+                <p className="text-muted" style={{ fontSize: "14px", marginTop: "5px" }}>
+                  Showing {filteredRecords.length} of {records.length} records
+                  {startDate && endDate && ` (${startDate} to ${endDate})`}
+                  {startDate && !endDate && ` (from ${startDate})`}
+                  {!startDate && endDate && ` (until ${endDate})`}
+                </p>
+              )}
             </div>
             <div className="col-md-6 col-sm-12 pt-2">
+              <div className="mb-3">
+                {/* Date Range Filters */}
+                <div className="d-flex gap-2 align-items-center flex-wrap mb-2 justify-content-end">
+                  <div className="d-flex align-items-center gap-2">
+                    <label htmlFor="startDate" style={{ fontSize: "14px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                      From Date:
+                    </label>
+                    <input
+                      type="date"
+                      id="startDate"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="form-control form-control-sm"
+                      style={{ width: "160px" }}
+                    />
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <label htmlFor="endDate" style={{ fontSize: "14px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                      To Date:
+                    </label>
+                    <input
+                      type="date"
+                      id="endDate"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="form-control form-control-sm"
+                      style={{ width: "160px" }}
+                      min={startDate || undefined}
+                    />
+                  </div>
+                  {(startDate || endDate) && (
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={clearDateFilter}
+                      title="Clear date filter"
+                    >
+                      Clear Filter
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      try {
+                        if (!filteredRecords || filteredRecords.length === 0) {
+                          toast.error('No data available to export.');
+                          return;
+                        }
+                        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                        const pageWidth = doc.internal.pageSize.getWidth();
+                        const pageHeight = doc.internal.pageSize.getHeight();
+                        let yPosition = 20;
+                        doc.setFontSize(20);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Customer Payment History', pageWidth / 2, yPosition, { align: 'center' });
+                        yPosition += 10;
+                        doc.setFontSize(12);
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`Generated on: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, pageWidth / 2, yPosition, { align: 'center' });
+                        yPosition += 8;
+                        // Add date range filter info if applied
+                        if (startDate || endDate) {
+                          doc.setFontSize(10);
+                          doc.setFont(undefined, 'italic');
+                          const dateRangeText = `Date Range: ${startDate || 'All'} to ${endDate || 'All'}`;
+                          doc.text(dateRangeText, pageWidth / 2, yPosition, { align: 'center' });
+                          yPosition += 8;
+                        }
+                        yPosition += 4;
+                        doc.setFontSize(14);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Payment Summary', 14, yPosition);
+                        yPosition += 8;
+                        doc.autoTable({
+                          startY: yPosition,
+                          head: [['Metric', 'Value']],
+                          body: [
+                            ['Advance Payment', `Rs ${totalPayment.advance_payment || 0}`],
+                            ['Outstanding Payment', `Rs ${totalPayment.outstanding_payment || 0}`],
+                            ['Received Payment', `Rs ${totalPayment.received_payment || 0}`],
+                            ['Balance Payment', `Rs ${totalPayment.balance_payment || 0}`],
+                          ],
+                          theme: 'striped',
+                          headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                          styles: { fontSize: 10 },
+                          margin: { left: 14, right: 14 },
+                        });
+                        yPosition = (doc.lastAutoTable?.finalY || yPosition) + 15;
+                        doc.setFontSize(14);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Customer Payment Records', 14, yPosition);
+                        yPosition += 8;
+                        const tableData = filteredRecords.map((row, index) => [
+                          index + 1,
+                          row.name || 'N/A',
+                          row.address || 'N/A',
+                          row.shift || 'N/A',
+                          row.status || 'N/A',
+                          row.startDate || 'N/A',
+                          `Rs ${parseFloat(row.advance_payment_raw || 0).toFixed(2)}`,
+                          `Rs ${parseFloat(row.received_payment_raw || 0).toFixed(2)}`,
+                          `Rs ${parseFloat(row.pending_payment_raw || 0).toFixed(2)}`,
+                        ]);
+                        doc.autoTable({
+                          startY: yPosition,
+                          head: [['Sr No.', 'Name', 'Address', 'Shift', 'Status', 'Start Date', 'Advance Payment', 'Received Payment', 'Balance Payment']],
+                          body: tableData,
+                          theme: 'striped',
+                          headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                          styles: { fontSize: 8, cellPadding: 2 },
+                          margin: { left: 14, right: 14 },
+                          columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
+                        });
+                        const totalPages = doc.internal.getNumberOfPages();
+                        for (let i = 1; i <= totalPages; i++) {
+                          doc.setPage(i);
+                          doc.setFontSize(8);
+                          doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                          doc.text(`Generated on: ${new Date().toLocaleString("en-US")}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+                        }
+                        // Generate filename with date range if filters applied
+                        let filename = 'Customer_Payment_History';
+                        if (startDate || endDate) {
+                          const startStr = startDate ? startDate.replace(/-/g, '') : 'All';
+                          const endStr = endDate ? endDate.replace(/-/g, '') : 'All';
+                          filename += `_${startStr}_to_${endStr}`;
+                        }
+                        filename += `_${Date.now()}.pdf`;
+                        doc.save(filename);
+                        toast.success('PDF exported successfully!');
+                      } catch (error) {
+                        console.error('Error exporting PDF:', error);
+                        toast.error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
+                      }
+                    }}
+                    title="Export to PDF"
+                  >
+                    Export PDF
+                  </Button>
+                </div>
+              </div>
               <div className="text-end mb-3 d-flex gap-2 justify-content-end">
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    try {
-                      if (!filteredRecords || filteredRecords.length === 0) {
-                        toast.error('No data available to export.');
-                        return;
-                      }
-                      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                      const pageWidth = doc.internal.pageSize.getWidth();
-                      const pageHeight = doc.internal.pageSize.getHeight();
-                      let yPosition = 20;
-                      doc.setFontSize(20);
-                      doc.setFont(undefined, 'bold');
-                      doc.text('Customer Payment History', pageWidth / 2, yPosition, { align: 'center' });
-                      yPosition += 10;
-                      doc.setFontSize(12);
-                      doc.setFont(undefined, 'normal');
-                      doc.text(`Generated on: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, pageWidth / 2, yPosition, { align: 'center' });
-                      yPosition += 12;
-                      doc.setFontSize(14);
-                      doc.setFont(undefined, 'bold');
-                      doc.text('Payment Summary', 14, yPosition);
-                      yPosition += 8;
-                      doc.autoTable({
-                        startY: yPosition,
-                        head: [['Metric', 'Value']],
-                        body: [
-                          ['Advance Payment', `Rs ${totalPayment.advance_payment || 0}`],
-                          ['Outstanding Payment', `Rs ${totalPayment.outstanding_payment || 0}`],
-                          ['Received Payment', `Rs ${totalPayment.received_payment || 0}`],
-                          ['Balance Payment', `Rs ${totalPayment.balance_payment || 0}`],
-                        ],
-                        theme: 'striped',
-                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
-                        styles: { fontSize: 10 },
-                        margin: { left: 14, right: 14 },
-                      });
-                      yPosition = (doc.lastAutoTable?.finalY || yPosition) + 15;
-                      doc.setFontSize(14);
-                      doc.setFont(undefined, 'bold');
-                      doc.text('Customer Payment Records', 14, yPosition);
-                      yPosition += 8;
-                      const tableData = filteredRecords.map((row, index) => [
-                        index + 1,
-                        row.name || 'N/A',
-                        row.address || 'N/A',
-                        row.shift || 'N/A',
-                        row.status || 'N/A',
-                        row.startDate || 'N/A',
-                        `Rs ${parseFloat(row.advance_payment_raw || 0).toFixed(2)}`,
-                        `Rs ${parseFloat(row.received_payment_raw || 0).toFixed(2)}`,
-                        `Rs ${parseFloat(row.pending_payment_raw || 0).toFixed(2)}`,
-                      ]);
-                      doc.autoTable({
-                        startY: yPosition,
-                        head: [['Sr No.', 'Name', 'Address', 'Shift', 'Status', 'Start Date', 'Advance Payment', 'Received Payment', 'Balance Payment']],
-                        body: tableData,
-                        theme: 'striped',
-                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
-                        styles: { fontSize: 8, cellPadding: 2 },
-                        margin: { left: 14, right: 14 },
-                        columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
-                      });
-                      const totalPages = doc.internal.getNumberOfPages();
-                      for (let i = 1; i <= totalPages; i++) {
-                        doc.setPage(i);
-                        doc.setFontSize(8);
-                        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-                        doc.text(`Generated on: ${new Date().toLocaleString("en-US")}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-                      }
-                      doc.save(`Customer_Payment_History_${Date.now()}.pdf`);
-                      toast.success('PDF exported successfully!');
-                    } catch (error) {
-                      console.error('Error exporting PDF:', error);
-                      toast.error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
-                    }
-                  }}
-                  className="me-2"
-                >
-                  Export PDF
-                </Button>
                 <input
                   type="text"
                   placeholder="Search"

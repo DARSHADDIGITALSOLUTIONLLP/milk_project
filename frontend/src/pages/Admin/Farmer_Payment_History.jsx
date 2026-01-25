@@ -30,6 +30,8 @@ function Farmer_Payment_History() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [paidAmount, setPaidAmount] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const Farmer_List = async () => {
     try {
@@ -138,19 +140,19 @@ function Farmer_Payment_History() {
   }, []);
 
   const handleFilter = (event) => {
-    const value = event.target.value.toLowerCase();
+    const value = event.target.value;
     setSearchTerm(value);
-
-    const filteredData = records.filter((row) => {
-      return (
-        row.full_name?.toLowerCase().includes(value) ||
-        row.address?.toLowerCase().includes(value) ||
-        row.status?.toLowerCase().includes(value)
-      );
-    });
-
-    setFilteredRecords(filteredData);
   };
+
+  const handleDateFilter = () => {
+    // Date filter is applied automatically via useEffect
+  };
+
+  const clearDateFilter = () => {
+    setStartDate("");
+    setEndDate("");
+  };
+
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [totalPayment, setTotalPayment] = useState({
     advance_payment: 0,
@@ -166,13 +168,52 @@ function Farmer_Payment_History() {
   });
 
   useEffect(() => {
-    setFilteredRecords(records);
+    // Apply filters when records or filter values change
+    let filteredData = [...records];
+
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredData = filteredData.filter((row) => {
+        return (
+          row.full_name?.toLowerCase().includes(searchLower) ||
+          row.address?.toLowerCase().includes(searchLower) ||
+          row.status?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Apply date range filter
+    if (startDate || endDate) {
+      filteredData = filteredData.filter((row) => {
+        const weekStart = row.week_start_date;
+        const weekEnd = row.week_end_date;
+
+        if (!weekStart && !weekEnd) return false;
+
+        // Check if the week overlaps with the date range
+        const weekStartDate = new Date(weekStart);
+        const weekEndDate = new Date(weekEnd);
+        const filterStartDate = startDate ? new Date(startDate) : null;
+        const filterEndDate = endDate ? new Date(endDate) : null;
+
+        // Week overlaps if:
+        // - Week starts before or on filter end date AND
+        // - Week ends after or on filter start date
+        const overlapsStart = !filterStartDate || weekEndDate >= filterStartDate;
+        const overlapsEnd = !filterEndDate || weekStartDate <= filterEndDate;
+
+        return overlapsStart && overlapsEnd;
+      });
+    }
+
+    setFilteredRecords(filteredData);
     
-    // Calculate totals from records
-    if (records.length > 0) {
+    // Calculate totals from filteredRecords (not all records)
+    if (filteredData.length > 0) {
       // Calculate advance_payment: Sum unique farmers' advance_payment (each farmer counted only once)
       const uniqueFarmers = new Map();
-      records.forEach((r) => {
+      filteredData.forEach((r) => {
         const farmerId = r.farmer_id || r.id;
         if (farmerId && !uniqueFarmers.has(farmerId)) {
           uniqueFarmers.set(farmerId, parseFloat(r.advance_payment) || 0);
@@ -183,14 +224,14 @@ function Farmer_Payment_History() {
         0
       );
 
-      // Calculate received_payment: Sum of paid_amount across all records
-      const receivedPayment = records.reduce(
+      // Calculate received_payment: Sum of paid_amount across filtered records
+      const receivedPayment = filteredData.reduce(
         (sum, r) => sum + (parseFloat(r.paid_amount) || 0),
         0
       );
 
-      // Calculate total_pending_payment: Sum of pending_amount across all records
-      const totalPendingPayment = records.reduce(
+      // Calculate total_pending_payment: Sum of pending_amount across filtered records
+      const totalPendingPayment = filteredData.reduce(
         (sum, r) => sum + (parseFloat(r.pending_amount) || 0),
         0
       );
@@ -207,7 +248,7 @@ function Farmer_Payment_History() {
         total_pending_payment: 0,
       });
     }
-  }, [records]);
+  }, [records, searchTerm, startDate, endDate]);
 
   const allColumns = [
     {
@@ -273,6 +314,23 @@ function Farmer_Payment_History() {
         return `Rs ${total}`;
       },
       sortable: true,
+    },
+    {
+      id: "pendingPayment",
+      headerLabel: "Pending Payment",
+      selector: (row) => {
+        const pending = parseFloat(row.pending_amount) || 0;
+        return `Rs ${pending.toFixed(2)}`;
+      },
+      sortable: true,
+      cell: (row) => {
+        const pending = parseFloat(row.pending_amount) || 0;
+        const style = {
+          color: pending > 0 ? "#dc3545" : "#28a745",
+          fontWeight: pending > 0 ? "bold" : "normal",
+        };
+        return <span style={style}>Rs {pending.toFixed(2)}</span>;
+      },
     },
   ];
 
@@ -347,9 +405,59 @@ function Farmer_Payment_History() {
           <div className="row">
             <div className="col-md-6 col-sm-12 pt-4">
               <p>Today's Status: {dateTime.toLocaleString()} </p>
+              {(startDate || endDate) && (
+                <p className="text-muted" style={{ fontSize: "14px", marginTop: "5px" }}>
+                  Showing {filteredRecords.length} of {records.length} records
+                  {startDate && endDate && ` (${startDate} to ${endDate})`}
+                  {startDate && !endDate && ` (from ${startDate})`}
+                  {!startDate && endDate && ` (until ${endDate})`}
+                </p>
+              )}
             </div>
             <div className="col-md-6 col-sm-12 pt-2">
-              <div className="text-end mb-3 d-flex gap-2 justify-content-end">
+              <div className="mb-3">
+                {/* Date Range Filters */}
+                <div className="d-flex gap-2 align-items-center flex-wrap mb-2 justify-content-end">
+                  <div className="d-flex align-items-center gap-2">
+                    <label htmlFor="startDate" style={{ fontSize: "14px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                      From Date:
+                    </label>
+                    <input
+                      type="date"
+                      id="startDate"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="form-control form-control-sm"
+                      style={{ width: "160px" }}
+                    />
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <label htmlFor="endDate" style={{ fontSize: "14px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                      To Date:
+                    </label>
+                    <input
+                      type="date"
+                      id="endDate"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="form-control form-control-sm"
+                      style={{ width: "160px" }}
+                      min={startDate || undefined}
+                    />
+                  </div>
+                  {(startDate || endDate) && (
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={clearDateFilter}
+                      title="Clear date filter"
+                    >
+                      Clear Filter
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="text-end mb-3 d-flex gap-2 justify-content-end flex-wrap">
                 <Button
                   variant="primary"
                   onClick={() => {
@@ -369,7 +477,16 @@ function Farmer_Payment_History() {
                       doc.setFontSize(12);
                       doc.setFont(undefined, 'normal');
                       doc.text(`Generated on: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, pageWidth / 2, yPosition, { align: 'center' });
-                      yPosition += 12;
+                      yPosition += 8;
+                      // Add date range filter info if applied
+                      if (startDate || endDate) {
+                        doc.setFontSize(10);
+                        doc.setFont(undefined, 'italic');
+                        const dateRangeText = `Date Range: ${startDate || 'All'} to ${endDate || 'All'}`;
+                        doc.text(dateRangeText, pageWidth / 2, yPosition, { align: 'center' });
+                        yPosition += 8;
+                      }
+                      yPosition += 4;
                       doc.setFontSize(14);
                       doc.setFont(undefined, 'bold');
                       doc.text('Payment Summary', 14, yPosition);
@@ -422,7 +539,15 @@ function Farmer_Payment_History() {
                         doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
                         doc.text(`Generated on: ${new Date().toLocaleString("en-US")}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
                       }
-                      doc.save(`Farmer_Payment_History_${Date.now()}.pdf`);
+                      // Generate filename with date range if filters applied
+                      let filename = 'Farmer_Payment_History';
+                      if (startDate || endDate) {
+                        const startStr = startDate ? startDate.replace(/-/g, '') : 'All';
+                        const endStr = endDate ? endDate.replace(/-/g, '') : 'All';
+                        filename += `_${startStr}_to_${endStr}`;
+                      }
+                      filename += `_${Date.now()}.pdf`;
+                      doc.save(filename);
                       toast.success('PDF exported successfully!');
                     } catch (error) {
                       console.error('Error exporting PDF:', error);

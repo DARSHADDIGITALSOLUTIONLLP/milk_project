@@ -3923,6 +3923,7 @@ module.exports.getCustomerDeliveredOrders = async (req, res) => {
 };
 
 // ✅ NEW: Get customer payment summary (for dairy card)
+// This function recalculates payment like the user endpoint to ensure accuracy
 module.exports.getCustomerPaymentSummary = async (req, res) => {
   try {
     const { id } = req.params; // customer/user id
@@ -3943,8 +3944,113 @@ module.exports.getCustomerPaymentSummary = async (req, res) => {
       });
     }
 
-    // Get payment history
-    const paymentHistory = await PaymentDetails.findAll({
+    // Get admin to fetch rates
+    const admin = await Admin.findOne({ where: { dairy_name } });
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found for this dairy." });
+    }
+
+    const { cow_rate, buffalo_rate, pure_rate, delivery_charges } = admin;
+
+    // Get all payment history first
+    const allPayments = await PaymentDetails.findAll({
+      where: { userid: id },
+      order: [["month_year", "ASC"]],
+    });
+
+    const currentMonthYear = moment().tz("Asia/Kolkata").format("YYYY-MM");
+
+    // Calculate current month payment (recalculate like user endpoint)
+    const startDate = moment()
+      .tz("Asia/Kolkata")
+      .startOf("month")
+      .format("YYYY-MM-DD");
+    const endDate = moment()
+      .tz("Asia/Kolkata")
+      .endOf("month")
+      .format("YYYY-MM-DD");
+
+    // Get current month deliveries (only delivered orders, exclude "Not Present")
+    const currentMonthDeliveries = await DeliveryStatus.findAll({
+      where: {
+        userid: id,
+        status: true, // Only count delivered orders
+        date: {
+          [Op.between]: [startDate, endDate],
+        },
+      },
+    });
+
+    let totalMilkPayment = 0;
+
+    for (const delivery of currentMonthDeliveries) {
+      let quantities;
+      
+      // Parse quantity_array - handle double-stringified JSON
+      if (typeof delivery.quantity_array === 'string') {
+        const firstParse = JSON.parse(delivery.quantity_array);
+        // If still a string after first parse, parse again (double-stringified)
+        quantities = typeof firstParse === 'string' 
+          ? JSON.parse(firstParse)
+          : firstParse;
+      } else if (Array.isArray(delivery.quantity_array)) {
+        quantities = delivery.quantity_array;
+      } else {
+        console.error('Invalid quantity_array format:', delivery.quantity_array);
+        continue;
+      }
+
+      // NOTE: quantity_array format is [pure, cow, buffalo]
+      const pure = Number(quantities[0]) || 0;
+      const cow = Number(quantities[1]) || 0;
+      const buffalo = Number(quantities[2]) || 0;
+      
+      totalMilkPayment +=
+        cow * cow_rate + buffalo * buffalo_rate + pure * pure_rate;
+    }
+
+    // Get last month's pending payment
+    const lastMonth = moment()
+      .tz("Asia/Kolkata")
+      .subtract(1, "months")
+      .format("YYYY-MM");
+    const lastPayment = await PaymentDetails.findOne({
+      where: { userid: id, month_year: lastMonth },
+    });
+
+    const previousPending = lastPayment ? lastPayment.pending_payment : 0;
+    const finalPayment =
+      totalMilkPayment + (delivery_charges || 0) + previousPending;
+
+    // Update or create current month payment record
+    const existing = await PaymentDetails.findOne({
+      where: { userid: id, month_year: currentMonthYear },
+    });
+
+    if (existing) {
+      await PaymentDetails.update(
+        {
+          payment: totalMilkPayment,
+          delivery_charges: delivery_charges || 0,
+          pending_payment: finalPayment,
+          advancePayment: user.advance_payment || 0,
+        },
+        { where: { userid: id, month_year: currentMonthYear } }
+      );
+    } else {
+      await PaymentDetails.create({
+        userid: id,
+        start_date: user.start_date,
+        month_year: currentMonthYear,
+        payment: totalMilkPayment,
+        delivery_charges: delivery_charges || 0,
+        pending_payment: finalPayment,
+        advancePayment: user.advance_payment || 0,
+      });
+    }
+
+    // Fetch updated payment history
+    const updatedPaymentHistory = await PaymentDetails.findAll({
       where: { userid: id },
       attributes: [
         "payment_id",
@@ -3959,7 +4065,7 @@ module.exports.getCustomerPaymentSummary = async (req, res) => {
     });
 
     // Transform to match frontend expectations
-    const transformedHistory = paymentHistory.map((payment) => ({
+    const transformedHistory = updatedPaymentHistory.map((payment) => ({
       payment_id: payment.payment_id,
       start_date: payment.start_date,
       month_year: payment.month_year,

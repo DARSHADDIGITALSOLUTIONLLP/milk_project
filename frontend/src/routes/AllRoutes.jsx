@@ -9,6 +9,7 @@ import Dairy_Register from "../pages/SuperAdmin/Dairy_Register";
 import Dashboard from "../pages/SuperAdmin/Dashboard";
 import Dairy_List from "../pages/SuperAdmin/Dairy_List";
 import Manage_Subscription_Plans from "../pages/SuperAdmin/Manage_Subscription_Plans";
+import Manage_Festivals from "../pages/SuperAdmin/Manage_Festivals";
 import User_Dashboard from "../pages/User/User_Dashboard";
 import AddItem from "../pages/User/AddItem";
 import Admin_Dashboard from "../pages/Admin/Admin_Dashboard";
@@ -153,6 +154,12 @@ function AllRoutes() {
         path="/manage-subscription-plans"
         element={
           <UserRoleRoute role="super_admin" component={<Manage_Subscription_Plans />} />
+        }
+      />
+      <Route
+        path="/manage-festivals"
+        element={
+          <UserRoleRoute role="super_admin" component={<Manage_Festivals />} />
         }
       />
 
