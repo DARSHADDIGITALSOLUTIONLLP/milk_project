@@ -189,6 +189,35 @@ module.exports.login = async (req, res) => {
     if (!user) {
       user = await Farmer.findOne({
         where: { [Op.or]: [{ email: identifier }, { contact: identifier }] },
+        include: [
+          {
+            model: Admin,
+            as: "dairy",
+            attributes: [
+              "id",
+              "dairy_name",
+              "email",
+              "contact",
+              "address",
+              "dairy_logo",
+              "res_date",
+              "end_date",
+              "request",
+              "cow_rate",
+              "buffalo_rate",
+              "pure_rate",
+              "farmer_cow_rate",
+              "farmer_buffalo_rate",
+              "farmer_pure_rate",
+              "delivery_charges",
+              "upi_address",
+              "bank_name",
+              "branch_name",
+              "account_number",
+              "ifsc_code"
+            ],
+          },
+        ],
       });
 
       if (user) {
@@ -282,7 +311,26 @@ module.exports.login = async (req, res) => {
     if (userData.createdAt) delete userData.createdAt;
     if (userData.updatedAt) delete userData.updatedAt;
 
-    res.json({ message: "Login successful", token, role, user: userData });
+    // For farmer login, extract dairy details separately
+    let dairyDetails = null;
+    if (role === "farmer" && userData.dairy) {
+      dairyDetails = userData.dairy;
+      // Don't delete the dairy from userData, keep it for backward compatibility
+    }
+
+    const response = { 
+      message: "Login successful", 
+      token, 
+      role, 
+      user: userData 
+    };
+
+    // Add dairy details if farmer
+    if (dairyDetails) {
+      response.dairy = dairyDetails;
+    }
+
+    res.json(response);
   } catch (error) {
     console.error("Error during login:", error.message);
     console.error("Error stack:", error.stack);

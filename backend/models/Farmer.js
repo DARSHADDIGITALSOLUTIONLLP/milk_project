@@ -87,4 +87,11 @@ Farmer.beforeCreate(async (farmer) => {
     farmer.password_hash = await bcrypt.hash(farmer.password_hash, salt);
 });
 
+// Define association with Admin (dairy)
+Farmer.belongsTo(Admin, {
+    foreignKey: "dairy_name",
+    targetKey: "dairy_name",
+    as: "dairy",
+});
+
 module.exports = Farmer;
