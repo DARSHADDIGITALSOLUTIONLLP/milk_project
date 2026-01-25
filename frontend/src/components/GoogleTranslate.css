@@ -27,7 +27,7 @@ body {
 
 /* Custom Dropdown Toggle Button */
 .translate-dropdown .translate-toggle {
-  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  background: linear-gradient(135deg, #fcd02a 0%);
   border: none;
   color: white;
   font-weight: 500;
@@ -36,7 +36,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(255, 172, 48, 0.3);
+  box-shadow: 0 2px 8px rgba(252, 208, 42, 0.3);
   transition: all 0.3s ease;
   font-size: 14px;
   min-width: 140px;
@@ -45,17 +45,17 @@ body {
 }
 
 .translate-dropdown .translate-toggle:hover {
-  background: linear-gradient(135deg, #ff8c00 0%, #ffac30 100%);
-  box-shadow: 0 4px 12px rgba(255, 172, 48, 0.5);
+  background: linear-gradient(135deg, #fcd02a 100%);
+  box-shadow: 0 4px 12px rgba(252, 208, 42, 0.5);
   transform: translateY(-1px);
 }
 
 .translate-dropdown .translate-toggle:focus,
 .translate-dropdown .translate-toggle:active {
-  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  background: linear-gradient(135deg, #fcd02a 0%);
   border: none;
   outline: none;
-  box-shadow: 0 2px 8px rgba(255, 172, 48, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(252, 208, 42, 0.3) !important;
 }
 
 .translate-dropdown .translate-toggle::after {
@@ -107,7 +107,7 @@ body {
 /* Menu Header */
 .translate-menu-header {
   padding: 12px 16px;
-  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  background: linear-gradient(135deg, #fcd02a 0%);
   color: white;
   font-weight: 600;
   font-size: 15px;
@@ -139,7 +139,7 @@ body {
 }
 
 .translate-menu-scroll::-webkit-scrollbar-thumb {
-  background: #ffac30;
+  background: #fcd02a;
   border-radius: 10px;
 }
 
@@ -161,13 +161,13 @@ body {
 
 .translate-item:hover {
   background-color: #fff8f0;
-  border-left-color: #ffac30;
+  border-left-color: #fcd02a;
   color: #000000 !important; /* Force black text on hover */
 }
 
 .translate-item.active {
   background-color: #fff3e0;
-  border-left-color: #ffac30;
+  border-left-color: #fcd02a;
   font-weight: 600;
   color: #000000 !important; /* Force black text when active */
 }
@@ -213,7 +213,7 @@ body {
 
 /* Check Icon */
 .check-icon {
-  color: #ffac30;
+  color: #fcd02a;
   font-size: 14px;
   margin-left: auto;
 }

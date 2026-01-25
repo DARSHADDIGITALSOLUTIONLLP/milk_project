@@ -58,7 +58,7 @@ export const exportFarmerPaymentPDF = (records, totalPayment) => {
       head: [['Metric', 'Value']],
       body: summaryData,
       theme: 'striped',
-      headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 10 },
       margin: { left: 14, right: 14 },
     });
@@ -106,7 +106,7 @@ export const exportFarmerPaymentPDF = (records, totalPayment) => {
         ]],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+        headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 2 },
         margin: { left: 14, right: 14 },
         columnStyles: {

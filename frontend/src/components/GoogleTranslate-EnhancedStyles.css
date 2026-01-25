@@ -67,10 +67,10 @@ div#goog-gt-,
 
 /* Enhanced dropdown shadow and border */
 .translate-menu {
-  border: 1px solid rgba(255, 172, 48, 0.2) !important;
+  border: 1px solid rgba(252, 208, 42, 0.2) !important;
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.1),
-    0 0 20px rgba(255, 172, 48, 0.1) !important;
+    0 0 20px rgba(252, 208, 42, 0.1) !important;
 }
 
 /* Smooth dropdown animation */
@@ -96,10 +96,10 @@ div#goog-gt-,
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 4px 12px rgba(255, 172, 48, 0.5);
+    box-shadow: 0 4px 12px rgba(252, 208, 42, 0.5);
   }
   50% {
-    box-shadow: 0 6px 16px rgba(255, 172, 48, 0.7);
+    box-shadow: 0 6px 16px rgba(252, 208, 42, 0.7);
   }
 }
 
@@ -116,7 +116,7 @@ div#goog-gt-,
   top: 0;
   height: 100%;
   width: 3px;
-  background: linear-gradient(135deg, #ffac30 0%, #ff8c00 100%);
+  background: linear-gradient(135deg, #fcd02a 0%, #ff8c00 100%);
   transform: scaleY(0);
   transition: transform 0.2s ease;
 }
@@ -166,7 +166,7 @@ div#goog-gt-,
 
 /* Enhanced scrollbar for better UX */
 .translate-menu-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #ffac30 0%, #ff8c00 100%);
+  background: linear-gradient(180deg, #fcd02a 0%, #ff8c00 100%);
 }
 
 /* Tooltip on hover (optional - can be enabled) */
@@ -207,13 +207,13 @@ div#goog-gt-,
 
 /* Focus styles for accessibility */
 .translate-toggle:focus-visible {
-  outline: 2px solid #ffac30;
+  outline: 2px solid #fcd02a;
   outline-offset: 2px;
 }
 
 .translate-item:focus-visible {
   background-color: #fff8f0;
-  outline: 2px solid #ffac30;
+  outline: 2px solid #fcd02a;
   outline-offset: -2px;
 }
 

@@ -9,7 +9,7 @@ import Cookies from "js-cookie";
 import CryptoJS from "crypto-js";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import mauli_logo from "/mauli_logo.png";
+import milkJunctionLogo from "/Milk Junction_fnl_png.png";
 
 const VITE_ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY;
 
@@ -24,7 +24,7 @@ function Login() {
   const [otp, setOTP] = useState(null);
   const [timerCount, setTimer] = useState(60);
   const [OTPinput, setOTPinput] = useState(["", "", "", ""]);
-  const [disable, setDisable] = useState(true);
+  const [disable, setDisable] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -72,7 +72,14 @@ function Login() {
       return;
     }
 
-    if (disable) {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    if (!disable) {
       const generatedOTP = Math.floor(Math.random() * 9000 + 1000);
       // console.log(generatedOTP);
       setOTP(generatedOTP);
@@ -82,13 +89,17 @@ function Login() {
           OTP: generatedOTP,
           recipient_email: email,
         })
-        .then(() => {
+        .then((response) => {
           toast.success("OTP sent successfully!");
           setDisable(true);
           setOTPinput(["", "", "", ""]);
           startTimer();
         })
-        .catch(console.log);
+        .catch((error) => {
+          console.error("Error sending OTP:", error);
+          const errorMessage = error.response?.data?.message || error.response?.data || error.message || "An error has occurred. Please check your email configuration.";
+          toast.error(errorMessage);
+        });
     }
   }
 
@@ -99,13 +110,17 @@ function Login() {
         OTP: otp,
         recipient_email: email,
       })
-      .then(() => {
+      .then((response) => {
         toast.success("A new OTP has been sent to your email.");
         setDisable(true);
         setOTPinput(["", "", "", ""]);
         startTimer();
       })
-      .catch(console.log);
+      .catch((error) => {
+        console.error("Error resending OTP:", error);
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message || "An error has occurred. Please check your email configuration.";
+        toast.error(errorMessage);
+      });
   }
 
   function verifyOTP() {
@@ -310,9 +325,9 @@ function Login() {
               onFocus={(e) => e.target.blur()}
             >
               <img 
-                src={mauli_logo} 
+                src={milkJunctionLogo} 
                 className="img-fluid login-logo" 
-                alt="mauli_logo"
+                alt="Milk Junction Logo"
                 tabIndex={-1}
                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onFocus={(e) => e.target.blur()}
@@ -324,7 +339,7 @@ function Login() {
               <Row>
                 <Col md="12">
                   <Form className="toggle_btn" onSubmit={handleLogin}>
-                    <p className="h4 text-center mb-4">Welcome to Dudh Dairy</p>
+                    <p className="h4 text-center mb-4">Welcome to Milk Junction</p>
                     <p className="h6 text-center mb-4">
                       If you don't have an account, please register here.
                     </p>

@@ -353,7 +353,7 @@ function Farmer_Payment_History() {
   const customStyles = {
     headCells: {
       style: {
-        backgroundColor: "#FFAC30",
+        backgroundColor: "#fcd02a",
         color: "#fff",
         fontWeight: "bold",
         fontSize: "15px",
@@ -500,7 +500,7 @@ function Farmer_Payment_History() {
                           ['Total Pending Payment', `Rs ${totalPayment.total_pending_payment || 0}`],
                         ],
                         theme: 'striped',
-                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
                         styles: { fontSize: 10 },
                         margin: { left: 14, right: 14 },
                       });
@@ -527,7 +527,7 @@ function Farmer_Payment_History() {
                         head: [['Bill No.', 'Start Date', 'End Date', 'Farmer Name', 'Status', 'Pure (ltr)', 'Cow (ltr)', 'Buffalo (ltr)', 'Total Amount', 'Paid Amount', 'Pending Amount']],
                         body: tableData,
                         theme: 'striped',
-                        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                        headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
                         styles: { fontSize: 8, cellPadding: 2 },
                         margin: { left: 14, right: 14 },
                         columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 20 }, 2: { cellWidth: 20 }, 3: { cellWidth: 30 }, 4: { cellWidth: 18 } },
@@ -586,7 +586,7 @@ function Farmer_Payment_History() {
             <div className="col-md-4 col-sm-6 mb-3">
               <div
                 className="card text-white text-center"
-                style={{ backgroundColor: "#FFAC30" }}
+                style={{ backgroundColor: "#fcd02a" }}
               >
                 <div className="card-body">
                   <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
@@ -601,7 +601,7 @@ function Farmer_Payment_History() {
             <div className="col-md-4 col-sm-6 mb-3">
               <div
                 className="card text-white text-center"
-                style={{ backgroundColor: "#FFAC30" }}
+                style={{ backgroundColor: "#fcd02a" }}
               >
                 <div className="card-body">
                   <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
@@ -616,7 +616,7 @@ function Farmer_Payment_History() {
             <div className="col-md-4 col-sm-6 mb-3">
               <div
                 className="card text-white text-center"
-                style={{ backgroundColor: "#FFAC30" }}
+                style={{ backgroundColor: "#fcd02a" }}
               >
                 <div className="card-body">
                   <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
@@ -698,9 +698,36 @@ function Farmer_Payment_History() {
                 <Form.Control
                   type="number"
                   min="0"
+                  max={selectedRecord.pending_amount || 0}
                   step="0.01"
                   value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    const pendingAmount = Number(selectedRecord.pending_amount) || 0;
+                    
+                    // Allow empty input for better UX
+                    if (inputValue === "" || inputValue === null || inputValue === undefined) {
+                      setPaidAmount("");
+                      return;
+                    }
+                    
+                    const numValue = Number(inputValue);
+                    
+                    // Prevent negative values
+                    if (numValue < 0) {
+                      setPaidAmount("0");
+                      return;
+                    }
+                    
+                    // Prevent entering more than pending amount
+                    if (numValue > pendingAmount) {
+                      setPaidAmount(String(pendingAmount));
+                      toast.warning(`Cannot pay more than pending amount (Rs ${pendingAmount.toFixed(2)})`);
+                      return;
+                    }
+                    
+                    setPaidAmount(inputValue);
+                  }}
                   placeholder="Enter amount to pay now"
                 />
                 <Form.Text className="text-muted">

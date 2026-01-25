@@ -21,6 +21,7 @@ const moment = require("moment-timezone");
 const PaymentDetails = require("../models/payment_details"); // Import PaymentDetails+
 const { start } = require("repl");
 const DeliveryBoyMilkDistribution = require("../models/DeliveryBoyMilkDistribution");
+const SubscriptionPlan = require("../models/SubscriptionPlan");
 
 module.exports.checkAdmin = async (req, res) => {
   try {
@@ -189,8 +190,53 @@ module.exports.paymentVerification = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Use environment variable for frontend URL, fallback to localhost for development
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    // Determine frontend URL dynamically
+    let frontendUrl = process.env.FRONTEND_URL;
+    
+    // If not set in env, try to get from request headers or payment notes
+    if (!frontendUrl) {
+      // Try to get from payment notes (if stored during order creation)
+      if (payment.notes && payment.notes.frontend_url) {
+        frontendUrl = payment.notes.frontend_url;
+      }
+      // Try to get from referer or origin header
+      else {
+        const referer = req.headers.referer || req.headers.origin;
+        if (referer) {
+          try {
+            const url = new URL(referer);
+            frontendUrl = `${url.protocol}//${url.host}`;
+          } catch (e) {
+            console.warn("Could not parse referer URL:", referer);
+          }
+        }
+        // Try to construct from request host (for Razorpay callbacks)
+        else if (req.headers.host) {
+          const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+          // For Razorpay callbacks, we need to determine frontend URL
+          // Check if host contains backend domain and construct frontend URL
+          const host = req.headers.host;
+          // If backend is on a subdomain or different port, adjust accordingly
+          // For now, use the same host but you may need to adjust based on your setup
+          if (host.includes('api.') || host.includes(':5001') || host.includes(':3000')) {
+            // Backend domain detected, construct frontend URL
+            frontendUrl = host.replace('api.', '').replace(':5001', '').replace(':3000', '');
+            frontendUrl = `${protocol}://${frontendUrl}`;
+          } else {
+            frontendUrl = `${protocol}://${host}`;
+          }
+        }
+      }
+    }
+    
+    // Fallback to localhost only in development
+    if (!frontendUrl) {
+      frontendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://yourdomain.com' // Replace with your actual production domain
+        : "http://localhost:5173";
+    }
+    
+    console.log("🔄 Redirecting to frontend URL:", frontendUrl);
     res.redirect(frontendUrl);
   } catch (err) {
     console.error("Error in payment verification:", err);
@@ -375,8 +421,53 @@ module.exports.paymentVerificationSubscription = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Use environment variable for frontend URL, fallback to localhost for development
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    // Determine frontend URL dynamically
+    let frontendUrl = process.env.FRONTEND_URL;
+    
+    // If not set in env, try to get from request headers or payment notes
+    if (!frontendUrl) {
+      // Try to get from payment notes (if stored during order creation)
+      if (payment.notes && payment.notes.frontend_url) {
+        frontendUrl = payment.notes.frontend_url;
+      }
+      // Try to get from referer or origin header
+      else {
+        const referer = req.headers.referer || req.headers.origin;
+        if (referer) {
+          try {
+            const url = new URL(referer);
+            frontendUrl = `${url.protocol}//${url.host}`;
+          } catch (e) {
+            console.warn("Could not parse referer URL:", referer);
+          }
+        }
+        // Try to construct from request host (for Razorpay callbacks)
+        else if (req.headers.host) {
+          const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+          // For Razorpay callbacks, we need to determine frontend URL
+          // Check if host contains backend domain and construct frontend URL
+          const host = req.headers.host;
+          // If backend is on a subdomain or different port, adjust accordingly
+          // For now, use the same host but you may need to adjust based on your setup
+          if (host.includes('api.') || host.includes(':5001') || host.includes(':3000')) {
+            // Backend domain detected, construct frontend URL
+            frontendUrl = host.replace('api.', '').replace(':5001', '').replace(':3000', '');
+            frontendUrl = `${protocol}://${frontendUrl}`;
+          } else {
+            frontendUrl = `${protocol}://${host}`;
+          }
+        }
+      }
+    }
+    
+    // Fallback to localhost only in development
+    if (!frontendUrl) {
+      frontendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://yourdomain.com' // Replace with your actual production domain
+        : "http://localhost:5173";
+    }
+    
+    console.log("🔄 Redirecting to frontend URL:", `${frontendUrl}/admin-dashboard?payment=success`);
     res.redirect(`${frontendUrl}/admin-dashboard?payment=success`);
   } catch (err) {
     console.error("Error in payment verification:", err);
@@ -996,6 +1087,163 @@ module.exports.resDate = async (req, res) => {
     });
   }
 };
+
+// Get detailed subscription plan information for admin
+module.exports.getSubscriptionDetails = async (req, res) => {
+  try {
+    const { dairy_name } = req.user;
+
+    if (!dairy_name) {
+      return res.status(400).json({ message: "Dairy name is required." });
+    }
+
+    // Get admin subscription details
+    const admin = await Admin.findOne({
+      where: { dairy_name },
+      raw: true,
+    });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    const { res_date, end_date, periods, payment_amount } = admin;
+
+    // Calculate actual validity days from res_date and end_date
+    let actualValidityDays = null;
+    if (res_date && end_date) {
+      try {
+        // Handle both Date objects and date strings
+        const startDate = moment.tz(res_date, "Asia/Kolkata").startOf("day");
+        const endDate = moment.tz(end_date, "Asia/Kolkata").startOf("day");
+        
+        // Validate dates
+        if (startDate.isValid() && endDate.isValid()) {
+          actualValidityDays = Math.ceil(endDate.diff(startDate, "days", true));
+        }
+      } catch (error) {
+        console.error("Error calculating validity days:", error);
+      }
+    }
+
+    // Map period to validity days (for backward compatibility)
+    const periodToDays = {
+      monthly: 30,
+      quarterly: 90,
+      "half-yearly": 180,
+      yearly: 365
+    };
+
+    // Use actual validity days if available, otherwise fall back to period mapping
+    const validityDays = actualValidityDays || periodToDays[periods] || 30;
+
+    // Find matching subscription plan based on validity days
+    // Always try to find the closest match based on actual validity days
+    let subscriptionPlan = null;
+    
+    // Get all active plans
+    const allPlans = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['plan_validity_days', 'ASC']]
+    });
+
+    if (actualValidityDays && allPlans.length > 0) {
+      // Find the plan with validity days closest to actual validity
+      let closestPlan = null;
+      let minDiff = Infinity;
+      
+      for (const plan of allPlans) {
+        const diff = Math.abs(plan.plan_validity_days - actualValidityDays);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestPlan = plan;
+        }
+      }
+      
+      subscriptionPlan = closestPlan;
+    } else if (allPlans.length > 0) {
+      // Fallback: use period mapping if actual validity not available
+      subscriptionPlan = await SubscriptionPlan.findOne({
+        where: { 
+          plan_validity_days: validityDays,
+          is_active: true
+        }
+      });
+    }
+
+    // Calculate days remaining
+    let daysRemaining = 0;
+    let status = "expired";
+    const today = moment.tz("Asia/Kolkata").startOf("day");
+    
+    if (end_date) {
+      const endDate = moment.tz(end_date, "Asia/Kolkata").startOf("day");
+      daysRemaining = Math.ceil(endDate.diff(today, "days", true));
+      status = daysRemaining > 0 ? "active" : "expired";
+    }
+
+    // Format dates
+    const formatDate = (dateStr) => {
+      if (!dateStr) return null;
+      return moment.tz(dateStr, "Asia/Kolkata").format("DD MMM YYYY");
+    };
+
+    // Check if plan matches actual validity (allow 30 days tolerance for yearly plans)
+    const planMatches = subscriptionPlan && actualValidityDays 
+      ? Math.abs(subscriptionPlan.plan_validity_days - actualValidityDays) <= 30
+      : true;
+
+    // If no plan found but we have actual validity, try to find any plan
+    if (!subscriptionPlan && actualValidityDays && allPlans.length > 0) {
+      // Just get the first available plan as fallback
+      subscriptionPlan = allPlans[0];
+      console.log("⚠️ No close match found, using first available plan:", subscriptionPlan.plan_name);
+    }
+
+    // Prepare response
+    const subscriptionDetails = {
+      plan: subscriptionPlan ? {
+        id: subscriptionPlan.id,
+        plan_name: subscriptionPlan.plan_name,
+        plan_price: subscriptionPlan.plan_price,
+        plan_validity_days: subscriptionPlan.plan_validity_days,
+        plan_features: subscriptionPlan.plan_features ? JSON.parse(subscriptionPlan.plan_features) : [],
+        badge: subscriptionPlan.badge,
+        show_gst: subscriptionPlan.show_gst,
+        gst_percentage: subscriptionPlan.gst_percentage,
+        matches_actual_period: planMatches,
+        actual_validity_days: actualValidityDays
+      } : null,
+      subscription: {
+        period: periods,
+        actual_validity_days: actualValidityDays,
+        start_date: formatDate(res_date),
+        end_date: formatDate(end_date),
+        next_billing_date: formatDate(end_date), // Next billing date is the end date
+        days_remaining: daysRemaining,
+        status: status,
+        payment_amount: payment_amount || 0
+      },
+      warning: actualValidityDays && subscriptionPlan && !planMatches 
+        ? `Note: Your actual subscription period (${actualValidityDays} days) doesn't exactly match the plan (${subscriptionPlan.plan_validity_days} days).`
+        : null
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Subscription details fetched successfully",
+      data: subscriptionDetails
+    });
+  } catch (error) {
+    console.error("Error fetching subscription details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports.profile = async (req, res) => {
   try {
     const { dairy_name } = req.user; // Extracting dairy_name from JWT token

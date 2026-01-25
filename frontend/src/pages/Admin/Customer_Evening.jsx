@@ -396,7 +396,7 @@ const [filteredRecords, setFilteredRecords] = useState([]);
   const customStyles = {
     headCells: {
       style: {
-        backgroundColor: "#FFAC30",
+        backgroundColor: "#fcd02a",
         color: "#fff",
         fontWeight: "bold",
         fontSize: "15px",
@@ -811,7 +811,7 @@ const [filteredRecords, setFilteredRecords] = useState([]);
           size="xl"
           fullscreen="lg-down"
         >
-          <Modal.Header closeButton style={{ backgroundColor: "#FFAC30" }}>
+          <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
             <Modal.Title style={{ fontSize: isSmallScreen ? "14px" : "18px" }}>
               Customer Dairy Card & Summary
             </Modal.Title>

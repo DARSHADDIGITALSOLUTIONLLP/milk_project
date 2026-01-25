@@ -16,7 +16,7 @@ import {
   faSignOutAlt,
   faChevronDown,
 } from "@fortawesome/free-solid-svg-icons";
-import logo from "/mauli_logo.png";
+import logo from "/Milk Junction_fnl_png.png";
 import "./Header.css";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -59,6 +59,8 @@ function Header({ dashboardText }) {
 
   useEffect(() => {
     const mainContent = document.querySelector(".main-content");
+    if (!mainContent) return; // Guard against null element
+    
     if (window.innerWidth < 768) {
       mainContent.style.width = "100%";
       mainContent.style.marginLeft = "0";
@@ -135,13 +137,16 @@ function Header({ dashboardText }) {
           </li>
         </ul>
         <div className="sidebar-bottom">
-          <a href="" style={{ color: "white" }} onClick={handleLogout}>
+          <div 
+            style={{ color: "white", cursor: "pointer", display: "flex", alignItems: "center", padding: "10px" }}
+            onClick={handleLogout}
+          >
             <FontAwesomeIcon
               icon={faSignOutAlt}
               style={{ marginRight: "8px", marginTop: "20px" }}
             />
-            <NavLink className="btnLogout">Logout</NavLink>
-          </a>
+            <span className="btnLogout">Logout</span>
+          </div>
         </div>
       </div>
 
@@ -244,16 +249,12 @@ function Header({ dashboardText }) {
                 align="end"
               >
                 <NavDropdown.Item>
-                  {" "}
-                  <a
-                    href=""
+                  <div
                     onClick={handleLogout}
-                    style={{ textDecoration: "none" }}
+                    style={{ color: "black", textDecoration: "none", cursor: "pointer" }}
                   >
-                    <NavLink style={{ color: "black", textDecoration: "none" }}>
-                      Logout
-                    </NavLink>
-                  </a>
+                    Logout
+                  </div>
                 </NavDropdown.Item>
               </NavDropdown>
             </Nav>

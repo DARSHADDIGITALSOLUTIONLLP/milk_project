@@ -1,5 +1,5 @@
 .admin-vacation-notification-popup .vacation-notification-header {
-  background-color: #ffac30;
+  background-color: #fcd02a;
   color: white;
   border-bottom: 2px solid #e89b22;
 }
@@ -30,8 +30,8 @@
 }
 
 .admin-vacation-notification-popup .vacation-acknowledge-btn {
-  background-color: #ffac30;
-  border-color: #ffac30;
+  background-color: #fcd02a;
+  border-color: #fcd02a;
   font-weight: 600;
   padding: 10px 30px;
 }

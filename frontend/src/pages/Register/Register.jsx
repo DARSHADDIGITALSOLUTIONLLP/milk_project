@@ -17,7 +17,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import mauli_logo from "/mauli_logo.png";
+import milkJunctionLogo from "/Milk Junction_fnl_png.png";
 
 function Register() {
   const [activeForm, setActiveForm] = useState("customer");
@@ -882,6 +882,7 @@ function Register() {
           amount: totalAmount, // Total amount (subtotal + GST)
           subtotal: subtotal, // Subtotal for reference
           gst: gst, // GST amount for reference
+          frontend_url: window.location.origin, // Store frontend URL for proper redirect
         },
         theme: {
           color: "#000000",
@@ -919,9 +920,9 @@ function Register() {
               onFocus={(e) => e.target.blur()}
             >
               <img 
-                src={mauli_logo} 
+                src={milkJunctionLogo} 
                 className="img-fluid" 
-                alt="mauli_logo"
+                alt="Milk Junction Logo"
                 tabIndex={-1}
                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onFocus={(e) => e.target.blur()}

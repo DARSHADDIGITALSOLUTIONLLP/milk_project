@@ -1301,7 +1301,7 @@ function User_Dashboard() {
       </Container>
 
       <Modal show={payShow} onHide={handlePayClose} centered>
-        <Modal.Header style={{ backgroundColor: "#FFAC30", border: "none" }}>
+        <Modal.Header style={{ backgroundColor: "#fcd02a", border: "none" }}>
           <Modal.Title style={{ fontWeight: "bold" }}>
             Make a Payment
           </Modal.Title>

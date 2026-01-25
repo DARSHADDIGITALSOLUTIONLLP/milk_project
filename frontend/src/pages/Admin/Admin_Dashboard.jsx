@@ -548,7 +548,7 @@ function Admin_Dashboard() {
   const customerTableStyles = {
     headCells: {
       style: {
-        backgroundColor: "#FFAC30",
+        backgroundColor: "#fcd02a",
         color: "#fff",
         fontWeight: "bold",
         fontSize: "15px",
@@ -700,6 +700,7 @@ function Admin_Dashboard() {
           amount: totalAmount, // Total amount (subtotal + GST)
           subtotal: subtotal, // Subtotal for reference
           gst: gst, // GST amount for reference
+          frontend_url: window.location.origin, // Store frontend URL for proper redirect
         },
         theme: {
           color: "#000000",
@@ -760,6 +761,7 @@ function Admin_Dashboard() {
             theme="light"
             transition:Bounce
           />
+          
           {/* Customer List on Dashboard (same info as Admin Customer List) */}
           <Row className="mt-4 mb-4">
             <Col xs={12}>

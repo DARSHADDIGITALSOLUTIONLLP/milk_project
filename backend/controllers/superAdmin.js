@@ -590,9 +590,61 @@ module.exports.resetPass = async (req, res) => {
 };
 
 module.exports.sendemailOtp = async (req, res) => {
-  sendEmail(req.body)
-    .then((response) => res.send(response.message))
-    .catch((error) => res.status(500).send(error.message));
+  try {
+    console.log("📧 Send recovery email request received");
+    console.log("Request body:", { recipient_email: req.body?.recipient_email, hasOTP: !!req.body?.OTP });
+    
+    const { recipient_email, OTP } = req.body;
+    
+    if (!recipient_email || !OTP) {
+      console.log("❌ Missing required fields");
+      return res.status(400).json({ 
+        success: false,
+        message: "Email and OTP are required" 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipient_email)) {
+      console.log("❌ Invalid email format:", recipient_email);
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid email format" 
+      });
+    }
+
+    console.log("✅ Validations passed, attempting to send email...");
+    const response = await sendEmail(req.body);
+    console.log("✅ Email sent successfully");
+    
+    return res.status(200).json({ 
+      success: true,
+      message: response.message || "Email sent successfully" 
+    });
+  } catch (error) {
+    console.error("❌ Error sending recovery email:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error message:", error?.message);
+    console.error("Error stack:", error?.stack);
+    
+    // Handle different error types
+    let errorMessage = "An error has occurred while sending email. Please check email configuration.";
+    
+    if (error && error.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+    
+    // Ensure we always return JSON
+    return res.status(500).json({ 
+      success: false,
+      message: errorMessage
+    });
+  }
 };
 
 // Test Festival Greetings (for testing purposes)

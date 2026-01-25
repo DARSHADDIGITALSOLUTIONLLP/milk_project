@@ -13,6 +13,7 @@ import Manage_Festivals from "../pages/SuperAdmin/Manage_Festivals";
 import User_Dashboard from "../pages/User/User_Dashboard";
 import AddItem from "../pages/User/AddItem";
 import Admin_Dashboard from "../pages/Admin/Admin_Dashboard";
+import My_Plan from "../pages/Admin/My_Plan";
 import Manage_Customer_Notification from "../pages/Admin/Manage_Customer_Notification";
 import Admin_Customer_List from "../pages/Admin/Admin_Customer_List";
 import Additional_Orders from "../pages/Admin/Additional_Orders";
@@ -195,6 +196,10 @@ function AllRoutes() {
       <Route
         path="/admin-dashboard"
         element={<UserRoleRoute role="admin" component={<Admin_Dashboard />} />}
+      />
+      <Route
+        path="/my-plan"
+        element={<UserRoleRoute role="admin" component={<My_Plan />} />}
       />
       <Route
         path="/manage-customer-notification"

@@ -211,7 +211,7 @@ function Farmer_Payment_History() {
   const customStyles = {
     headCells: {
       style: {
-        backgroundColor: "#FFAC30",
+        backgroundColor: "#fcd02a",
         color: "#fff",
         fontWeight: "bold",
         fontSize: "15px",
@@ -284,7 +284,7 @@ function Farmer_Payment_History() {
             <div className="col-md-4 col-sm-6 mb-3">
               <div
                 className="card text-white text-center"
-                style={{ backgroundColor: "#FFAC30" }}
+                style={{ backgroundColor: "#fcd02a" }}
               >
                 <div className="card-body">
                   <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
@@ -299,7 +299,7 @@ function Farmer_Payment_History() {
             <div className="col-md-4 col-sm-6 mb-3">
               <div
                 className="card text-white text-center"
-                style={{ backgroundColor: "#FFAC30" }}
+                style={{ backgroundColor: "#fcd02a" }}
               >
                 <div className="card-body">
                   <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
@@ -314,7 +314,7 @@ function Farmer_Payment_History() {
             <div className="col-md-4 col-sm-6 mb-3">
               <div
                 className="card text-white text-center"
-                style={{ backgroundColor: "#FFAC30" }}
+                style={{ backgroundColor: "#fcd02a" }}
               >
                 <div className="card-body">
                   <h5 className="card-title" style={{ fontSize: "14px", marginBottom: "10px" }}>
@@ -367,7 +367,7 @@ function Farmer_Payment_History() {
           )}
         </Container>
         <Modal show={showDetailsModal} onHide={closeModal}>
-          <Modal.Header closeButton style={{ backgroundColor: "#FFAC30" }}>
+          <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
             <Modal.Title>Advance Payment</Modal.Title>
           </Modal.Header>
           <Modal.Body>

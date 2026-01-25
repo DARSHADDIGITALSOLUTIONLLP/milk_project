@@ -114,7 +114,7 @@ function User_Request() {
   const customStyles = {
     headCells: {
       style: {
-        backgroundColor: "#FFAC30",
+        backgroundColor: "#fcd02a",
         color: "#fff",
         fontWeight: "bold",
         fontSize: "15px",
@@ -372,7 +372,7 @@ function User_Request() {
         </Container>
 
         <Modal show={showDetailsModal} onHide={closeModal}>
-          <Modal.Header closeButton style={{ backgroundColor: "#FFAC30" }}>
+          <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
             <Modal.Title>Dairy Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>

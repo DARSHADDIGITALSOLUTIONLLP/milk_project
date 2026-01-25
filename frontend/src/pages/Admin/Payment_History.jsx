@@ -401,7 +401,7 @@ function Payment_History() {
   const customStyles = {
     headCells: {
       style: {
-        backgroundColor: "#FFAC30",
+        backgroundColor: "#fcd02a",
         color: "#fff",
         fontWeight: "bold",
         fontSize: "15px",
@@ -547,7 +547,7 @@ function Payment_History() {
                             ['Balance Payment', `Rs ${totalPayment.balance_payment || 0}`],
                           ],
                           theme: 'striped',
-                          headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                          headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
                           styles: { fontSize: 10 },
                           margin: { left: 14, right: 14 },
                         });
@@ -572,7 +572,7 @@ function Payment_History() {
                           head: [['Sr No.', 'Name', 'Address', 'Shift', 'Status', 'Start Date', 'Advance Payment', 'Received Payment', 'Balance Payment']],
                           body: tableData,
                           theme: 'striped',
-                          headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+                          headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
                           styles: { fontSize: 8, cellPadding: 2 },
                           margin: { left: 14, right: 14 },
                           columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
@@ -622,7 +622,7 @@ function Payment_History() {
               <div className="col-md-3">
                 <div
                   className="card text-white text-center"
-                  style={{ backgroundColor: "#FFAC30" }}
+                  style={{ backgroundColor: "#fcd02a" }}
                 >
                   <div className="card-body">
                     <h5 className="card-title">Advance payment</h5>
@@ -635,7 +635,7 @@ function Payment_History() {
               <div className="col-md-3">
                 <div
                   className="card text-white text-center"
-                  style={{ backgroundColor: "#FFAC30" }}
+                  style={{ backgroundColor: "#fcd02a" }}
                 >
                   <div className="card-body">
                     <h5 className="card-title">Received payment</h5>
@@ -648,7 +648,7 @@ function Payment_History() {
               <div className="col-md-3">
                 <div
                   className="card text-white text-center"
-                  style={{ backgroundColor: "#FFAC30" }}
+                  style={{ backgroundColor: "#fcd02a" }}
                 >
                   <div className="card-body">
                     <h5 className="card-title">Outstanding payment</h5>
@@ -661,7 +661,7 @@ function Payment_History() {
               <div className="col-md-3">
                 <div
                   className="card text-white text-center"
-                  style={{ backgroundColor: "#FFAC30" }}
+                  style={{ backgroundColor: "#fcd02a" }}
                 >
                   <div className="card-body">
                     <h5 className="card-title">Balance payment</h5>

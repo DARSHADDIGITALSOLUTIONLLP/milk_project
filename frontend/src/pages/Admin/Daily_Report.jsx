@@ -459,7 +459,7 @@ function Daily_Report() {
         head: [['Metric', 'Value']],
         body: summaryData,
         theme: 'striped',
-        headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+        headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
         styles: { fontSize: 10 },
         margin: { left: 14, right: 14 },
       });
@@ -537,7 +537,7 @@ function Daily_Report() {
           ]],
           body: tableData,
           theme: 'striped',
-          headStyles: { fillColor: [255, 172, 48], textColor: [255, 255, 255], fontStyle: 'bold' },
+          headStyles: { fillColor: [252, 208, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
           styles: { fontSize: 8, cellPadding: 2 },
           margin: { left: 14, right: 14 },
           columnStyles: {
@@ -643,7 +643,7 @@ function Daily_Report() {
           <div className="col-md-3">
             <div
               className="card text-white text-center"
-              style={{ backgroundColor: "#FFAC30" }}
+              style={{ backgroundColor: "#fcd02a" }}
             >
               <div className="card-body">
                 <h5 className="card-title">Total Milk</h5>
@@ -658,7 +658,7 @@ function Daily_Report() {
           <div className="col-md-3">
             <div
               className="card text-white text-center"
-              style={{ backgroundColor: "#FFAC30" }}
+              style={{ backgroundColor: "#fcd02a" }}
             >
               <div className="card-body">
                 <h5 className="card-title">Given to Delivery</h5>
@@ -673,7 +673,7 @@ function Daily_Report() {
           <div className="col-md-3">
             <div
               className="card text-white text-center"
-              style={{ backgroundColor: "#FFAC30" }}
+              style={{ backgroundColor: "#fcd02a" }}
             >
               <div className="card-body">
                 <h5 className="card-title">Milk Delivered</h5>
@@ -688,7 +688,7 @@ function Daily_Report() {
           <div className="col-md-3">
             <div
               className="card text-white text-center"
-              style={{ backgroundColor: "#FFAC30" }}
+              style={{ backgroundColor: "#fcd02a" }}
             >
               <div className="card-body">
                 <h5 className="card-title">Remaining Milk</h5>
@@ -792,7 +792,7 @@ function Daily_Report() {
                   customStyles={{
                     headCells: {
                       style: {
-                        backgroundColor: "#FFAC30",
+                        backgroundColor: "#fcd02a",
                         color: "#fff",
                         fontWeight: "bold",
                         fontSize: "15px",

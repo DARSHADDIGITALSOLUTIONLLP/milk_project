@@ -92,7 +92,7 @@ const GoogleTranslateSimple = () => {
           right: "10px",
           padding: "10px",
           background: "white",
-          border: "2px solid #ffac30",
+          border: "2px solid #fcd02a",
           borderRadius: "5px",
           boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
           zIndex: 9999

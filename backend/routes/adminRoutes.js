@@ -188,6 +188,14 @@ router.get(
   adminController.resDate
 );
 
+// Get detailed subscription plan information
+router.get(
+  "/subscription-details",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getSubscriptionDetails
+);
+
 // API to get the profile of a particular admin
 router.get(
   "/profile/me",

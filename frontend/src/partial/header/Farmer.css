@@ -156,7 +156,7 @@ input[type=number] {
     margin-top: 2rem;
     font-size: 1rem;
     font-weight: bold !important;
-    background-color: #FFAC30 !important;
+    background-color: #fcd02a !important;
   }
 
 
@@ -164,7 +164,7 @@ input[type=number] {
 
     font-size: 0.5rem;
     font-weight: bold !important;
-    background-color: #FFAC30 !important;
+    background-color: #fcd02a !important;
   }
 
 
@@ -180,7 +180,7 @@ input[type=number] {
   }
 
   .close_btn:hover{
-      border:1px solid #FFAC30 !important;
+      border:1px solid #fcd02a !important;
   }
 
   .rate_input{
@@ -218,7 +218,7 @@ color: black;
   padding: 21px !important;
 }
 .modal-header{
-  background-color: #FFAC30;
+  background-color: #fcd02a;
     height: 34px;
 }
 

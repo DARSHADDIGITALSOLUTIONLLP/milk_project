@@ -4,8 +4,7 @@ import DataTable from "react-data-table-component";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Link } from "react-router-dom";
-import mauli_logo from "/mauli_logo.png";
+import Header from "../../components/Header";
 
 const Manage_Subscription_Plans = () => {
   const [plans, setPlans] = useState([]);
@@ -33,16 +32,32 @@ const Manage_Subscription_Plans = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login to access this page");
+        setLoading(false);
+        return;
+      }
+      
       const response = await axios.get("/api/subscription-plans", {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.data.success) {
-        setPlans(response.data.plans);
+        setPlans(response.data.plans || []);
+      } else {
+        toast.error(response.data.message || "Failed to fetch subscription plans");
+        setPlans([]);
       }
     } catch (error) {
       console.error("Error fetching plans:", error);
-      toast.error("Failed to fetch subscription plans");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch subscription plans";
+      toast.error(errorMessage);
+      setPlans([]);
+      
+      // If unauthorized, show specific message
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        toast.error("You don't have permission to access this page. Super Admin access required.");
+      }
     } finally {
       setLoading(false);
     }
@@ -302,17 +317,10 @@ const Manage_Subscription_Plans = () => {
   ];
 
   return (
-    <div className="login-container">
-      <Container fluid>
-        <Row className="mb-3">
-          <Col className="text-center mt-3">
-            <Link to="/superadmin-dashboard">
-              <img src={mauli_logo} alt="Mauli Dairy Logo" style={{ height: "80px" }} />
-            </Link>
-          </Col>
-        </Row>
-        <Row>
-          <Col>
+    <div>
+      <Header dashboardText="Manage Subscription Plans" />
+      <div style={{ marginTop: "80px" }}>
+        <Container fluid style={{ paddingTop: "20px", paddingLeft: "20px", paddingRight: "20px" }}>
           <Row className="mb-3">
             <Col>
               <h2>Manage Subscription Plans</h2>
@@ -335,6 +343,20 @@ const Manage_Subscription_Plans = () => {
                     pagination
                     highlightOnHover
                     striped
+                    noDataComponent={
+                      <div style={{ padding: "40px", textAlign: "center" }}>
+                        {loading ? (
+                          <p>Loading subscription plans...</p>
+                        ) : (
+                          <div>
+                            <p style={{ fontSize: "16px", marginBottom: "10px" }}>No subscription plans found.</p>
+                            <Button variant="success" onClick={() => handleShowModal()}>
+                              + Add New Plan
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    }
                   />
                 </Card.Body>
               </Card>
@@ -512,9 +534,8 @@ const Manage_Subscription_Plans = () => {
               </Form>
             </Modal.Body>
           </Modal>
-          </Col>
-        </Row>
-      </Container>
+        </Container>
+      </div>
       <ToastContainer position="top-right" />
     </div>
   );

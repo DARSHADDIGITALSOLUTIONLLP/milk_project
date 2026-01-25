@@ -692,6 +692,14 @@ function WindowHeader({ dashboardText }) {
           </li>
           <li>
             <NavLink
+              to="/my-plan"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+            >
+              My Plan
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
               to="/manage-customer-notification"
               className={({ isActive }) => (isActive ? "active-link" : "")}
             >

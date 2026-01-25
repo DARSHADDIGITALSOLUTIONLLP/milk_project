@@ -69,6 +69,10 @@ html, body {
   margin: 0;
   padding: 40px;
   box-sizing: border-box;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 }
 
 .image-wrapper img,
@@ -83,19 +87,16 @@ html, body {
   flex-shrink: 0 !important;
 }
 
-/* Desktop specific positioning */
+/* Desktop specific positioning - properly centered */
 @media (min-width: 768px) {
   .image-wrapper img,
   .image-wrapper .img-fluid,
   .image-wrapper .login-logo {
-    margin-top: -200px !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    margin-bottom: 0 !important;
-    position: absolute !important;
-    left: 55% !important;
-    top: 50% !important;
-    transform: translateX(-50%) !important;
+    margin: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
   }
 }
 
