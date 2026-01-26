@@ -87,7 +87,7 @@ function Farmer_Payment_History() {
   const confirmStatusChange = async (status, paidAmountValue) => {
     const token = localStorage.getItem("token");
     try {
-      // If payment has an ID, use it; otherwise use week dates
+      // If payment has an ID, use it; otherwise use period dates
       const payload = selectedRecord.id 
         ? { status, paid_amount: paidAmountValue }
         : {
@@ -191,15 +191,15 @@ function Farmer_Payment_History() {
 
         if (!weekStart && !weekEnd) return false;
 
-        // Check if the week overlaps with the date range
+        // Check if the 10-day period overlaps with the date range
         const weekStartDate = new Date(weekStart);
         const weekEndDate = new Date(weekEnd);
         const filterStartDate = startDate ? new Date(startDate) : null;
         const filterEndDate = endDate ? new Date(endDate) : null;
 
-        // Week overlaps if:
-        // - Week starts before or on filter end date AND
-        // - Week ends after or on filter start date
+        // 10-day period overlaps if:
+        // - Period starts before or on filter end date AND
+        // - Period ends after or on filter start date
         const overlapsStart = !filterStartDate || weekEndDate >= filterStartDate;
         const overlapsEnd = !filterEndDate || weekStartDate <= filterEndDate;
 
@@ -685,7 +685,7 @@ function Farmer_Payment_History() {
             </p>
             {selectedRecord && (
               <p>
-                Week: {selectedRecord.week_start_date} to {selectedRecord.week_end_date}
+                10-Day Period: {selectedRecord.week_start_date} to {selectedRecord.week_end_date}
                 <br />
                 Total Amount: Rs {selectedRecord.total_amount}
                 <br />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Button, Modal, Form } from "react-bootstrap";
 import { Image, Row, Col } from "react-bootstrap";
 import logo from "/mauli_logo.png";
+import defaultLogo from "/Milk Junction_fnl_png.png";
 import DataTable from "react-data-table-component";
 import axios from "axios";
 import Header from "../../components/Header";
@@ -18,6 +19,10 @@ function Dairy_List() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showLogoModal, setShowLogoModal] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [records, setRecords] = useState([]);
   const [dateTime, setDateTime] = useState(new Date());
 
@@ -237,6 +242,8 @@ function Dairy_List() {
             status: status,
             request: record.request,
             payment_amount: record.payment_amount,
+            dairy_logo: record.dairy_logo || null,
+            has_logo: record.has_logo || false,
           };
         });
 
@@ -271,11 +278,104 @@ function Dairy_List() {
     setShowDetailsModal(false);
   };
 
+  const handleOpenLogoModal = (record) => {
+    setSelectedRecord(record);
+    setLogoFile(null);
+    setLogoPreview(null);
+    setShowLogoModal(true);
+  };
+
+  const handleCloseLogoModal = () => {
+    setShowLogoModal(false);
+    setSelectedRecord(null);
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
+
+  const handleLogoFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File size should be less than 2MB");
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file");
+        return;
+      }
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadLogo = async () => {
+    if (!logoFile) {
+      toast.error("Please select a logo file");
+      return;
+    }
+
+    setUploadingLogo(true);
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append('dairy_logo', logoFile);
+
+    try {
+      const response = await axios.put(
+        `/api/admin/${selectedRecord.id}/update-logo`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Logo uploaded successfully!");
+        handleCloseLogoModal();
+        fetchRecords(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error(error.response?.data?.message || "Failed to upload logo");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const columns = [
     {
       name: "Sr No.",
       selector: (row, index) => index + 1,
       sortable: true,
+    },
+    {
+      name: "Logo",
+      cell: (row) => (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {row.has_logo && row.dairy_logo ? (
+            <img
+              src={`data:image/png;base64,${row.dairy_logo}`}
+              alt="Dairy Logo"
+              style={{
+                width: "50px",
+                height: "50px",
+                objectFit: "contain",
+                borderRadius: "4px",
+                border: "1px solid #ddd",
+              }}
+            />
+          ) : (
+            <span style={{ color: "#999", fontSize: "12px" }}>No Logo</span>
+          )}
+        </div>
+      ),
+      width: "100px",
     },
     {
       name: "Dairy's Name",
@@ -364,6 +464,20 @@ function Dairy_List() {
         );
       },
       sortable: true,
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <Button
+          size="sm"
+          variant="outline-primary"
+          onClick={() => handleOpenLogoModal(row)}
+          style={{ marginRight: "5px" }}
+        >
+          {row.has_logo ? "Update Logo" : "Upload Logo"}
+        </Button>
+      ),
+      width: "150px",
     },
   ];
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
@@ -597,6 +711,117 @@ function Dairy_List() {
         <Modal.Footer>
           <Button variant="secondary" onClick={closeModal}>
             Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Logo Upload Modal */}
+      <Modal show={showLogoModal} onHide={handleCloseLogoModal} centered>
+        <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
+          <Modal.Title>
+            {selectedRecord?.has_logo ? "Update Dairy Logo" : "Upload Dairy Logo"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedRecord && (
+            <div>
+              <div className="mb-3">
+                <Form.Label>
+                  <strong>Dairy Name:</strong> {selectedRecord.dairy_name}
+                </Form.Label>
+              </div>
+
+              {/* Current Logo Display */}
+              <div className="mb-3">
+                <Form.Label>
+                  <strong>Current Logo:</strong>
+                </Form.Label>
+                <div className="mt-2" style={{ textAlign: "center" }}>
+                  {selectedRecord.has_logo && selectedRecord.dairy_logo ? (
+                    <img
+                      src={`data:image/png;base64,${selectedRecord.dairy_logo}`}
+                      alt="Current Logo"
+                      style={{
+                        maxWidth: "200px",
+                        maxHeight: "200px",
+                        objectFit: "contain",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        padding: "10px",
+                      }}
+                    />
+                  ) : (
+                    <div>
+                      <img
+                        src={defaultLogo}
+                        alt="Default Logo"
+                        style={{
+                          maxWidth: "200px",
+                          maxHeight: "200px",
+                          objectFit: "contain",
+                          border: "1px solid #ddd",
+                          borderRadius: "8px",
+                          padding: "10px",
+                        }}
+                      />
+                      <p style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
+                        (Default Logo - No custom logo uploaded)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Logo Preview (if new file selected) */}
+              {logoPreview && (
+                <div className="mb-3">
+                  <Form.Label>
+                    <strong>New Logo Preview:</strong>
+                  </Form.Label>
+                  <div className="mt-2" style={{ textAlign: "center" }}>
+                    <img
+                      src={logoPreview}
+                      alt="Logo Preview"
+                      style={{
+                        maxWidth: "200px",
+                        maxHeight: "200px",
+                        objectFit: "contain",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        padding: "10px",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* File Input */}
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <strong>Select Logo Image:</strong>
+                </Form.Label>
+                <Form.Control
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileChange}
+                />
+                <Form.Text className="text-muted">
+                  Maximum file size: 2MB. Supported formats: PNG, JPG, JPEG
+                </Form.Text>
+              </Form.Group>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseLogoModal}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleUploadLogo}
+            disabled={!logoFile || uploadingLogo}
+          >
+            {uploadingLogo ? "Uploading..." : "Upload Logo"}
           </Button>
         </Modal.Footer>
       </Modal>

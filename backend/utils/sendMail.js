@@ -19,12 +19,28 @@ function sendEmail({ recipient_email, OTP }) {
       return reject(new Error("OTP is required."));
     }
 
+    // Use port 587 (STARTTLS) by default - more compatible with firewalls than port 465
+    // You can override with SMTP_PORT environment variable (587 or 465)
+    // If both ports are blocked, contact your hosting provider to allow SMTP connections
+    const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+    const useSecure = smtpPort === 465;
+    
     var transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: smtpPort,
+      secure: useSecure, // true for 465 (SSL), false for 587 (STARTTLS)
+      requireTLS: !useSecure, // Force STARTTLS for port 587
       auth: {
         user: process.env.MY_EMAIL,
         pass: process.env.MY_PASSWORD,
       },
+      tls: {
+        // Do not reject unauthorized certificates (some servers have issues with Gmail's cert)
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 15000, // 15 seconds
+      greetingTimeout: 15000,
+      socketTimeout: 15000
     });
 
     const mail_configs = {
@@ -69,8 +85,8 @@ function sendEmail({ recipient_email, OTP }) {
         
         if (error.code === "EAUTH" || error.code === "EENVELOPE") {
           errorMessage = "Email authentication failed. Please check MY_EMAIL and MY_PASSWORD in backend .env file. Make sure you're using Gmail App Password, not regular password.";
-        } else if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
-          errorMessage = "Failed to connect to email server. Please check your internet connection and firewall settings.";
+        } else if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT" || error.code === "ECONNREFUSED") {
+          errorMessage = "Failed to connect to email server. The server may be blocking port 465/587. Please check firewall settings or contact your hosting provider to allow SMTP connections to smtp.gmail.com on ports 587 or 465.";
         } else if (error.responseCode === 550 || error.code === "EENVELOPE") {
           errorMessage = "Invalid recipient email address or email format.";
         } else if (error.message) {

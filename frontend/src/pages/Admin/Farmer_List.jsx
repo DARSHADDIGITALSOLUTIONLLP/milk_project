@@ -29,11 +29,33 @@ function Farmer_List() {
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRatesModal, setShowRatesModal] = useState(false);
   const [farmerRates, setFarmerRates] = useState({
     farmer_cow_rate: 0,
     farmer_buffalo_rate: 0,
     farmer_pure_rate: 0,
   });
+  // Rates to use for current order (farmer-specific or global)
+  const [currentOrderRates, setCurrentOrderRates] = useState({
+    farmer_cow_rate: 0,
+    farmer_buffalo_rate: 0,
+    farmer_pure_rate: 0,
+  });
+  const [farmerSpecificRates, setFarmerSpecificRates] = useState({
+    cow_rate: "",
+    buffalo_rate: "",
+    pure_rate: "",
+  });
+  const [currentFarmerRates, setCurrentFarmerRates] = useState({
+    cow_rate: null,
+    buffalo_rate: null,
+    pure_rate: null,
+    has_custom_rates: false,
+    custom_cow_rate: null,
+    custom_buffalo_rate: null,
+    custom_pure_rate: null,
+  });
+  const [loadingRates, setLoadingRates] = useState(false);
   const [formData, setFormData] = useState({
     advance_payment: "",
   });
@@ -112,33 +134,33 @@ function Farmer_List() {
     const rate = calculateRate(
       pure_milk.fat,
       pure_milk.quantity,
-      farmerRates.farmer_pure_rate
+      currentOrderRates.farmer_pure_rate
     );
     setPureMilk((prev) => ({ ...prev, rate }));
-  }, [pure_milk.fat, pure_milk.quantity, farmerRates.farmer_pure_rate]);
+  }, [pure_milk.fat, pure_milk.quantity, currentOrderRates.farmer_pure_rate]);
 
   // For Cow Milk
   useEffect(() => {
     const rate = calculateRate(
       cow_milk.fat,
       cow_milk.quantity,
-      farmerRates.farmer_cow_rate
+      currentOrderRates.farmer_cow_rate
     );
     setCowMilk((prev) => ({ ...prev, rate }));
-  }, [cow_milk.fat, cow_milk.quantity, farmerRates.farmer_cow_rate]);
+  }, [cow_milk.fat, cow_milk.quantity, currentOrderRates.farmer_cow_rate]);
 
   // For Buffalo Milk
   useEffect(() => {
     const rate = calculateRate(
       buffalo_milk.fat,
       buffalo_milk.quantity,
-      farmerRates.farmer_buffalo_rate
+      currentOrderRates.farmer_buffalo_rate
     );
     setBuffaloMilk((prev) => ({ ...prev, rate }));
   }, [
     buffalo_milk.fat,
     buffalo_milk.quantity,
-    farmerRates.farmer_buffalo_rate,
+    currentOrderRates.farmer_buffalo_rate,
   ]);
 
   const handleSubmit = async () => {
@@ -296,6 +318,102 @@ function Farmer_List() {
     setSelectedRecord(record);
     console.log("Opening modal for:", record);
     setShowConfirmation(true);
+  };
+
+  const handleSetRates = async (record) => {
+    setSelectedRecord(record);
+    setLoadingRates(true);
+    setShowRatesModal(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`/api/admin/farmer/${record.id}/rates`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        const rates = response.data.rates;
+        setFarmerSpecificRates({
+          cow_rate: rates.custom_cow_rate !== null ? rates.custom_cow_rate : "",
+          buffalo_rate: rates.custom_buffalo_rate !== null ? rates.custom_buffalo_rate : "",
+          pure_rate: rates.custom_pure_rate !== null ? rates.custom_pure_rate : "",
+        });
+        // Store current rates (custom or default) for display
+        setCurrentFarmerRates({
+          cow_rate: rates.cow_rate,
+          buffalo_rate: rates.buffalo_rate,
+          pure_rate: rates.pure_rate,
+          has_custom_rates: rates.has_custom_rates,
+          custom_cow_rate: rates.custom_cow_rate,
+          custom_buffalo_rate: rates.custom_buffalo_rate,
+          custom_pure_rate: rates.custom_pure_rate,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching farmer rates:", error);
+      toast.error("Failed to fetch farmer rates");
+      setFarmerSpecificRates({
+        cow_rate: "",
+        buffalo_rate: "",
+        pure_rate: "",
+      });
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  const handleCloseRatesModal = () => {
+    setShowRatesModal(false);
+    setSelectedRecord(null);
+    setFarmerSpecificRates({
+      cow_rate: "",
+      buffalo_rate: "",
+      pure_rate: "",
+    });
+    setCurrentFarmerRates({
+      cow_rate: null,
+      buffalo_rate: null,
+      pure_rate: null,
+      has_custom_rates: false,
+      custom_cow_rate: null,
+      custom_buffalo_rate: null,
+      custom_pure_rate: null,
+    });
+  };
+
+  const handleSaveFarmerRates = async () => {
+    if (!selectedRecord) return;
+
+    const token = localStorage.getItem("token");
+    setLoadingRates(true);
+
+    try {
+      const response = await axios.put(
+        `/api/admin/farmer/${selectedRecord.id}/rates`,
+        {
+          cow_rate: farmerSpecificRates.cow_rate || null,
+          buffalo_rate: farmerSpecificRates.buffalo_rate || null,
+          pure_rate: farmerSpecificRates.pure_rate || null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Farmer rates updated successfully!");
+        handleCloseRatesModal();
+      }
+    } catch (error) {
+      console.error("Error updating farmer rates:", error);
+      toast.error(error.response?.data?.message || "Failed to update farmer rates");
+    } finally {
+      setLoadingRates(false);
+    }
   };
 
   const renderMilkSection = (type) => {
@@ -465,7 +583,7 @@ function Farmer_List() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleOrderNow = (row) => {
+  const handleOrderNow = async (row) => {
     setSelectedRecord(row);
     // Ensure milk_types is always an array and parse if it's a string
     let milkTypes = [];
@@ -487,6 +605,34 @@ function Farmer_List() {
     setCowMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
     setBuffaloMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
     setPureMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+    
+    // Fetch farmer-specific rates for this farmer
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`/api/admin/farmer/${row.id}/rates`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        const rates = response.data.rates;
+        // Use farmer-specific rates if available, otherwise use global rates
+        setCurrentOrderRates({
+          farmer_cow_rate: rates.cow_rate,
+          farmer_buffalo_rate: rates.buffalo_rate,
+          farmer_pure_rate: rates.pure_rate,
+        });
+      } else {
+        // Fallback to global rates
+        setCurrentOrderRates(farmerRates);
+      }
+    } catch (error) {
+      console.error("Error fetching farmer-specific rates:", error);
+      // Fallback to global rates
+      setCurrentOrderRates(farmerRates);
+    }
+    
     setShowOrderModel(true);
   };
 
@@ -591,15 +737,26 @@ function Farmer_List() {
     },
     {
       id: "action",
-      headerLabel: "Action",
+      headerLabel: "Actions",
       cell: (row) => (
-        <Button
-          variant="info"
-          style={{ wordBreak: "keep-all", whiteSpace: "nowrap" }}
-          onClick={() => handleAdvance(row)}
-        >
-          Advance
-        </Button>
+        <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+          <Button
+            variant="info"
+            size="sm"
+            style={{ wordBreak: "keep-all", whiteSpace: "nowrap" }}
+            onClick={() => handleAdvance(row)}
+          >
+            Advance
+          </Button>
+          <Button
+            variant="warning"
+            size="sm"
+            style={{ wordBreak: "keep-all", whiteSpace: "nowrap" }}
+            onClick={() => handleSetRates(row)}
+          >
+            Set Rates
+          </Button>
+        </div>
       ),
     },
   ];
@@ -875,6 +1032,139 @@ function Farmer_List() {
               style={{ backgroundColor: "grey", border: "black" }}
             >
               Deduct
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Set Farmer Rates Modal */}
+        <Modal show={showRatesModal} onHide={handleCloseRatesModal} size="lg">
+          <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
+            <Modal.Title>
+              Set Rates for {selectedRecord?.full_name || "Farmer"}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {loadingRates ? (
+              <div className="text-center">
+                <p>Loading rates...</p>
+              </div>
+            ) : (
+              <>
+                <div className="alert alert-info mb-3">
+                  <strong>Note:</strong> Leave a field empty to use the default (admin's global) rate for that milk type.
+                  Setting a value will override the default rate for this farmer only.
+                </div>
+
+                <Form>
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Cow Milk Rate (₹/LTR)</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use default rate"
+                      value={farmerSpecificRates.cow_rate}
+                      onChange={(e) =>
+                        setFarmerSpecificRates({
+                          ...farmerSpecificRates,
+                          cow_rate: e.target.value,
+                        })
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      {currentFarmerRates.cow_rate !== null ? (
+                        <>
+                          Current rate: ₹{currentFarmerRates.cow_rate}/LTR
+                          {currentFarmerRates.custom_cow_rate !== null ? (
+                            <span style={{ color: "#28a745", fontWeight: "bold" }}> (Custom)</span>
+                          ) : (
+                            <span> (Default)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>Current default: ₹{farmerRates.farmer_cow_rate}/LTR</>
+                      )}
+                    </Form.Text>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Buffalo Milk Rate (₹/LTR)</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use default rate"
+                      value={farmerSpecificRates.buffalo_rate}
+                      onChange={(e) =>
+                        setFarmerSpecificRates({
+                          ...farmerSpecificRates,
+                          buffalo_rate: e.target.value,
+                        })
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      {currentFarmerRates.buffalo_rate !== null ? (
+                        <>
+                          Current rate: ₹{currentFarmerRates.buffalo_rate}/LTR
+                          {currentFarmerRates.custom_buffalo_rate !== null ? (
+                            <span style={{ color: "#28a745", fontWeight: "bold" }}> (Custom)</span>
+                          ) : (
+                            <span> (Default)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>Current default: ₹{farmerRates.farmer_buffalo_rate}/LTR</>
+                      )}
+                    </Form.Text>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Pure Milk Rate (₹/LTR)</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use default rate"
+                      value={farmerSpecificRates.pure_rate}
+                      onChange={(e) =>
+                        setFarmerSpecificRates({
+                          ...farmerSpecificRates,
+                          pure_rate: e.target.value,
+                        })
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      {currentFarmerRates.pure_rate !== null ? (
+                        <>
+                          Current rate: ₹{currentFarmerRates.pure_rate}/LTR
+                          {currentFarmerRates.custom_pure_rate !== null ? (
+                            <span style={{ color: "#28a745", fontWeight: "bold" }}> (Custom)</span>
+                          ) : (
+                            <span> (Default)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>Current default: ₹{farmerRates.farmer_pure_rate}/LTR</>
+                      )}
+                    </Form.Text>
+                  </Form.Group>
+                </Form>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleCloseRatesModal}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveFarmerRates}
+              disabled={loadingRates}
+            >
+              {loadingRates ? "Saving..." : "Save Rates"}
             </Button>
           </Modal.Footer>
         </Modal>

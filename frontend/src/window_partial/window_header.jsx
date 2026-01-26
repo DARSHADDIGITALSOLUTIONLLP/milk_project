@@ -19,6 +19,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./window_header.css";
 import logo from "/mauli_logo.png";
+import defaultLogo from "/Milk Junction_fnl_png.png";
 import "./window.css";
 import axios from "axios";
 import { ToastContainer, toast, Bounce } from "react-toastify";
@@ -30,6 +31,8 @@ import GoogleTranslateV2 from "../components/GoogleTranslateV2";
 function WindowHeader({ dashboardText }) {
   const location = useLocation();
   const [username, setUsername] = useState("");
+  const [dairyLogo, setDairyLogo] = useState(null);
+  const [hasLogo, setHasLogo] = useState(false);
   // const username = getUsernameFromCookie();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customerListOpen, setCustomerListOpen] = useState(false);
@@ -93,13 +96,25 @@ function WindowHeader({ dashboardText }) {
 
         if (response.data && response.data.dairy_name) {
           setUsername(response.data.dairy_name);
+          // Set dairy logo if available
+          if (response.data.dairy_logo) {
+            setDairyLogo(`data:image/png;base64,${response.data.dairy_logo}`);
+            setHasLogo(true);
+          } else {
+            setDairyLogo(null);
+            setHasLogo(false);
+          }
         } else {
           console.warn("Admin name not found in response:", response.data);
           setUsername("Unknown");
+          setDairyLogo(null);
+          setHasLogo(false);
         }
       } catch (error) {
         console.error("Error fetching admin name:", error);
         setUsername("Error");
+        setDairyLogo(null);
+        setHasLogo(false);
       }
     };
 
@@ -678,7 +693,11 @@ function WindowHeader({ dashboardText }) {
       />
       <div className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
         <div className="logo">
-          <img src={logo} alt="Logo" />
+          <img 
+            src={hasLogo && dairyLogo ? dairyLogo : defaultLogo} 
+            alt="Dairy Logo" 
+            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+          />
         </div>
 
         <ul className="sidebar-nav">
@@ -913,13 +932,24 @@ function WindowHeader({ dashboardText }) {
               />
             </Navbar.Brand>
             <div className="d-none d-md-flex flex-column flex-md-row align-items-md-center contact-info">
-              <p className="mb-0 me-md-3">
-                {dashboardText}
-                <a
-                  href="tel:9822888290"
-                  style={{ textDecoration: "none", color: "white" }}
-                ></a>
-              </p>
+              <div className="d-flex align-items-center me-md-3">
+                {hasLogo && dairyLogo && (
+                  <img 
+                    src={dairyLogo} 
+                    alt="Dairy Logo" 
+                    style={{ 
+                      width: "40px", 
+                      height: "40px", 
+                      objectFit: "contain", 
+                      marginRight: "10px",
+                      borderRadius: "4px"
+                    }} 
+                  />
+                )}
+                <p className="mb-0" style={{ color: "white", fontWeight: "bold", fontSize: "18px" }}>
+                  {username || dashboardText}
+                </p>
+              </div>
             </div>
             <Nav
               className="ml-auto"
@@ -1337,7 +1367,7 @@ function WindowHeader({ dashboardText }) {
       >
         <Modal.Body className="text-center">
           <Image
-            src={logo}
+            src={hasLogo && dairyLogo ? dairyLogo : defaultLogo}
             roundedCircle
             width={120}
             height={120}
@@ -1346,6 +1376,7 @@ function WindowHeader({ dashboardText }) {
               padding: "5px",
               backgroundColor: "black",
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+              objectFit: "contain"
             }}
           />
           <h4 className="mt-3" style={{ fontWeight: "bold", color: "#333" }}>

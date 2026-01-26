@@ -13,6 +13,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faBars, faTimes } from "@fortawesome/free-solid-svg-icons";
 import logo from "/mauli_logo.png";
+import defaultLogo from "/Milk Junction_fnl_png.png";
 import "./Userheader.css";
 import { NavLink, useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
@@ -36,6 +37,8 @@ const Userheader = forwardRef((prop, ref) => {
   });
   const [dairyContact, setDairyContact] = useState("9822888290");
   const [dairyEmail, setDairyEmail] = useState("mulidairy123@gmail.com");
+  const [dairyLogo, setDairyLogo] = useState(null);
+  const [hasLogo, setHasLogo] = useState(false);
 
   const handleShowProfilePopup = () => setShowProfilePopup(true);
   const handleShowAdvancePaymentPopup = () => setShowAdvancePaymentPopup(true);
@@ -111,10 +114,20 @@ const Userheader = forwardRef((prop, ref) => {
         if (response.data.email) {
           setDairyEmail(response.data.email);
         }
+        // Set dairy logo if available
+        if (response.data.dairy_logo) {
+          setDairyLogo(`data:image/png;base64,${response.data.dairy_logo}`);
+          setHasLogo(true);
+        } else {
+          setDairyLogo(null);
+          setHasLogo(false);
+        }
       }
     } catch (error) {
       console.error("Error fetching dairy contact info:", error);
       // Keep default values if fetch fails
+      setDairyLogo(null);
+      setHasLogo(false);
     }
   };
 
@@ -259,12 +272,13 @@ const Userheader = forwardRef((prop, ref) => {
             <div className="d-flex align-items-center">
               <Navbar.Brand href="#">
                 <img
-                  src={logo}
-                  alt="Logo"
+                  src={hasLogo && dairyLogo ? dairyLogo : defaultLogo}
+                  alt="Dairy Logo"
                   style={{
                     height: "97px",
                     width: "142px",
                     marginRight: "20px",
+                    objectFit: "contain",
                   }}
                 />
               </Navbar.Brand>
@@ -563,7 +577,7 @@ const Userheader = forwardRef((prop, ref) => {
       >
         <Modal.Body className="text-center">
           <Image
-            src={logo}
+            src={hasLogo && dairyLogo ? dairyLogo : defaultLogo}
             roundedCircle
             width={120}
             height={120}
@@ -572,6 +586,7 @@ const Userheader = forwardRef((prop, ref) => {
               padding: "5px",
               backgroundColor: "black",
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+              objectFit: "contain",
             }}
           />
           <h4 className="mt-3" style={{ fontWeight: "bold", color: "#333" }}>

@@ -160,6 +160,14 @@ router.get(
   adminController.getLastMonthTotalMilk
 );
 
+// Get Dairy Revenue (Dashboard Only - Admin Access)
+router.get(
+  "/revenue",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getDairyRevenue
+);
+
 //get the deliveryboy
 router.get(
   "/delivery-boy",
@@ -401,6 +409,22 @@ router.get(
   authenticateUser,
   authorizeRole(["admin", "farmer"]),
   adminController.getAllRate
+);
+
+// Get farmer-specific rates
+router.get(
+  "/farmer/:id/rates",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.getFarmerRates
+);
+
+// Set farmer-specific rates
+router.put(
+  "/farmer/:id/rates",
+  authenticateUser,
+  authorizeRole(["admin"]),
+  adminController.setFarmerRates
 );
 
 //Api to change status of the morning order after Auto Submit

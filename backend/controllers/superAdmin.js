@@ -445,7 +445,21 @@ module.exports.RegisterAdmin = async (req, res) => {
 module.exports.FetchALlAdmin = async (req, res) => {
   try {
     const admins = await Admin.findAll();
-    res.status(200).json({ admins });
+    
+    // Convert dairy_logo to base64 if exists
+    const adminsWithLogo = admins.map(admin => {
+      const adminData = admin.toJSON();
+      if (adminData.dairy_logo) {
+        adminData.dairy_logo = adminData.dairy_logo.toString('base64');
+        adminData.has_logo = true;
+      } else {
+        adminData.has_logo = false;
+        adminData.dairy_logo = null;
+      }
+      return adminData;
+    });
+    
+    res.status(200).json({ admins: adminsWithLogo });
   } catch (err) {
     console.error("Error fetching admins:", err);
     res.status(500).json({ message: "Internal Server Error" });
@@ -535,6 +549,33 @@ module.exports.updateAdminPayment = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating admin payment:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+module.exports.updateDairyLogo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the admin by ID
+    const admin = await Admin.findByPk(id);
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    // Handle dairy logo if uploaded
+    if (req.file) {
+      admin.dairy_logo = req.file.buffer; // Store as binary data
+      await admin.save();
+      return res.json({
+        success: true,
+        message: "Dairy logo updated successfully.",
+      });
+    } else {
+      return res.status(400).json({ message: "No logo file provided." });
+    }
+  } catch (error) {
+    console.error("Error updating dairy logo:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };

@@ -41,6 +41,9 @@ router.put("/admin/:id/update", authenticateUser, authorizeRole(["super_admin"])
 //api for the update the status of the admin
 router.put("/admin/:id/update-Payment", authenticateUser, authorizeRole(["super_admin"]), superAdminController.updateAdminPayment);
 
+//api for the update the dairy logo
+router.put("/admin/:id/update-logo", upload.single('dairy_logo'), authenticateUser, authorizeRole(["super_admin"]), superAdminController.updateDairyLogo);
+
 // //api for the reset the password
 router.post("/send_recovery_email", superAdminController.sendemailOtp);
 

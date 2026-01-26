@@ -69,6 +69,25 @@ const Farmer = sequelize.define(
             type: DataTypes.DATEONLY,
             allowNull: true,
         },
+        // Farmer-specific rates (nullable - if null, use admin's global rates)
+        cow_rate: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Farmer-specific cow milk rate. If null, uses admin's global farmer_cow_rate",
+        },
+        buffalo_rate: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Farmer-specific buffalo milk rate. If null, uses admin's global farmer_buffalo_rate",
+        },
+        pure_rate: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+            defaultValue: null,
+            comment: "Farmer-specific pure milk rate. If null, uses admin's global farmer_pure_rate",
+        },
         created_at: {
             type: DataTypes.DATE,
             allowNull: false,
