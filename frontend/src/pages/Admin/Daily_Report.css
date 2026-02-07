@@ -1,0 +1,78 @@
+.daily-report-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.report-date {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+.responsive-gap {
+  gap: 0px; /* Default (no gap on large screens) */
+}
+
+@media (max-width: 760px) {
+  /* Apply gap only on small screens */
+  .responsive-gap {
+    gap: 4px; /* Adjust gap size as needed */
+  }
+}
+
+/* Dropdown styling for Daily Report page */
+.daily-report-filters .form-label {
+  display: block;
+  margin-bottom: 8px !important;
+  font-weight: bold;
+  color: #333;
+}
+
+.daily-report-filters .form-control,
+.daily-report-filters select {
+  width: 100%;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.daily-report-filters .col-md-4 {
+  margin-bottom: 20px;
+}
+
+.daily-report-filters .col-md-4:last-child {
+  margin-bottom: 20px;
+}
+
+/* Ensure proper spacing between label and dropdown */
+.daily-report-filters label + select,
+.daily-report-filters label + .form-control {
+  margin-top: 8px !important;
+}
+
+/* Delivery Boy Report Header - Mobile responsive */
+.delivery-boy-report-header {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+  .delivery-boy-report-header {
+    font-size: 14px !important;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+}
+

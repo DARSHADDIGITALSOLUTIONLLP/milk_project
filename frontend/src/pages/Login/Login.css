@@ -1,0 +1,350 @@
+html, body {
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.login-container {
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.login-row {
+  min-height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+}
+
+.image-col,
+.form-col {
+  min-height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Desktop styles */
+@media (min-width: 769px) {
+  .image-col,
+  .form-col {
+    min-height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+}
+
+.image-col {
+  background-color: black;
+  min-height: 100vh;
+  max-height: 100vh;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .image-col {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+.image-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  margin: 0;
+  padding: 40px;
+  box-sizing: border-box;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.image-wrapper img,
+.image-wrapper .img-fluid,
+.image-wrapper .login-logo {
+  max-height: 60% !important;
+  max-width: 60% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+/* Desktop specific positioning - properly centered */
+@media (min-width: 768px) {
+  .image-wrapper img,
+  .image-wrapper .img-fluid,
+  .image-wrapper .login-logo {
+    margin: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+}
+
+.form-col {
+  background-color: white;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.rl-btn {
+  width: 100%;
+}
+
+.line {
+  height: 2px;
+  background-color: rgb(46, 45, 45);
+  width: 45%;
+}
+
+.m-line-div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.or {
+  position: relative;
+  margin-top: -6px;
+
+}
+
+.forgot-password a {
+  color: #EF6E0B;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .login-row {
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  .form-col {
+    position: relative;
+    margin-top: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 20px 15px !important;
+    min-height: 100vh;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    overflow-y: auto;
+  }
+
+  .form-col .container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .image-col {
+    display: none !important;
+  }
+
+  .image-wrapper img,
+  .image-wrapper .img-fluid {
+    margin-top: 0px !important;
+  }
+
+  /* Ensure form labels are left-aligned on mobile */
+  .form-col label,
+  .form-col .form-label,
+  .form-col .form-group label,
+  .form-col .form-group .form-label {
+    text-align: left !important;
+  }
+}
+
+/* .toggle_btn {
+  margin-top: 27rem;
+  color: black !important;
+} */
+
+.password-input {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 7px;
+  right: 20px;
+  cursor: pointer;
+}
+
+.card_title {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.price {
+  color: rgb(165, 165, 165);
+}
+
+.pay_btn:hover {
+  border: 1px solid orange !important;
+}
+
+.subscription_card:hover {
+  transition: 0.5s;
+  transform: scale(1.1);
+
+}
+
+.modal-content {
+  margin-left: 0px !important;
+}
+
+
+.toggle-btn:hover {
+  transition: 0.5s;
+  border: 1px solid #EF6E0B !important;
+}
+
+@media (max-width: 768px) {
+  .toggle_btn {
+    margin-top: 0 !important;
+    width: 100%; 
+    text-align: center; 
+  }
+  
+  .toggle_btn .form-label,
+  .toggle_btn label,
+  .toggle_btn .form-group label,
+  .toggle_btn .form-group .form-label {
+    text-align: left !important;
+    display: block !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .toggle_btn {
+    margin-top: 0 !important;
+  }
+  
+  .toggle_btn .form-label,
+  .toggle_btn label,
+  .toggle_btn .form-group label,
+  .toggle_btn .form-group .form-label {
+    text-align: left !important;
+    display: block !important;
+    width: 100% !important;
+  }
+}
+
+/* Remove typing cursor from non-input elements */
+.image-col,
+.image-wrapper,
+.image-wrapper img {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: default !important;
+  outline: none !important;
+}
+
+.image-col:focus,
+.image-wrapper:focus,
+.image-wrapper img:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent text cursor on buttons and links */
+button,
+.btn,
+a {
+  cursor: pointer !important;
+}
+
+button:focus,
+.btn:focus,
+a:focus {
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure "Powered By" text shows on one line on desktop */
+@media (min-width: 768px) {
+  .powered-by-container {
+    padding: 0 15px !important;
+  }
+  
+  .powered-by-text {
+    white-space: nowrap !important;
+    font-size: 0.9rem !important;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+  }
+  
+  .powered-by-link {
+    white-space: nowrap !important;
+    display: inline !important;
+  }
+  
+  .powered-by-link span {
+    display: inline !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .powered-by-text {
+    font-size: 1rem !important;
+  }
+  
+  /* Prevent extra scrolling on desktop */
+  .login-container {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .login-row {
+    height: 100vh;
+  }
+  
+  .form-col {
+    height: 100vh;
+    padding: 20px 0;
+  }
+  
+  .form-col .container {
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  
+  /* Remove extra margin from powered-by section */
+  .powered-by-container {
+    margin-bottom: 0 !important;
+  }
+}

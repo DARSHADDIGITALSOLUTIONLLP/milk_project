@@ -1,0 +1,68 @@
+.festival-greeting-alert {
+  margin-bottom: 20px;
+  border-radius: 10px;
+  border: 2px solid #17a2b8;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.festival-greeting-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.festival-greeting-icon {
+  font-size: 3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.festival-greeting-text {
+  flex: 1;
+}
+
+.festival-greeting-text strong {
+  display: block;
+  font-size: 1.2rem;
+  color: #0c5460;
+  margin-bottom: 5px;
+}
+
+.festival-greeting-text div {
+  font-size: 1rem;
+  color: #0c5460;
+  line-height: 1.5;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .festival-greeting-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .festival-greeting-icon {
+    font-size: 2.5rem;
+  }
+  
+  .festival-greeting-text strong {
+    font-size: 1.1rem;
+  }
+  
+  .festival-greeting-text div {
+    font-size: 0.9rem;
+  }
+}

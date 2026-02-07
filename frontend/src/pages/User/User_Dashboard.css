@@ -1,0 +1,496 @@
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .col-container { 
+     border: 1px solid #CDCDCD;
+    padding: 15px; 
+  }
+  .r{
+    display: flex;
+    justify-content: space-between;
+  }
+  .btn:hover {
+    color: #EF6E0B !important;
+    background-color: transparent !important;
+    border-color: #EF6E0B !important;
+  }
+  @media (max-width: 768px) {
+    .milk-section {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;        
+    }
+    .milk-section > div {
+      margin-bottom: 10px; /* Add margin between the divs */
+    }
+    .r{
+      flex-direction: column;
+    }
+  }
+  
+  .table-container {
+    font-size: 10px;
+  }
+  
+  .table-container .headings {
+    font-size: 10px;
+  }
+  
+  .table-container td, 
+  .table-container th {
+    font-size: 10px;
+  }
+  
+  .table-container .text-right a {
+    font-size: 10px;
+  }
+  
+  
+  .table{
+   border: 1px solid black !important;
+  }
+  
+  .quantity {
+    background-color: rgba(0, 123, 255, 0.1);
+    padding: 5px;
+    font-size: 12px;
+    color: #007bff;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .no-quantity {
+    display: block; 
+    background-color: rgba(255, 0, 0, 0.1);
+    padding: 15px;
+    font-size: 12px;
+    color: red;
+    text-align: left; 
+    margin-top: 5px;
+}
+  .vacation {
+    background-color: #ffcccc;
+    border-radius: 50%;
+    padding: 5px;
+    color: red;
+    font-weight: bold;
+  }
+  
+
+  .react-calendar {
+    width: 100% !important;
+  }
+
+  .react-calendar__tile--active {
+    background-color: #ffeeba !important;
+    color: inherit !important;
+    outline: none;
+    cursor: auto;
+  }
+
+  .calendar-container {
+    position: relative;
+  }
+
+  .calendar-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 20px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #007bff;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(14px);
+  }
+
+  .slider.round {
+    border-radius: 34px;
+  }
+
+  .slider.round:before {
+    border-radius: 50%;
+  }
+
+   .vacant-morning {
+    background-color:rgb(251, 184, 132);
+    /* padding: 2px; */
+    height:72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .vacant-evening {
+    background-color: rgb(243, 190, 149);
+    height:72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* padding: 2px; */
+    /* margin-top: 4px; */
+  }
+
+
+.modal-content {
+  width: 90%;
+  margin: auto;
+}
+
+.shift{
+    padding: 5px;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .shift-quantity {
+    padding: 5px;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .shift-no-quantity {
+    display: block; 
+    padding: 15px;
+    font-size: 12px;
+    text-align: left; 
+    margin-top: 5px;
+}
+
+@media screen and (max-width: 600px) {
+  .no-quantity {
+    font-size: 8px;
+    text-align: left;
+    margin-top: 2px;
+    display: block;
+  }
+  .shift{
+    font-size: 8px;
+  }
+
+  .shift-quantity {
+    font-size: 8px;
+  }
+
+  .shift-no-quantity {
+    font-size: 8px;
+   }
+   .vacant-morning {
+    height:52px;
+  }
+  
+  .vacant-evening {
+    height:52px;
+  }
+
+}
+
+/* In your CSS file or inside a <style> tag */
+.flex-quantity {
+  /* display: flex; */
+  /* flex-wrap: wrap; */
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+@media screen and (max-width: 600px) {
+  .flex-quantity {
+    font-size: 7px;
+  }
+}
+
+/* Milk Card Styles - Matching Physical Card */
+.milk-card-container {
+  border: 2px solid #000;
+  padding: 15px;
+  background-color: #fff;
+  font-family: 'Arial', sans-serif;
+}
+
+.card-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #000;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.card-title h6 {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.card-title p {
+  font-size: 14px;
+  color: #333;
+}
+
+.card-month-info {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.milk-card-grid {
+  overflow-x: auto;
+}
+
+.milk-card-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.milk-card-table th,
+.milk-card-table td {
+  border: 1px solid #000;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.milk-card-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.date-cell {
+  font-weight: bold;
+  background-color: #f9f9f9;
+  width: 40px;
+}
+
+.qty-cell {
+  min-width: 60px;
+  font-weight: 600;
+  color: #000;
+}
+
+.qty-cell:empty::after {
+  content: "";
+  display: inline-block;
+}
+
+.vacant-text {
+  display: inline-block;
+  background-color: #ff0000;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+/* Blinking animation for pending payment warning */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.pending-payment-warning {
+  animation: blink 1.5s ease-in-out infinite;
+  padding: 12px 15px;
+  background-color: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+  margin-bottom: 15px;
+}
+
+.pending-payment-warning p {
+  margin: 0;
+  color: #d9534f;
+  font-weight: bold;
+  font-size: 15px;
+  text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+  .milk-card-table th,
+  .milk-card-table td {
+    padding: 6px;
+    font-size: 12px;
+  }
+  
+  .card-header-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+  
+  .card-header-left {
+    width: 100% !important;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .card-header-left .dairy-logo {
+    width: 50px !important;
+    height: 50px !important;
+    flex-shrink: 0;
+  }
+  
+  .card-header-right {
+    width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+  
+  .card-month-info {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: nowrap;
+    padding: 5px 0;
+  }
+  
+  .card-month-info .month-year-text {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  
+  .card-month-info .month-nav-btn {
+    flex-shrink: 0;
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+    min-width: 60px;
+  }
+  
+  .card-month-info .prev-btn {
+    order: 1;
+  }
+  
+  .card-month-info .month-year-text {
+    order: 2;
+  }
+  
+  .card-month-info .next-btn {
+    order: 3;
+  }
+  
+  .manage-vacation-link {
+    width: 100%;
+    text-align: center !important;
+    padding: 5px 0;
+  }
+  
+  .card-title h5 {
+    font-size: 16px;
+    word-wrap: break-word;
+  }
+  
+  .card-title p {
+    font-size: 12px;
+    word-wrap: break-word;
+  }
+  
+  .date-cell {
+    width: 30px;
+  }
+  
+  .qty-cell {
+    min-width: 45px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .card-header-left {
+    gap: 10px !important;
+  }
+  
+  .card-header-left .dairy-logo {
+    width: 45px !important;
+    height: 45px !important;
+  }
+  
+  .card-title h5 {
+    font-size: 14px !important;
+  }
+  
+  .card-title p {
+    font-size: 11px !important;
+  }
+  
+  .card-month-info {
+    gap: 5px !important;
+  }
+  
+  .card-month-info .month-year-text {
+    font-size: 12px !important;
+  }
+  
+  .card-month-info .month-nav-btn {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+    min-width: 55px;
+  }
+  
+  .manage-vacation-link {
+    font-size: 12px !important;
+  }
+}

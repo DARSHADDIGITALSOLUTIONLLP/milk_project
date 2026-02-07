@@ -1,0 +1,389 @@
+.App {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 23;
+    height: 100%;
+    width: 250px;
+    background-color: #333;
+    color: #fff;
+    padding-top: 20px;
+    transition: transform 0.3s ease in out;
+    transform: translateX(-250px); /* Sidebar is closed by default */
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .logo {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .logo img {
+    width: 80%;
+    max-width: 150px;
+  }
+  .sidebar-nav {
+    list-style-type: none;
+    padding: 0;
+  }
+  .sidebar-nav li {
+    margin-bottom: 10px;
+  }
+  .sidebar-nav li a {
+    display: block;
+    padding: 2px;
+    /* transition: transform 0.3s ease in out; */
+    text-decoration: none;
+    color: #fff;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .sidebar-nav li a:hover {
+    background-color: #555;
+  }
+  .active-link {
+    color: #01FFFF !important;
+    border-right: 10px solid #01FFFF;
+    border-radius: 10px 0px 0px 10px;
+  }
+  .main-content {
+    flex-grow: 1;
+    margin-left: 0;
+    padding: 20px;
+    padding-top: 100px; /* Increased padding to account for fixed header and ensure headings are visible */
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    overflow-y: auto;
+  }
+  
+  /* Ensure headings are below the header - override App.css margin-top */
+  .main-content .heading,
+  .main-content h1,
+  .main-content h2,
+  .main-content h3,
+  .main-content .page-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure first element in main-content (including headings) has proper spacing */
+  .main-content > *:first-child {
+    margin-top: 0 !important;
+  }
+  
+  /* Headings inside divs should also respect spacing */
+  .main-content div .heading,
+  .main-content div h1,
+  .main-content div h2,
+  .main-content div h3 {
+    margin-top: 0 !important;
+  }
+  
+  /* Override mt-4 on wrapper divs that contain headings to prevent going under header */
+  .main-content > div.mt-4 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure headings inside mt-4 divs don't go under header */
+  .main-content div.mt-4 .heading,
+  .main-content div.mt-4 h1,
+  .main-content div.mt-4 h2,
+  .main-content div.mt-4 h3 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Override Bootstrap mt-4 utility class for first content divs */
+  .main-content > div.mt-4:first-of-type {
+    margin-top: 0 !important;
+  }
+  
+  /* Ensure any div containing heading doesn't push content under header */
+  .main-content > div:has(.heading),
+  .main-content > div:has(h1),
+  .main-content > div:has(h2),
+  .main-content > div:has(h3) {
+    margin-top: 0 !important;
+  }
+  .sidebar.open ~ .main-content {
+    margin-left: 19%;
+    width: 81%;
+  }
+  .toggle-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1.5rem;
+  }
+  .bg-dark.navbar-dark {
+    background-color: #343a40 !important;
+    width: calc(100% - 250px);
+    transition: width 0.3s ease, left 0.3s ease;
+    z-index: 1000;
+    position: fixed;
+    top: 0;
+    left: 250px;
+  }
+  .sidebar.open ~ .bg-dark.navbar-dark {
+    width: 100%;
+    left: 0;
+  }
+  .contact-info p {
+    color: white;
+    margin: 0;
+  }
+  .contact-info a {
+    color: white;
+  }
+  .sidebar-bottom {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    border-top: none !important;
+    border: none !important;
+    padding-top: 10px;
+  }
+  .sidebar-bottom a,
+  .sidebar-bottom .btnLogout {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: #fff;
+    border-top: none !important;
+    border: none !important;
+  }
+  .sidebar-bottom a:hover,
+  .sidebar-bottom .btnLogout:hover {
+    background-color: #555;
+    border-top: none !important;
+    border: none !important;
+  }
+  .click_btn {
+    border: none;
+    border-bottom: 4px solid #0361FE;
+    color: #00000080;
+    font-weight: bold;
+  }
+  .light_text {
+    color: #00000080;
+  }
+  .sub-menu {
+    list-style-type: none;
+    padding-left: 20px;
+  }
+  .sub-menu li {
+    margin-bottom: 5px;
+  }
+  .sub-menu li a {
+    display: block;
+    padding: 8px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .sub-menu li a.active {
+    color: cyan !important;
+  }
+  .sub-menu li a.inactive {
+    color: grey;
+  }
+  /* Layout for dropdown label + arrow so all arrows align in one vertical line */
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* text on left, arrow on right */
+    width: 100%;
+  }
+
+  .dropdown-icon {
+    margin-left: 8px;
+  }
+  @media (max-width: 768px) {
+    .main-content {
+      width: 100%;
+      margin-left: 0;
+      padding-top: 100px; /* Increased padding to account for fixed header on mobile */
+    }
+    
+    /* Ensure headings are below the header on mobile */
+    .main-content .heading,
+    .main-content h1,
+    .main-content h2,
+    .main-content h3,
+    .main-content .page-title {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    .bg-dark.navbar-dark {
+      width: 100%;
+      left: 0;
+    }
+    .sidebar {
+      width: 100%;
+      transform: translateX(0);
+    }
+    .sidebar.closed {
+     transition: transform 0.3s ease in out;
+      transform: translateX(-100%);
+    }
+  }
+
+  /* Modal Container */
+.modal_header {
+  background-color: #fcd02a !important; /* Orange header */
+  color: white !important;
+  padding: 12px 20px !important;
+  border-bottom: 2px solid #e69a00 !important;
+  font-size: 18px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  min-height: 60px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Modal Title */
+.modal_header .modal-title {
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.4;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 10px;
+  padding-right: 10px;
+  box-sizing: border-box;
+}
+
+/* Responsive modal title */
+.responsive-modal-title {
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.4;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 10px;
+  padding-right: 10px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Responsive modal title on mobile */
+@media (max-width: 768px) {
+  .modal_header .modal-title,
+  .responsive-modal-title {
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+    margin-right: 5px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  
+  .modal_header {
+    padding: 10px 15px !important;
+    font-size: 14px !important;
+    min-height: auto !important;
+    flex-wrap: wrap !important;
+  }
+  
+  /* Ensure close button doesn't overlap text */
+  .modal_header .btn-close {
+    margin-left: 5px !important;
+    padding: 0.5rem !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .modal_header .modal-title,
+  .modal_header .responsive-modal-title {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 50px) !important;
+  }
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Input Styles */
+.rate_input {
+  width: 100%;
+  padding: 5px 6px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border 0.3s;
+}
+
+.rate_input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.7);
+}
+
+/* Paragraph Style */
+p {
+  font-size: 16px;
+  margin-bottom: 15px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Button Styles */
+.close_btn {
+  background-color: #4caf50;
+  color: white;
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.close_btn:hover {
+  background-color: #45a049;
+}
+
+/* Modal Animation */
+.modal-content {
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#user-dropdown{
+  
+}

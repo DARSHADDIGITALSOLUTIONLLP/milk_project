@@ -1,0 +1,1176 @@
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import WindowHeader from "../../window_partial/window_header";
+import {
+  Container,
+  Button,
+  Modal,
+  Form,
+} from "react-bootstrap";
+import { ToastContainer } from "react-toastify";
+import { Bounce } from "react-toastify";
+import DataTable from "react-data-table-component";
+import "../../window_partial/window.css";
+import { encode } from "base64-arraybuffer";
+import { toast } from "react-toastify";
+import "../SuperAdmin/Dairy_List.css";
+import useResponsiveHideableColumns from "../../hooks/useResponsiveHideableColumns";
+import "react-toastify/dist/ReactToastify.css";
+
+function Farmer_List() {
+  const [records, setRecords] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showOrderModel, setShowOrderModel] = useState(false);
+  const [selectedMilkTypes, setSelectedMilkTypes] = useState([]);
+  const [checkedMilkTypes, setCheckedMilkTypes] = useState([]);
+
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRatesModal, setShowRatesModal] = useState(false);
+  const [farmerRates, setFarmerRates] = useState({
+    farmer_cow_rate: 0,
+    farmer_buffalo_rate: 0,
+    farmer_pure_rate: 0,
+  });
+  // Rates to use for current order (farmer-specific or global)
+  const [currentOrderRates, setCurrentOrderRates] = useState({
+    farmer_cow_rate: 0,
+    farmer_buffalo_rate: 0,
+    farmer_pure_rate: 0,
+  });
+  const [farmerSpecificRates, setFarmerSpecificRates] = useState({
+    cow_rate: "",
+    buffalo_rate: "",
+    pure_rate: "",
+  });
+  const [currentFarmerRates, setCurrentFarmerRates] = useState({
+    cow_rate: null,
+    buffalo_rate: null,
+    pure_rate: null,
+    has_custom_rates: false,
+    custom_cow_rate: null,
+    custom_buffalo_rate: null,
+    custom_pure_rate: null,
+  });
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [formData, setFormData] = useState({
+    advance_payment: "",
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleMilkSelection = (type) => {
+    setSelectedMilkTypes((prev) =>
+      prev.includes(type)
+        ? prev.filter((item) => item !== type)
+        : [...prev, type]
+    );
+  };
+
+  const [pure_milk, setPureMilk] = useState({
+    milk_type: "",
+    quantity: "",
+    fat: "",
+    rate: "",
+  });
+
+  const [cow_milk, setCowMilk] = useState({
+    milk_type: "",
+    quantity: "",
+    fat: "",
+    rate: "",
+  });
+
+  const [buffalo_milk, setBuffaloMilk] = useState({
+    milk_type: "",
+    quantity: "",
+    fat: "",
+    rate: "",
+  });
+
+  const fetchFarmerRates = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.get("/api/admin/get_farmer_Milkrate", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setFarmerRates({
+        farmer_cow_rate: response.data.farmer_cow_rate,
+        farmer_buffalo_rate: response.data.farmer_buffalo_rate,
+        farmer_pure_rate: response.data.farmer_pure_rate,
+      });
+    } catch (error) {
+      console.error("Error fetching farmer rates:", error);
+      toast.error(error.response?.data?.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchFarmerRates();
+  }, []);
+
+  function calculateRate(fat, quantity, ratePerUnit) {
+    const cleanedFat = fat.replace(/[^0-9.]/g, "");
+    const f = parseFloat(cleanedFat);
+    const q = parseFloat(quantity);
+    if (!isNaN(f) && !isNaN(q)) {
+      return (f * q * ratePerUnit).toFixed(2);
+    }
+    return "";
+  }
+
+  // For Pure Milk
+  useEffect(() => {
+    const rate = calculateRate(
+      pure_milk.fat,
+      pure_milk.quantity,
+      currentOrderRates.farmer_pure_rate
+    );
+    setPureMilk((prev) => ({ ...prev, rate }));
+  }, [pure_milk.fat, pure_milk.quantity, currentOrderRates.farmer_pure_rate]);
+
+  // For Cow Milk
+  useEffect(() => {
+    const rate = calculateRate(
+      cow_milk.fat,
+      cow_milk.quantity,
+      currentOrderRates.farmer_cow_rate
+    );
+    setCowMilk((prev) => ({ ...prev, rate }));
+  }, [cow_milk.fat, cow_milk.quantity, currentOrderRates.farmer_cow_rate]);
+
+  // For Buffalo Milk
+  useEffect(() => {
+    const rate = calculateRate(
+      buffalo_milk.fat,
+      buffalo_milk.quantity,
+      currentOrderRates.farmer_buffalo_rate
+    );
+    setBuffaloMilk((prev) => ({ ...prev, rate }));
+  }, [
+    buffalo_milk.fat,
+    buffalo_milk.quantity,
+    currentOrderRates.farmer_buffalo_rate,
+  ]);
+
+  const handleSubmit = async () => {
+    const token = localStorage.getItem("token");
+
+    // Extract and clean numeric fat values
+    const cleanCowFat = cow_milk.fat.replace(/[^0-9.]/g, "");
+    const cleanBuffaloFat = buffalo_milk.fat.replace(/[^0-9.]/g, "");
+    const cleanPureFat = pure_milk.fat.replace(/[^0-9.]/g, "");
+
+    const payload = {
+      cow_quantity: cow_milk.milk_type ? cow_milk.quantity : undefined,
+      cow_fat: cow_milk.milk_type ? cleanCowFat : undefined,
+      cow_rate: cow_milk.milk_type ? cow_milk.rate : undefined,
+
+      buffalo_quantity: buffalo_milk.milk_type
+        ? buffalo_milk.quantity
+        : undefined,
+      buffalo_fat: buffalo_milk.milk_type ? cleanBuffaloFat : undefined,
+      buffalo_rate: buffalo_milk.milk_type ? buffalo_milk.rate : undefined,
+
+      pure_quantity: pure_milk.milk_type ? pure_milk.quantity : undefined,
+      pure_fat: pure_milk.milk_type ? cleanPureFat : undefined,
+      pure_rate: pure_milk.milk_type ? pure_milk.rate : undefined,
+    };
+
+    try {
+      const response = await axios.post(
+        `/api/admin/farmer/${selectedRecord.id}/add_product`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        toast.success("Order Successful");
+
+        // Reset all states
+        setShowOrderModel(false);
+        setBuffaloMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+        setCowMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+        setPureMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+      }
+    } catch (error) {
+      console.error("Error while submitting milk data:", error);
+      toast.error(error.response?.data?.message || "Something went wrong");
+    }
+  };
+
+  const Farmer_List = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/admin/Farmer_list", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const updatedRecords = response.data.farmers.map((record) => ({
+        ...record,
+        status: record.status ? "Active" : "Inactive",
+      }));
+      setRecords(updatedRecords);
+    } catch (error) {
+      console.error("Error fetching farmers:", error);
+    }
+  };
+
+  useEffect(() => {
+    Farmer_List();
+  }, []);
+
+  const confirmStatusChange = async (status) => {
+    const token = localStorage.getItem("token");
+    try {
+      await axios.put(
+        `/api/admin/farmer/${selectedRecord.id}/update_status`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toast.success("User has been successfully marked as inactive.");
+      closeConfirmModal();
+      Farmer_List();
+      setSelectedRecord(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const closeModal = () => {
+    setShowOrderModel(false);
+    setShowDetailsModal(false);
+  };
+
+  const handleAdvancePayment = async (status) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const data = {
+        advance_payment: Number(formData.advance_payment),
+        status: status,
+      };
+
+      const response = await axios.put(
+        `/api/admin/farmer/advance_payment/${selectedRecord.id}`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.updated_balance !== undefined && status === true) {
+        toast.success("Advance Payment Updated");
+        Farmer_List();
+      } else if (
+        response.data.updated_balance !== undefined &&
+        status === false
+      ) {
+        toast.success("Advance Payment Deducted");
+        Farmer_List();
+      } else {
+        toast.success(response.data.message);
+      }
+
+      // wrap these in their own try-catch to debug
+      try {
+        setFormData({ advance_payment: "" });
+        closeModal();
+        fetchData();
+      } catch (innerErr) {
+        console.error("Post-success logic failed:", innerErr);
+      }
+    } catch (error) {
+      console.error("Error adding advance payment:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Error adding advance payment. Please try again later."
+      );
+    }
+  };
+
+  const closeConfirmModal = () => {
+    setShowConfirmation(false);
+  };
+
+  const handleStatusToggle = (record) => {
+    setSelectedRecord(record);
+    console.log("Opening modal for:", record);
+    setShowConfirmation(true);
+  };
+
+  const handleSetRates = async (record) => {
+    setSelectedRecord(record);
+    setLoadingRates(true);
+    setShowRatesModal(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`/api/admin/farmer/${record.id}/rates`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        const rates = response.data.rates;
+        setFarmerSpecificRates({
+          cow_rate: rates.custom_cow_rate !== null ? rates.custom_cow_rate : "",
+          buffalo_rate: rates.custom_buffalo_rate !== null ? rates.custom_buffalo_rate : "",
+          pure_rate: rates.custom_pure_rate !== null ? rates.custom_pure_rate : "",
+        });
+        // Store current rates (custom or default) for display
+        setCurrentFarmerRates({
+          cow_rate: rates.cow_rate,
+          buffalo_rate: rates.buffalo_rate,
+          pure_rate: rates.pure_rate,
+          has_custom_rates: rates.has_custom_rates,
+          custom_cow_rate: rates.custom_cow_rate,
+          custom_buffalo_rate: rates.custom_buffalo_rate,
+          custom_pure_rate: rates.custom_pure_rate,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching farmer rates:", error);
+      toast.error("Failed to fetch farmer rates");
+      setFarmerSpecificRates({
+        cow_rate: "",
+        buffalo_rate: "",
+        pure_rate: "",
+      });
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  const handleCloseRatesModal = () => {
+    setShowRatesModal(false);
+    setSelectedRecord(null);
+    setFarmerSpecificRates({
+      cow_rate: "",
+      buffalo_rate: "",
+      pure_rate: "",
+    });
+    setCurrentFarmerRates({
+      cow_rate: null,
+      buffalo_rate: null,
+      pure_rate: null,
+      has_custom_rates: false,
+      custom_cow_rate: null,
+      custom_buffalo_rate: null,
+      custom_pure_rate: null,
+    });
+  };
+
+  const handleSaveFarmerRates = async () => {
+    if (!selectedRecord) return;
+
+    const token = localStorage.getItem("token");
+    setLoadingRates(true);
+
+    try {
+      const response = await axios.put(
+        `/api/admin/farmer/${selectedRecord.id}/rates`,
+        {
+          cow_rate: farmerSpecificRates.cow_rate || null,
+          buffalo_rate: farmerSpecificRates.buffalo_rate || null,
+          pure_rate: farmerSpecificRates.pure_rate || null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Farmer rates updated successfully!");
+        handleCloseRatesModal();
+      }
+    } catch (error) {
+      console.error("Error updating farmer rates:", error);
+      toast.error(error.response?.data?.message || "Failed to update farmer rates");
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  const renderMilkSection = (type) => {
+    switch (type) {
+      case "pure":
+        return (
+          <div key="pure" className="border-top pt-3 mb-4">
+            <h5>Pure Milk</h5>
+            <Form.Group className="mt-4">
+              <Form.Label>Enter pure milk quantity</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter quantity in litres"
+                value={pure_milk.quantity}
+                onChange={(e) =>
+                  setPureMilk({
+                    ...pure_milk,
+                    quantity: e.target.value,
+                  })
+                }
+              />
+            </Form.Group>
+
+            <Form.Group className="mt-2">
+              <Form.Label>Enter Fat</Form.Label>
+              <Form.Control
+                type="text"
+                value={pure_milk.fat}
+                onFocus={() => {
+                  if (!pure_milk.fat)
+                    setPureMilk({ ...pure_milk, fat: "Fat " });
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPureMilk((prev) => ({
+                    ...prev,
+                    fat: value,
+                  }));
+                }}
+              />
+            </Form.Group>
+
+            <Form.Group className="mt-2">
+              <Form.Label>Total Amount</Form.Label>
+              <Form.Control
+                type="text"
+                value={pure_milk.rate}
+                placeholder="₹ 65"
+                readOnly
+              />
+            </Form.Group>
+          </div>
+        );
+
+      case "cow":
+        return (
+          <div key="cow" className="border-top pt-3 mb-4">
+            <h5>Cow Milk</h5>
+            <Form.Group className="mt-4">
+              <Form.Label>Enter cow milk quantity</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter quantity in litres"
+                value={cow_milk.quantity}
+                onChange={(e) =>
+                  setCowMilk({
+                    ...cow_milk,
+                    quantity: e.target.value,
+                  })
+                }
+              />
+            </Form.Group>
+
+            <Form.Group className="mt-2">
+              <Form.Label>Enter Fat</Form.Label>
+              <Form.Control
+                type="text"
+                value={cow_milk.fat}
+                onFocus={() => {
+                  if (!cow_milk.fat) setCowMilk({ ...cow_milk, fat: "Fat " });
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCowMilk((prev) => ({
+                    ...prev,
+                    fat: value,
+                  }));
+                }}
+              />
+            </Form.Group>
+
+            <Form.Group className="mt-2">
+              <Form.Label>Total Amount</Form.Label>
+              <Form.Control
+                type="text"
+                value={cow_milk.rate}
+                placeholder="₹ 65"
+                readOnly
+              />
+            </Form.Group>
+          </div>
+        );
+
+      case "buffalo":
+        return (
+          <div key="buffalo" className="border-top pt-3 mb-4">
+            <h5>Buffalo Milk</h5>
+
+            <Form.Group className="mt-4">
+              <Form.Label>Enter buffalo milk quantity</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter quantity in litres"
+                value={buffalo_milk.quantity}
+                onChange={(e) =>
+                  setBuffaloMilk({
+                    ...buffalo_milk,
+                    quantity: e.target.value,
+                  })
+                }
+              />
+            </Form.Group>
+
+            <Form.Group className="mt-2">
+              <Form.Label>Enter Fat</Form.Label>
+              <Form.Control
+                type="text"
+                value={buffalo_milk.fat}
+                onFocus={() => {
+                  if (!buffalo_milk.fat)
+                    setBuffaloMilk({ ...buffalo_milk, fat: "Fat " });
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBuffaloMilk((prev) => ({
+                    ...prev,
+                    fat: value,
+                  }));
+                }}
+              />
+            </Form.Group>
+
+            <Form.Group className="mt-2">
+              <Form.Label>Total Amount</Form.Label>
+              <Form.Control
+                type="text"
+                value={buffalo_milk.rate}
+                placeholder="₹ 65"
+                readOnly
+              />
+            </Form.Group>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const [dateTime, setDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDateTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleOrderNow = async (row) => {
+    setSelectedRecord(row);
+    // Ensure milk_types is always an array and parse if it's a string
+    let milkTypes = [];
+    if (row.milk_types) {
+      if (Array.isArray(row.milk_types)) {
+        milkTypes = row.milk_types;
+      } else if (typeof row.milk_types === 'string') {
+        try {
+          milkTypes = JSON.parse(row.milk_types);
+        } catch (e) {
+          console.error("Error parsing milk_types:", e);
+          milkTypes = [];
+        }
+      }
+    }
+    setSelectedMilkTypes(milkTypes);
+    setCheckedMilkTypes([]);
+    // Reset milk form states
+    setCowMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+    setBuffaloMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+    setPureMilk({ milk_type: "", quantity: "", fat: "", rate: "" });
+    
+    // Fetch farmer-specific rates for this farmer
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`/api/admin/farmer/${row.id}/rates`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        const rates = response.data.rates;
+        // Use farmer-specific rates if available, otherwise use global rates
+        setCurrentOrderRates({
+          farmer_cow_rate: rates.cow_rate,
+          farmer_buffalo_rate: rates.buffalo_rate,
+          farmer_pure_rate: rates.pure_rate,
+        });
+      } else {
+        // Fallback to global rates
+        setCurrentOrderRates(farmerRates);
+      }
+    } catch (error) {
+      console.error("Error fetching farmer-specific rates:", error);
+      // Fallback to global rates
+      setCurrentOrderRates(farmerRates);
+    }
+    
+    setShowOrderModel(true);
+  };
+
+  const handleAdvance = (row) => {
+    setSelectedRecord(row);
+    setShowDetailsModal(true);
+  };
+
+  const handleFilter = (event) => {
+    const value = event.target.value.toLowerCase();
+    setSearchTerm(value);
+
+    const filteredData = records.filter((row) => {
+      return (
+        row.full_name?.toLowerCase().includes(value) ||
+        row.address?.toLowerCase().includes(value) ||
+        row.status?.toLowerCase().includes(value)
+      );
+    });
+
+    setFilteredRecords(filteredData);
+  };
+
+  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 600);
+  const [columnPage, setColumnPage] = useState(0);
+  const [columnsPerPage, setColumnsPerPage] = useState(() => {
+    const w = window.innerWidth || 0;
+    if (w <= 600) return 3;
+    if (w <= 1024) return 4;
+    return 100;
+  });
+
+  useEffect(() => {
+    setFilteredRecords(records);
+  }, [records]);
+
+  const allColumns = [
+    {
+      id: "srNo",
+      headerLabel: "Sr No.",
+      selector: (row, index) => index + 1,
+      sortable: true,
+    },
+    {
+      id: "name",
+      headerLabel: "Farmer Name",
+      selector: (row) => row.full_name,
+      sortable: true,
+    },
+    {
+      id: "address",
+      headerLabel: "Address",
+      selector: (row) => row.address,
+      sortable: true,
+      cell: (row) => (
+        <div className="hover-container">
+          <span className="address-preview">{row.address.slice(0, 15)}...</span>
+          <div className="address-popup">{row.address}</div>
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      headerLabel: "Status",
+      selector: (row) => (
+        <Button
+          variant={row.status === "Active" ? "success" : "danger"}
+          onClick={() => handleStatusToggle(row)}
+        >
+          {row.status}
+        </Button>
+      ),
+      sortable: true,
+    },
+    {
+      id: "startDate",
+      headerLabel: "Start Date",
+      selector: (row) => {
+        const date = new Date(row.created_at);
+        return date.toLocaleDateString("en-GB");
+      },
+      sortable: true,
+    },
+    {
+      id: "order",
+      headerLabel: "milk collection",
+      cell: (row) => (
+        <Button
+          variant="info"
+          style={{
+            wordBreak: "keep-all",
+            whiteSpace: "nowrap",
+            backgroundColor: "black",
+            color: "white",
+          }}
+          onClick={() => handleOrderNow(row)}
+        >
+          milk collection
+        </Button>
+      ),
+    },
+    {
+      id: "action",
+      headerLabel: "Actions",
+      cell: (row) => (
+        <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+          <Button
+            variant="info"
+            size="sm"
+            style={{ wordBreak: "keep-all", whiteSpace: "nowrap" }}
+            onClick={() => handleAdvance(row)}
+          >
+            Advance
+          </Button>
+          <Button
+            variant="warning"
+            size="sm"
+            style={{ wordBreak: "keep-all", whiteSpace: "nowrap" }}
+            onClick={() => handleSetRates(row)}
+          >
+            Set Rates
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const effectiveColumnsPerPage = Math.min(
+    columnsPerPage,
+    allColumns.length || columnsPerPage
+  );
+  const maxColumnPage = Math.max(
+    0,
+    Math.ceil(allColumns.length / effectiveColumnsPerPage) - 1
+  );
+  const safeColumnPage = Math.min(columnPage, maxColumnPage);
+  const columnStart = safeColumnPage * effectiveColumnsPerPage;
+  const columnEnd = columnStart + effectiveColumnsPerPage;
+  const pagedColumnsRaw = allColumns.slice(columnStart, columnEnd);
+
+  const columns = useResponsiveHideableColumns(pagedColumnsRaw, {
+    resetKey: safeColumnPage,
+  });
+
+  const customStyles = {
+    headCells: {
+      style: {
+        backgroundColor: "#fcd02a",
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: "15px",
+        textAlign: "center",
+      },
+    },
+  };
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth || 0;
+      setIsSmallScreen(width <= 600);
+
+      if (width <= 600) {
+        // Use 2 columns on very small screens to avoid content being cut
+        setColumnsPerPage(2);
+      } else if (width <= 1024) {
+        setColumnsPerPage(4);
+      } else {
+        setColumnsPerPage(100);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return (
+    <div>
+      <WindowHeader dashboardText="Farmer List" />
+      <div
+        style={{
+          marginTop: isSmallScreen ? "70px" : "0px",
+        }}
+      >
+        <ToastContainer
+          stacked
+          position="top-center"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          transition={Bounce}
+        />
+        <Container fluid className="main-content mt-5">
+          <div className="row">
+            <div className="col-md-6 col-sm-12 pt-4">
+              <p>Today's Status: {dateTime.toLocaleString()} </p>
+            </div>
+            <div className="col-md-6 col-sm-12 pt-2">
+              <div className="text-end mb-3">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={handleFilter}
+                  className="w-full lg:w-96 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition duration-300 ease-in-out"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DataTable
+            columns={columns}
+            data={filteredRecords}
+            customStyles={customStyles}
+            pagination
+            highlightOnHover
+            progressPending={loading}
+            responsive
+          />
+
+          {/* Horizontal column navigation (based on screen size) */}
+          {maxColumnPage > 0 && (
+            <div className="d-flex justify-content-start align-items-center mt-2 gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage === 0}
+                onClick={() =>
+                  setColumnPage((prev) => (prev > 0 ? prev - 1 : prev))
+                }
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                disabled={safeColumnPage >= maxColumnPage}
+                onClick={() =>
+                  setColumnPage((prev) =>
+                    prev < maxColumnPage ? prev + 1 : prev
+                  )
+                }
+              >
+                ▶
+              </button>
+            </div>
+          )}
+        </Container>
+
+        <Modal show={showOrderModel} onHide={closeModal} centered>
+          <Modal.Header closeButton style={{ backgroundColor: "#ffa726" }}>
+            <Modal.Title className="text-white">milk collection</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {selectedMilkTypes && selectedMilkTypes.length > 0 ? (
+              <>
+                <div className="d-flex flex-wrap mb-3">
+                  <Form.Label className="w-100 mb-2">First Select the type of milk</Form.Label>
+                  <div className="d-flex flex-wrap gap-3">
+                    {selectedMilkTypes.map((milkType) => (
+                      <Form.Check
+                        inline
+                        key={milkType}
+                        label={milkType.charAt(0).toUpperCase() + milkType.slice(1)}
+                        type="checkbox"
+                        value={milkType}
+                        checked={checkedMilkTypes.includes(milkType)}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          if (isChecked) {
+                            setCheckedMilkTypes((prev) => [...prev, milkType]);
+
+                            // Set milk_type when selected
+                            if (milkType === "cow")
+                              setCowMilk((prev) => ({ ...prev, milk_type: "cow" }));
+                            if (milkType === "buffalo")
+                              setBuffaloMilk((prev) => ({
+                                ...prev,
+                                milk_type: "buffalo",
+                              }));
+                            if (milkType === "pure")
+                              setPureMilk((prev) => ({
+                                ...prev,
+                                milk_type: "pure",
+                              }));
+                          } else {
+                            setCheckedMilkTypes((prev) =>
+                              prev.filter((type) => type !== milkType)
+                            );
+
+                            // Clear milk_type when deselected
+                            if (milkType === "cow")
+                              setCowMilk((prev) => ({ ...prev, milk_type: "" }));
+                            if (milkType === "buffalo")
+                              setBuffaloMilk((prev) => ({
+                                ...prev,
+                                milk_type: "",
+                              }));
+                            if (milkType === "pure")
+                              setPureMilk((prev) => ({ ...prev, milk_type: "" }));
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {checkedMilkTypes.length > 0 ? (
+                  checkedMilkTypes.map((type) => renderMilkSection(type))
+                ) : (
+                  <div className="alert alert-info mt-3">
+                    Please select at least one milk type to proceed.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="alert alert-warning">
+                <strong>No milk types available for this farmer.</strong>
+                <br />
+                Please update the farmer's milk types before placing an order.
+              </div>
+            )}
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button variant="dark" onClick={() => handleSubmit()}>
+              Submit
+            </Button>
+            <Button variant="secondary" onClick={closeModal}>
+              Cancel
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal show={showConfirmation} onHide={closeConfirmModal}>
+          <Modal.Header closeButton>
+            <Modal.Title>Confirm Status Change</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>
+              Are you sure you want to change the status of{" "}
+              {selectedRecord && selectedRecord.name}?
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={closeConfirmModal}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const newStatus =
+                  selectedRecord.status === "Active" ? false : true;
+                confirmStatusChange(newStatus);
+              }}
+            >
+              Confirm
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal show={showDetailsModal} onHide={closeModal}>
+          <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
+            <Modal.Title>Add Advance Payment</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <Form.Group controlId="advance_payment">
+                <Form.Label>
+                  Advance Payment: {selectedRecord?.advance_payment || 0}
+                </Form.Label>
+                <Form.Label>Enter Advance Payment Amount</Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="Enter amount"
+                  name="advance_payment"
+                  value={formData.advance_payment}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer className="">
+            <Button
+              onClick={() => handleAdvancePayment(true)}
+              style={{ backgroundColor: "black", border: "black" }}
+            >
+              Add
+            </Button>
+            <Button
+              onClick={() => handleAdvancePayment(false)}
+              style={{ backgroundColor: "grey", border: "black" }}
+            >
+              Deduct
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Set Farmer Rates Modal */}
+        <Modal show={showRatesModal} onHide={handleCloseRatesModal} size="lg">
+          <Modal.Header closeButton style={{ backgroundColor: "#fcd02a" }}>
+            <Modal.Title>
+              Set Rates for {selectedRecord?.full_name || "Farmer"}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {loadingRates ? (
+              <div className="text-center">
+                <p>Loading rates...</p>
+              </div>
+            ) : (
+              <>
+                <div className="alert alert-info mb-3">
+                  <strong>Note:</strong> Leave a field empty to use the default (admin's global) rate for that milk type.
+                  Setting a value will override the default rate for this farmer only.
+                </div>
+
+                <Form>
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Cow Milk Rate (₹/LTR)</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use default rate"
+                      value={farmerSpecificRates.cow_rate}
+                      onChange={(e) =>
+                        setFarmerSpecificRates({
+                          ...farmerSpecificRates,
+                          cow_rate: e.target.value,
+                        })
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      {currentFarmerRates.cow_rate !== null ? (
+                        <>
+                          Current rate: ₹{currentFarmerRates.cow_rate}/LTR
+                          {currentFarmerRates.custom_cow_rate !== null ? (
+                            <span style={{ color: "#28a745", fontWeight: "bold" }}> (Custom)</span>
+                          ) : (
+                            <span> (Default)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>Current default: ₹{farmerRates.farmer_cow_rate}/LTR</>
+                      )}
+                    </Form.Text>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Buffalo Milk Rate (₹/LTR)</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use default rate"
+                      value={farmerSpecificRates.buffalo_rate}
+                      onChange={(e) =>
+                        setFarmerSpecificRates({
+                          ...farmerSpecificRates,
+                          buffalo_rate: e.target.value,
+                        })
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      {currentFarmerRates.buffalo_rate !== null ? (
+                        <>
+                          Current rate: ₹{currentFarmerRates.buffalo_rate}/LTR
+                          {currentFarmerRates.custom_buffalo_rate !== null ? (
+                            <span style={{ color: "#28a745", fontWeight: "bold" }}> (Custom)</span>
+                          ) : (
+                            <span> (Default)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>Current default: ₹{farmerRates.farmer_buffalo_rate}/LTR</>
+                      )}
+                    </Form.Text>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Pure Milk Rate (₹/LTR)</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use default rate"
+                      value={farmerSpecificRates.pure_rate}
+                      onChange={(e) =>
+                        setFarmerSpecificRates({
+                          ...farmerSpecificRates,
+                          pure_rate: e.target.value,
+                        })
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      {currentFarmerRates.pure_rate !== null ? (
+                        <>
+                          Current rate: ₹{currentFarmerRates.pure_rate}/LTR
+                          {currentFarmerRates.custom_pure_rate !== null ? (
+                            <span style={{ color: "#28a745", fontWeight: "bold" }}> (Custom)</span>
+                          ) : (
+                            <span> (Default)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>Current default: ₹{farmerRates.farmer_pure_rate}/LTR</>
+                      )}
+                    </Form.Text>
+                  </Form.Group>
+                </Form>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleCloseRatesModal}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveFarmerRates}
+              disabled={loadingRates}
+            >
+              {loadingRates ? "Saving..." : "Save Rates"}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </div>
+    </div>
+  );
+}
+
+export default Farmer_List;

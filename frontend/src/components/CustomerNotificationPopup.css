@@ -1,0 +1,96 @@
+.customer-notification-popup .modal-dialog {
+  max-width: 500px;
+}
+
+.customer-notification-popup .notification-header {
+  background-color: #343a40; /* same as site header */
+  color: white;
+  border-bottom: none;
+  padding: 20px;
+}
+
+.customer-notification-popup .notification-header .modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 1.3rem;
+}
+
+.customer-notification-popup .notification-icon {
+  font-size: 1.5rem;
+}
+
+.customer-notification-popup .notification-body {
+  padding: 30px;
+  background-color: #f8f9fa;
+}
+
+.customer-notification-popup .notification-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.customer-notification-popup .notification-text {
+  margin-bottom: 15px;
+  line-height: 1.6;
+  color: #333;
+  font-size: 1rem;
+}
+
+.customer-notification-popup .notification-text:last-child {
+  margin-bottom: 0;
+}
+
+.customer-notification-popup .notification-footer {
+  border-top: none;
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+}
+
+.customer-notification-popup .notification-button {
+  padding: 10px 30px;
+  font-weight: 600;
+  border-radius: 25px;
+  background-color: #343a40; /* same as site header */
+  border: none;
+  transition: transform 0.2s;
+}
+
+.customer-notification-popup .notification-button:hover {
+  transform: scale(1.05);
+  background-color: #23272b; /* slightly darker on hover */
+}
+
+/* Animation */
+.customer-notification-popup .modal.show .modal-dialog {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .customer-notification-popup .modal-dialog {
+    margin: 10px;
+  }
+  
+  .customer-notification-popup .notification-body {
+    padding: 20px;
+  }
+  
+  .customer-notification-popup .notification-content {
+    padding: 15px;
+  }
+}

@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables (CRITICAL - Never commit these!)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Old folder structure (kept for reference, not tracked)
+Mauli_Backend/
+Mauli_frontend/
+
+# Test files
+test-*.js
+*-test.js
+
+# Database dumps (if large)
+*.sql
+!config/*.sql
+
+# Firebase
+serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
+.temp/
+
+# Zip files
+*.zip
+backend.zip
+frontend.zip
+
+backend/serviceAccountKey.json
+backend/serviceAccountKey.json

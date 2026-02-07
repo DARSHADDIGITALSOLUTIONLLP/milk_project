@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Translate Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .test-content {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #fcd02a;
+        }
+        button {
+            background: linear-gradient(135deg, #fcd02a 0%, #ff8c00 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        #google_translate_element {
+            margin: 20px 0;
+            padding: 10px;
+            background: #fff3e0;
+            border: 2px dashed #fcd02a;
+            border-radius: 5px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Google Translate Connectivity Test</h1>
+        
+        <div class="test-content">
+            <h2>Test Content (This should translate)</h2>
+            <p>Hello! This is a test page to verify Google Translate is working.</p>
+            <p>If you can see translations appearing, it means Google Translate is accessible from your network.</p>
+        </div>
+
+        <div id="status" class="status info">
+            ⏳ Initializing Google Translate...
+        </div>
+
+        <div id="google_translate_element"></div>
+
+        <div style="margin: 20px 0;">
+            <button onclick="testTranslate('hi')">Test Hindi (हिंदी)</button>
+            <button onclick="testTranslate('mr')">Test Marathi (मराठी)</button>
+            <button onclick="testTranslate('en')">Reset to English</button>
+        </div>
+
+        <h3>Debug Information:</h3>
+        <pre id="debug-info">Loading...</pre>
+    </div>
+
+    <script type="text/javascript">
+        let initAttempts = 0;
+        const maxAttempts = 20;
+        const debugInfo = [];
+
+        function log(message) {
+            console.log(message);
+            debugInfo.push(`${new Date().toLocaleTimeString()}: ${message}`);
+            updateDebugInfo();
+        }
+
+        function updateDebugInfo() {
+            document.getElementById('debug-info').textContent = debugInfo.join('\n');
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function googleTranslateElementInit() {
+            log('📥 googleTranslateElementInit called');
+            
+            try {
+                new google.translate.TranslateElement(
+                    {
+                        pageLanguage: 'en',
+                        includedLanguages: 'en,hi,mr,gu,ta,te,kn,bn,pa,ml,or,ur',
+                        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+                    },
+                    'google_translate_element'
+                );
+                
+                log('✅ TranslateElement created');
+                
+                const checkReady = setInterval(() => {
+                    initAttempts++;
+                    const selectElement = document.querySelector('.goog-te-combo');
+                    
+                    if (selectElement) {
+                        log(`✅ Google Translate initialized successfully (${selectElement.options.length} languages)`);
+                        updateStatus('✅ Google Translate is working! Select a language from the dropdown above or use the buttons.', 'success');
+                        clearInterval(checkReady);
+                    } else {
+                        log(`⏳ Waiting for element... (${initAttempts}/${maxAttempts})`);
+                        
+                        if (initAttempts >= maxAttempts) {
+                            log('❌ Failed to initialize after max attempts');
+                            updateStatus('❌ Google Translate failed to initialize. This could be due to network restrictions, ad blockers, or firewall settings.', 'error');
+                            clearInterval(checkReady);
+                        }
+                    }
+                }, 300);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                updateStatus(`❌ Error initializing: ${error.message}`, 'error');
+            }
+        }
+
+        function testTranslate(langCode) {
+            log(`🌐 Attempting to translate to: ${langCode}`);
+            
+            const selectElement = document.querySelector('.goog-te-combo');
+            if (selectElement) {
+                selectElement.value = langCode;
+                selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+                log(`✅ Translation triggered to ${langCode}`);
+                updateStatus(`🌐 Translating to ${langCode}...`, 'info');
+            } else {
+                log('❌ Select element not found');
+                updateStatus('❌ Translation element not found. Please wait for initialization.', 'error');
+            }
+        }
+
+        // Load Google Translate script
+        log('📥 Loading Google Translate script...');
+        const script = document.createElement('script');
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.onerror = function() {
+            log('❌ Failed to load script from translate.google.com');
+            updateStatus('❌ Cannot connect to translate.google.com. Check your internet connection, firewall, or VPN settings.', 'error');
+        };
+        script.onload = function() {
+            log('✅ Script loaded successfully');
+        };
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>

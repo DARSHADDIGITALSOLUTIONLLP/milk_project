@@ -1,0 +1,160 @@
+/* Adjust the height and padding if necessary to align the elements vertically */
+.navbar-dark .navbar-brand img {
+  height: 97px; 
+}
+
+.contact-info p {
+  color: white;
+  margin: 0;
+}
+
+.navbar-dark .ml-auto {
+  margin-left: auto;
+}
+
+@media (max-width: 576px) {
+  .navbar {
+    height: 100px !important;
+  }
+}
+
+.navbar .dropdown-toggle::after {
+  /* color: white !important; Ensure the dropdown arrow is white */
+}
+#user-dropdown::after {
+  /* color: white !important; Changes the dropdown arrow to white */
+}
+
+/* Style username in dropdown for mobile and desktop */
+.user-dropdown-title {
+  display: flex;
+  align-items: center;
+  /* color: white; */
+  flex-wrap: wrap;
+  max-width: 130px;
+  word-break: break-word;
+}
+
+/* Handle long names gracefully */
+.username-text {
+  /* white-space: normal; */
+  word-break: break-word;
+  /* font-size: 14px; */
+}
+
+/* Dropdown alignment fix */
+.navbar .dropdown-menu {
+  min-width: 100px;
+  /* padding: 10px 0; */
+}
+
+/* Fix Google Translate dropdown visibility on user dashboard */
+.navbar-dark .nav-dropdown {
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important; /* Ensure vertical alignment */
+  flex-direction: row !important; /* Keep items in a row */
+}
+
+.navbar-dark {
+  overflow: visible !important;
+}
+
+.navbar-dark .container-fluid {
+  overflow: visible !important;
+}
+
+/* Ensure Google Translate aligns with user dropdown */
+.nav-dropdown .google-translate-wrapper {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: center !important;
+}
+
+/* Responsive fixes for mobile nav height and spacing */
+@media (max-width: 576px) {
+  .navbar {
+    height: auto !important;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .nav-dropdown{
+    padding-left: 20px;
+  }
+  .user-dropdown-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .username-text {
+    margin-top: 4px;
+    font-size: 13px;
+  }
+
+  .navbar-dark .navbar-brand img {
+    height: 70px; /* shrink logo on mobile */
+  }
+}
+
+/* Ensures the username and arrow don't wrap */
+.user-dropdown-title {
+  white-space: nowrap;
+}
+
+/* Make sure arrow is inline and centered */
+#user-dropdown::after {
+  vertical-align: middle;
+  margin-left: 5px;
+  /* color: white; */
+  display: inline-block;
+  position: relative;
+  top: 0;
+}
+
+/* Responsive support to avoid weird wrapping */
+@media (max-width: 576px) {
+  .username-text {
+    font-size: 14px;
+  }
+}
+
+.modal-title-responsive {
+  white-space: normal !important;  
+  word-break: break-word;          
+  max-width: 85%;                  
+  font-size: 1rem;              
+}
+
+@media (max-width: 576px) {
+  .modal-title-responsive {
+    font-size: 0.95rem;            /* Slightly smaller font on small screens */
+  }
+}
+
+/* Prevent blinking cursor on hamburger icon */
+.hamburger-icon {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: pointer !important;
+  outline: none !important;
+}
+
+.hamburger-icon * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.hamburger-icon:focus,
+.hamburger-icon:active,
+.hamburger-icon:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
